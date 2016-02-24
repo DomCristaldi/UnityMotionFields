@@ -62,42 +62,11 @@ public class MotionField_EditorWindow : EditorWindow {
 
 
             if (GUILayout.Button("Analyze Keyframes")) {
-                AnimationCurve extractedCurve = null;
-                List<AnimationCurve> embeddedCurves = new List<AnimationCurve>();
+                //List<AnimationCurve> embeddedCurves = new List<AnimationCurve>();
 
+                AnimationCurve[] embeddedCurves = MotionFieldCreator.FindAnimCurves(selectedMotionField.animClipInfoList.Select(x => x.animClip).ToArray());
 
-                try {
-                    //AnimationCurve[] embeddedCurves =
-                    EditorCurveBinding[] embeddedCuveBindings = AnimationUtility.GetCurveBindings(selectedMotionField.animClipInfoList[0].animClip);
-
-                    foreach (EditorCurveBinding eCB in embeddedCuveBindings) {
-                        embeddedCurves.Add(AnimationUtility.GetEditorCurve(selectedMotionField.animClipInfoList[0].animClip,
-                                                                           eCB));
-                    }
-
-
-                    /*
-                    List<AnimationCurve> embeddedCurves = embeddedCuveBindings.ToList<EditorCurveBinding>().SelectMany(x => AnimationUtility.GetEditorCurve(selectedMotionField.animClipInfoList[0].animClip,
-                                                                                                                                                            x.)
-                    */
-
-                    extractedCurve = AnimationUtility.GetEditorCurve(selectedMotionField.animClipInfoList[0].animClip,
-                                                                                AnimationUtility.GetCurveBindings(selectedMotionField.animClipInfoList[0].animClip)[0]);
-
-
-                }
-                catch {
-                    Debug.LogErrorFormat("Motion Field Author: Error with retrieving Animation Clips from supplied Motion Field {0}", selectedMotionField.name);
-                }
-                finally {
-                    if (extractedCurve != null) {
-                        //Debug.Log(extractedCurve.keys.Length);
-                        Debug.Log(embeddedCurves.Count);
-     
-                    }
-                }
-
-
+                Debug.Log(embeddedCurves.Length);
             }
 
         }
