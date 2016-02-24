@@ -34,11 +34,6 @@ public class SO_MotionField_Editor : Editor {
 
         reorderAnimList.drawElementCallback = (Rect rect, int index, bool isActive, bool isFocused) => {
             var element = reorderAnimList.serializedProperty.GetArrayElementAtIndex(index);
-
-            //EditorGUILayout.BeginHorizontal();
-            //GUILayout.BeginArea(rect);
-
-            //EditorGUI.ObjectField(rect, element, typeof(AnimationClip));
             
             EditorGUI.PropertyField(new Rect(rect.x, rect.y, 60, EditorGUIUtility.singleLineHeight),
                                     element.FindPropertyRelative("useClip"),
@@ -47,13 +42,6 @@ public class SO_MotionField_Editor : Editor {
             EditorGUI.PropertyField(new Rect(rect.x + 60, rect.y, rect.width - 60, EditorGUIUtility.singleLineHeight),
                                     element.FindPropertyRelative("animClip"),
                                     GUIContent.none);
-
-            //EditorGUILayout.PropertyField(element.FindPropertyRelative("useClip"));
-            //EditorGUILayout.PropertyField(element.FindPropertyRelative("animClip"));
-
-
-            //EditorGUILayout.EndHorizontal();
-            //GUILayout.EndArea();
 
         };
 
