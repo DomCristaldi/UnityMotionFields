@@ -71,7 +71,7 @@ namespace AnimationMotionFields {
                 }
 
                 if (GUILayout.Button("Generate Poses")) {
-                    MotionFieldCreator.CreateAnimationPoses(selectedMotionField.animClipInfoList[0].animClip, 1);
+                    MotionFieldCreator.CreateAnimationPoses(selectedMotionField.animClipInfoList[0].animClip, 1);//HARD CODED FIRST ANIM CLIP
                 }
 
             }
