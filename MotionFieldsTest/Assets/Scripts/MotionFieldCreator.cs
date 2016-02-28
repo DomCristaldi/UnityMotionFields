@@ -147,15 +147,11 @@ namespace AnimationMotionFields {
                 int bindingcount = 0;
                 foreach (EditorCurveBinding curveBinding in AnimationUtility.GetCurveBindings(clip)) {
 
-                    //Debug.Log(curveBinding.path);
-
                     extractedUniquePaths.Add(curveBinding.propertyName);
                     ++bindingcount;
                 }
-                //Debug.LogFormat("bindings: {0}", bindingcount);
             }
 
-            //Debug.LogFormat("HashLength: {0} | ListLenghth: {1}", extractedUniquePaths.Count, extractedUniquePaths.ToArray().Length);
 
             return extractedUniquePaths.ToArray<string>();
         }
@@ -164,8 +160,7 @@ namespace AnimationMotionFields {
         public static float[] ExtractKeyframe(AnimationClip animClipRefernce, float timestamp, string[] totalUniquePaths) {
         //public static float[] ExtractKeyframe(AnimationClip animClipRefernce, float timestamp) {
 
-            //dump all strings into hash set for quick lookup
-            //HashSet<string> totalUniquePaths_HashSet = new HashSet<string>(totalUniquePaths);
+            //convert the totalUniquePaths[] to a List for quick, convenient lookup
             List<string> totalUniquePaths_List = new List<string>(totalUniquePaths);
 
             //array we return. it will contain all the floats for the curve data a a time slice of the animation clip
@@ -179,44 +174,21 @@ namespace AnimationMotionFields {
             foreach (EditorCurveBinding curveBinding in AnimationUtility.GetCurveBindings(animClipRefernce)) {
                 //float[] motionPoseCoords = Enumerable.Range<float>(0.0f, totalUniquePaths.Length).Select(x => x = 0.0f)
 
-                if (totalUniquePaths_List.Contains(curveBinding.path)) {
-                    motionPoseCoords[totalUniquePaths_List.IndexOf(curveBinding.path)] = AnimationUtility.GetEditorCurve(animClipRefernce, curveBinding).Evaluate(timestamp);
+                if (totalUniquePaths_List.Contains(curveBinding.propertyName)) {
+                    //Debug.Log("timestamp: " + timestamp);
+
+                    motionPoseCoords[totalUniquePaths_List.IndexOf(curveBinding.propertyName)] 
+                        = AnimationUtility.GetEditorCurve(animClipRefernce, curveBinding).Evaluate(timestamp);
                 }
 
             }
 
             return motionPoseCoords;
         }
-
-        
-        public static float[] ExtractAllKeyframes(AnimationClip animClipRefernce, string[] totalUniquePaths) {
-            List<string> totalUniquePaths_List = new List<string>(totalUniquePaths);
-
-            //array we return. it will contain all the floats for the curve data a a time slice of the animation clip
-            float[] motionPoseCoords = new float[totalUniquePaths.Length];
-
-            //initialize all values of the pose coordinates to 0
-            for (int i = 0; i < motionPoseCoords.Length; ++i) {
-                motionPoseCoords[i] = 0.0f;
-            }
-
-            foreach (EditorCurveBinding curveBinding in AnimationUtility.GetCurveBindings(animClipRefernce)) {
-                //float[] motionPoseCoords = Enumerable.Range<float>(0.0f, totalUniquePaths.Length).Select(x => x = 0.0f)
-
-                if (totalUniquePaths_List.Contains(curveBinding.path)) {
-                    //motionPoseCoords[totalUniquePaths_List.IndexOf(curveBinding.path)] = ExtractKeyframe(animClipRefernce,  //AnimationUtility.GetEditorCurve(animClipRefernce, curveBinding).Evaluate(timestamp);
-
-                }
-
-            }
-
-            return motionPoseCoords;
-        }
-        
 
         public static MotionPose[] GenerateMotionPoses(AnimationClip animClip, int sampleStepSize, string[] totalUniquePaths) {
 
-            Debug.LogFormat("Total Unique Paths: {0}", totalUniquePaths.Length);
+            //Debug.LogFormat("Total Unique Paths: {0}", totalUniquePaths.Length);
 
             List<MotionPose> motionPoses = new List<MotionPose>();
 
@@ -232,6 +204,8 @@ namespace AnimationMotionFields {
                     motionPoseKeyframes[i] = ExtractKeyframe(animClip, currentFramePointer, totalUniquePaths);
                 }
                 */
+
+                //*******
                 motionPoses.Add(new MotionPose(animClip, currentFramePointer, motionPoseKeyframes));
 
                 currentFramePointer += frameStep * sampleStepSize;
