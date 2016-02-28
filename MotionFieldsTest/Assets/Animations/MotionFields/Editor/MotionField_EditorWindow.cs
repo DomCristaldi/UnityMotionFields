@@ -16,8 +16,8 @@ namespace AnimationMotionFields {
 
         private ReorderableList reorderableAnimClips;
 
-        //[SerializeField]
-
+        [SerializeField]
+        public int frameResolution = 1;
     
 
         [MenuItem("MotionFields/Motion Field Author")]
@@ -61,8 +61,8 @@ namespace AnimationMotionFields {
 
                 }
 
-
-                if (GUILayout.Button("Analyze Keyframes")) {
+                GUILayout.BeginHorizontal();
+                if (GUILayout.Button("Analyze Curves")) {
                     //List<AnimationCurve> embeddedCurves = new List<AnimationCurve>();
 
                     AnimationCurve[] embeddedCurves = MotionFieldCreator.FindAnimCurves(selectedMotionField.animClipInfoList.Select(x => x.animClip).ToArray());
@@ -70,13 +70,38 @@ namespace AnimationMotionFields {
                     Debug.LogFormat("Total Curves: {0}", embeddedCurves.Length);
                 }
 
+                if (GUILayout.Button("Analyze Keyframes")) {
+
+                    Debug.LogFormat("Total Keyframes: {0}", 
+                                    selectedMotionField.animClipInfoList[0].animClip.length * selectedMotionField.animClipInfoList[0].animClip.frameRate);
+                }
+                GUILayout.EndHorizontal();
+
+
+                GUILayout.BeginHorizontal();
+
                 if (GUILayout.Button("Generate Poses")) {
-                    MotionFieldCreator.CreateAnimationPoses(selectedMotionField.animClipInfoList[0].animClip, 1);//HARD CODED FIRST ANIM CLIP
+                    //MotionFieldCreator.CreateAnimationPoses(selectedMotionField.animClipInfoList[0].animClip, frameResolution);//HARD CODED FIRST ANIM CLIP
+                    //MotionFieldCreator.CreateAnimationPoses(selectedMotionField.animClipInfoList[0].animClip, frameResolution);//HARD CODED FIRST ANIM CLIP
+                    selectedMotionField.GenerateMotionField(frameResolution);
                 }
 
-            }
+                frameResolution = EditorGUILayout.IntField("Frame Resolution ", frameResolution);
+                if (frameResolution < 1) { frameResolution = 1; }
 
-        
+                GUILayout.EndHorizontal();
+            }
+            /*
+            if (GUILayout.Button("Save Test")) {
+                AnimationClip newAnim = new AnimationClip();
+
+                MotionFieldCreator.SaveAnimPose(newAnim, 20, "bloop");
+            }
+            */
+
+            if (GUILayout.Button("print path")) {
+                selectedMotionField.animClipInfoList[0].PrintPathTest();
+            }
 
             EditorGUILayout.EndVertical();
 

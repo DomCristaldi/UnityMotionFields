@@ -1,5 +1,6 @@
 ﻿using UnityEngine;
 using System.Collections.Generic;
+using System.Linq;
 
 #if UNITY_EDITOR
 using UnityEditor;
@@ -12,9 +13,21 @@ namespace AnimationMotionFields {
 
     [System.Serializable]
     public class MotionPose {
-        public AnimationClip[] poses;
+
+        public MotionPose(AnimationClip animClipRef, float timestamp, float[] keyframeData) {
+            this.animClipRef = animClipRef;
+            this.timestamp = timestamp;
+            this.keyframeData = keyframeData;
+        }
+
+        //public AnimationClip[] poses;
+        public AnimationClip animClipRef;
+        public float timestamp;
+
+        public float[] keyframeData;
 
         public int frameSampleRate;//sampel rate that was used to create these poses
+
     }
 
     [System.Serializable]
@@ -24,7 +37,19 @@ namespace AnimationMotionFields {
 
         public MotionPose[] motionPoses;//all the poses generated for this animation clip
 
+        public int frameSampleRate;//sampel rate that was used to create these poses
 
+        public void GenerateMotionPoses(int samplingResolution, string[] totalAnimPaths) {
+            motionPoses = MotionFieldCreator.GenerateMotionPoses(animClip,
+                                                                 samplingResolution,
+                                                                 totalAnimPaths);
+        }
+
+        public void PrintPathTest() {
+            foreach (EditorCurveBinding ecb in AnimationUtility.GetCurveBindings(animClip)) {
+                Debug.Log("path " + ecb.propertyName);
+            }
+        }
     }
 
 
@@ -33,11 +58,22 @@ namespace AnimationMotionFields {
 
         public List<AnimClipInfo> animClipInfoList;
 
+        public void GenerateMotionField(int samplingResolution) {
+
+            Debug.LogFormat("Total things: {0}", MotionFieldCreator.GetUniquePaths(animClipInfoList.Select(x => x.animClip).ToArray()).Length);
+
+            foreach (AnimClipInfo clipInfo in animClipInfoList) {
+                clipInfo.GenerateMotionPoses(samplingResolution,
+                                             MotionFieldCreator.GetUniquePaths(animClipInfoList.Select(x => x.animClip).ToArray()));
+
+            }
+        }
+        
 
     }
 
 
-
+    /*
     #if UNITY_EDITOR
     [CustomEditor(typeof(SO_MotionField))]
     public class SO_MotionField_Editor : Editor {
@@ -91,5 +127,6 @@ namespace AnimationMotionFields {
 
     }
     #endif
+    */
 
 }
