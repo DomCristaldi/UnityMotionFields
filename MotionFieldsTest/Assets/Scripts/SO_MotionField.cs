@@ -58,19 +58,57 @@ namespace AnimationMotionFields {
 
         public List<AnimClipInfo> animClipInfoList;
 
+		public KDTreeDLL.KDTree kd;
+
         public void GenerateMotionField(int samplingResolution) {
 
-            Debug.LogFormat("Total things: {0}", MotionFieldCreator.GetUniquePaths(animClipInfoList.Select(x => x.animClip).ToArray()).Length);
+            //Debug.LogFormat("Total things: {0}", MotionFieldCreator.GetUniquePaths(animClipInfoList.Select(x => x.animClip).ToArray()).Length);
+
+			string[] uniquePaths = MotionFieldCreator.GetUniquePaths(animClipInfoList.Select(x => x.animClip).ToArray());
 
             foreach (AnimClipInfo clipInfo in animClipInfoList) {
-                clipInfo.GenerateMotionPoses(samplingResolution,
-                                             MotionFieldCreator.GetUniquePaths(animClipInfoList.Select(x => x.animClip).ToArray()));
-
+                clipInfo.GenerateMotionPoses(samplingResolution, uniquePaths);
             }
-        }
-        
 
+			GenerateKDTree (uniquePaths.Length);
+        }
+
+		public void GenerateKDTree(int dim){
+			
+			kd = new KDTreeDLL.KDTree(dim); 
+
+			foreach (AnimClipInfo clipinfo in animClipInfoList) {
+			
+				foreach (MotionPose pose in clipinfo.motionPoses) {
+			
+					NodeData data = new NodeData (pose.animClipRef.name, pose.timestamp);
+					double[] pos = pose.keyframeData.Select(x => System.Convert.ToDouble(x)).ToArray();
+
+					kd.insert (pos, data);
+				}
+			}
+		}
+
+		public NodeData[] NearestNeighbor(float[] float_pos, int num_neighbors = 1){
+			double[] pos = float_pos.Select (x => System.Convert.ToDouble (x)).ToArray ();
+			object[] nn_data = kd.nearest (pos, num_neighbors);
+			NodeData[] data = (NodeData[])nn_data;
+
+			return data;
+		}
+			
     }
+
+	public class NodeData{
+		public string clipId;
+		public int timeSamp;
+
+		public NodeData(string id, int time){
+			this.clipId = id;
+			this.timeSamp = time;
+		}
+	}
+
 
 
     /*
