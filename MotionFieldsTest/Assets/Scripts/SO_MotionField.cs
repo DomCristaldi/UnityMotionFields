@@ -101,9 +101,9 @@ namespace AnimationMotionFields {
 
 	public class NodeData{
 		public string clipId;
-		public int timeSamp;
+		public float timeSamp;
 
-		public NodeData(string id, int time){
+		public NodeData(string id, float time){
 			this.clipId = id;
 			this.timeSamp = time;
 		}
