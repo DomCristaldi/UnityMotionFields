@@ -77,6 +77,8 @@ namespace AnimationMotionFields {
 			
 			kd = new KDTreeDLL.KDTree(dim); 
 
+			Debug.Log ("tree made with " + dim + " dimensions");
+
 			foreach (AnimClipInfo clipinfo in animClipInfoList) {
 			
 				foreach (MotionPose pose in clipinfo.motionPoses) {
@@ -84,16 +86,33 @@ namespace AnimationMotionFields {
 					NodeData data = new NodeData (pose.animClipRef.name, pose.timestamp);
 					double[] pos = pose.keyframeData.Select(x => System.Convert.ToDouble(x)).ToArray();
 
-					kd.insert (pos, data);
+					string stuff = "Inserting id:" + data.clipId + " , time: " + data.timeStamp.ToString () + "  pos:(";
+					foreach(double p in pos){ stuff += p.ToString() + ", ";  }
+					Debug.Log (stuff + ")");
+
+					try
+					{
+						kd.insert (pos, data);
+					}
+					catch (KDTreeDLL.KeyDuplicateException e)
+					{
+						Debug.Log("Duplicate pos! skip inserting pt.");
+					}
 				}
 			}
+
+			Debug.Log ("tree generated");
 		}
 
-		public NodeData[] NearestNeighbor(float[] float_pos, int num_neighbors = 1){
+		public List<NodeData> NearestNeighbor(float[] float_pos, int num_neighbors = 1){
+
 			double[] pos = float_pos.Select (x => System.Convert.ToDouble (x)).ToArray ();
 			object[] nn_data = kd.nearest (pos, num_neighbors);
-			NodeData[] data = (NodeData[])nn_data;
 
+			List<NodeData> data = new List<NodeData>();
+			foreach(object obj in nn_data){
+				data.Add((NodeData) obj);
+			}
 			return data;
 		}
 			
@@ -101,11 +120,11 @@ namespace AnimationMotionFields {
 
 	public class NodeData{
 		public string clipId;
-		public float timeSamp;
+		public float timeStamp;
 
 		public NodeData(string id, float time){
 			this.clipId = id;
-			this.timeSamp = time;
+			this.timeStamp = time;
 		}
 	}
 
