@@ -6,7 +6,7 @@ using System.Linq;
 namespace AnimationMotionFields {
 
 
-    public static class MotionFieldCreator {
+    public static class MotionFieldUtility {
 
 
         //public static void CreateMotionField(ref SO_MotionField motionField, )
@@ -156,7 +156,7 @@ namespace AnimationMotionFields {
             return extractedUniquePaths.ToArray<string>();
         }
 
-        //RETURN AN ARRAY OF ALL THE FLOATS AT A TIMESLICE OF THE SUPPLIED ANIMATION CLIP
+//RETURN AN ARRAY OF ALL THE FLOATS AT A TIMESLICE OF THE SUPPLIED ANIMATION CLIP
         public static float[] ExtractKeyframe(AnimationClip animClipRefernce, float timestamp, string[] totalUniquePaths) {
             //public static float[] ExtractKeyframe(AnimationClip animClipRefernce, float timestamp) {
 
@@ -188,6 +188,17 @@ namespace AnimationMotionFields {
             return motionPoseCoords;
         }
 
+        public static void DetermineKeyframeVelocities(MotionFieldController motionField, bool isLoop) {
+
+        }
+
+/// <summary>
+/// Generates all Motion Poses for the supplied Animation Clip
+/// </summary>
+/// <param name="animClip">Clip to generate Motion Poses from</param>
+/// <param name="sampleStepSize">How many frames to skip when generating (Warning: smaller numbers is longer time, must be greater than 0)</param>
+/// <param name="totalUniquePaths">All the paths from all the Animation Clips in the Motion Field. Get using MotionFieldUtility().GetUniquePaths()</param>
+/// <returns></returns>
         public static MotionPose[] GenerateMotionPoses(AnimationClip animClip, int sampleStepSize, string[] totalUniquePaths) {
 
             //Debug.LogFormat("Total Unique Paths: {0}", totalUniquePaths.Length);
@@ -201,6 +212,7 @@ namespace AnimationMotionFields {
             while (currentFrameTimePointer <= ((animClip.length * animClip.frameRate) - frameStep) / animClip.frameRate) {
 
                 float[] motionPoseKeyframes = ExtractKeyframe(animClip, currentFrameTimePointer, totalUniquePaths);
+                                
                 /*
                 for (int i = 0; i < totalUniquePaths.Length; ++i) {
                     motionPoseKeyframes[i] = ExtractKeyframe(animClip, currentFramePointer, totalUniquePaths);

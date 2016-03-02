@@ -9,7 +9,7 @@ namespace AnimationMotionFields {
     public class MotionField_EditorWindow : EditorWindow {
 
         [SerializeField]
-        public SO_MotionField selectedMotionField;
+        public MotionFieldController selectedMotionField;
 
         //[SerializeField]
         //public List<AnimationClip> animClips;
@@ -49,7 +49,7 @@ namespace AnimationMotionFields {
             }
             */
             //OBJECT FIELD FOR THE MOTION FIELD
-            selectedMotionField = (SO_MotionField) EditorGUILayout.ObjectField("Motion Field: ", selectedMotionField, typeof(SO_MotionField), false);
+            selectedMotionField = (MotionFieldController) EditorGUILayout.ObjectField("Motion Field: ", selectedMotionField, typeof(MotionFieldController), false);
 
 
             EditorGUILayout.EndHorizontal();

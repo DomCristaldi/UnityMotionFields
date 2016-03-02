@@ -12,19 +12,44 @@ using UnityEditorInternal;
 namespace AnimationMotionFields {
 
     [System.Serializable]
+    public class KeyframeData {
+        public float value;
+        public float inVelocity;
+        public float outVelocity;
+
+        public KeyframeData(float value = 0.0f, float inVelocity = 0.0f, float outVelocity = 0.0f) {
+            this.value = value;
+            this.inVelocity = inVelocity;
+            this.outVelocity = outVelocity;
+        }
+    }
+
+    [System.Serializable]
     public class MotionPose {
 
-        public MotionPose(AnimationClip animClipRef, float timestamp, float[] keyframeData) {
+        public MotionPose(AnimationClip animClipRef, float timestamp, KeyframeData[] keyframeData) {
             this.animClipRef = animClipRef;
             this.timestamp = timestamp;
             this.keyframeData = keyframeData;
+        }
+
+        public MotionPose(AnimationClip animClipRef, float timestamp, float[] keyframeValueData) {
+            this.animClipRef = animClipRef;
+            this.timestamp = timestamp;
+            this.keyframeData = new KeyframeData[keyframeValueData.Length];//initialize array length
+
+            for (int i = 0; i < keyframeData.Length; ++i) {
+                //must create object so it exists in the array
+                keyframeData[i] = new KeyframeData(value:keyframeValueData[i]);
+            }
         }
 
         //public AnimationClip[] poses;
         public AnimationClip animClipRef;
         public float timestamp;
 
-        public float[] keyframeData;
+        //public float[] keyframeData;
+        public KeyframeData[] keyframeData;
 
         public int frameSampleRate;//sampel rate that was used to create these poses
 
@@ -40,7 +65,7 @@ namespace AnimationMotionFields {
         public int frameSampleRate;//sampel rate that was used to create these poses
 
         public void GenerateMotionPoses(int samplingResolution, string[] totalAnimPaths) {
-            motionPoses = MotionFieldCreator.GenerateMotionPoses(animClip,
+            motionPoses = MotionFieldUtility.GenerateMotionPoses(animClip,
                                                                  samplingResolution,
                                                                  totalAnimPaths);
         }
@@ -54,7 +79,7 @@ namespace AnimationMotionFields {
 
 
     [CreateAssetMenu]
-    public class SO_MotionField : ScriptableObject {
+    public class MotionFieldController : ScriptableObject {
 
         public List<AnimClipInfo> animClipInfoList;
 
@@ -64,10 +89,15 @@ namespace AnimationMotionFields {
 
             //Debug.LogFormat("Total things: {0}", MotionFieldCreator.GetUniquePaths(animClipInfoList.Select(x => x.animClip).ToArray()).Length);
 
-			string[] uniquePaths = MotionFieldCreator.GetUniquePaths(animClipInfoList.Select(x => x.animClip).ToArray());
+			string[] uniquePaths = MotionFieldUtility.GetUniquePaths(animClipInfoList.Select(x => x.animClip).ToArray());
 
             foreach (AnimClipInfo clipInfo in animClipInfoList) {
-                clipInfo.GenerateMotionPoses(samplingResolution, uniquePaths);
+                if (!clipInfo.useClip) {//only generate motion poses for the selected animations
+                    clipInfo.motionPoses = new MotionPose[] { };
+                }
+                else {
+                    clipInfo.GenerateMotionPoses(samplingResolution, uniquePaths);
+                }
             }
 
 			GenerateKDTree (uniquePaths.Length);
@@ -84,7 +114,8 @@ namespace AnimationMotionFields {
 				foreach (MotionPose pose in clipinfo.motionPoses) {
 			
 					NodeData data = new NodeData (pose.animClipRef.name, pose.timestamp);
-					double[] pos = pose.keyframeData.Select(x => System.Convert.ToDouble(x)).ToArray();
+                    //extract all the values from the Motion Field Controller's Keyframe Datas and convert them to a list of doubles
+					double[] pos = pose.keyframeData.Select(x => System.Convert.ToDouble(x.value)).ToArray();//hot damn LINQ
 
 					string stuff = "Inserting id:" + data.clipId + " , time: " + data.timeStamp.ToString () + "  pos:(";
 					foreach(double p in pos){ stuff += p.ToString() + ", ";  }
