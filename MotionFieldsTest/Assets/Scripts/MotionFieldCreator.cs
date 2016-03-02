@@ -213,8 +213,6 @@ namespace AnimationMotionFields {
                 currentFrameTimePointer += frameStep * sampleStepSize;
             }
 
-            Debug.LogFormat("clip length: {0}", animClip.length);
-
             //Debug.LogFormat("Frame Count: {0} | Aggregate: {1}", frameCount, currentFramePointer);
             //Debug.LogFormat("Aggregate: {0} | Clip Length: {1}", currentFramePointer / animClip.frameRate, animClip.length);
 
