@@ -158,7 +158,9 @@ namespace AnimationMotionFields {
 
         //RETURN AN ARRAY OF ALL THE FLOATS AT A TIMESLICE OF THE SUPPLIED ANIMATION CLIP
         public static float[] ExtractKeyframe(AnimationClip animClipRefernce, float timestamp, string[] totalUniquePaths) {
-        //public static float[] ExtractKeyframe(AnimationClip animClipRefernce, float timestamp) {
+            //public static float[] ExtractKeyframe(AnimationClip animClipRefernce, float timestamp) {
+
+            Debug.LogFormat("timestamp: {0}", timestamp);
 
             //convert the totalUniquePaths[] to a List for quick, convenient lookup
             List<string> totalUniquePaths_List = new List<string>(totalUniquePaths);
@@ -193,12 +195,12 @@ namespace AnimationMotionFields {
             List<MotionPose> motionPoses = new List<MotionPose>();
 
             float frameStep = 1.0f / animClip.frameRate;//time for one animation frame
-            float currentFramePointer = 0.0f;
+            float currentFrameTimePointer = 0.0f;
 
             //MOVE ACROSS ANIMATION CLIP FRAME BY FRAME
-            while (currentFramePointer <= (animClip.length * animClip.frameRate) - frameStep) {
+            while (currentFrameTimePointer <= ((animClip.length * animClip.frameRate) - frameStep) / animClip.frameRate) {
 
-                float[] motionPoseKeyframes /*= new float[totalUniquePaths.Length];*/ = ExtractKeyframe(animClip, currentFramePointer, totalUniquePaths);
+                float[] motionPoseKeyframes = ExtractKeyframe(animClip, currentFrameTimePointer, totalUniquePaths);
                 /*
                 for (int i = 0; i < totalUniquePaths.Length; ++i) {
                     motionPoseKeyframes[i] = ExtractKeyframe(animClip, currentFramePointer, totalUniquePaths);
@@ -206,10 +208,12 @@ namespace AnimationMotionFields {
                 */
 
                 //*******
-                motionPoses.Add(new MotionPose(animClip, currentFramePointer, motionPoseKeyframes));
+                motionPoses.Add(new MotionPose(animClip, currentFrameTimePointer, motionPoseKeyframes));
 
-                currentFramePointer += frameStep * sampleStepSize;
+                currentFrameTimePointer += frameStep * sampleStepSize;
             }
+
+            Debug.LogFormat("clip length: {0}", animClip.length);
 
             //Debug.LogFormat("Frame Count: {0} | Aggregate: {1}", frameCount, currentFramePointer);
             //Debug.LogFormat("Aggregate: {0} | Clip Length: {1}", currentFramePointer / animClip.frameRate, animClip.length);

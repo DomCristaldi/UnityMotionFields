@@ -56,11 +56,7 @@ namespace AnimationMotionFields {
 
             if (selectedMotionField != null) {
                 //reorderableAnimClips.DoLayoutList();
-
-                if (GUILayout.Button("Create Test Clip")) {
-
-                }
-
+                /*
                 GUILayout.BeginHorizontal();
                 if (GUILayout.Button("Analyze Curves")) {
                     //List<AnimationCurve> embeddedCurves = new List<AnimationCurve>();
@@ -76,13 +72,11 @@ namespace AnimationMotionFields {
                                     selectedMotionField.animClipInfoList[0].animClip.length * selectedMotionField.animClipInfoList[0].animClip.frameRate);
                 }
                 GUILayout.EndHorizontal();
-
+                */
 
                 GUILayout.BeginHorizontal();
 
                 if (GUILayout.Button("Generate Poses")) {
-                    //MotionFieldCreator.CreateAnimationPoses(selectedMotionField.animClipInfoList[0].animClip, frameResolution);//HARD CODED FIRST ANIM CLIP
-                    //MotionFieldCreator.CreateAnimationPoses(selectedMotionField.animClipInfoList[0].animClip, frameResolution);//HARD CODED FIRST ANIM CLIP
                     selectedMotionField.GenerateMotionField(frameResolution);
                 }
 
@@ -91,13 +85,6 @@ namespace AnimationMotionFields {
 
                 GUILayout.EndHorizontal();
             }
-            /*
-            if (GUILayout.Button("Save Test")) {
-                AnimationClip newAnim = new AnimationClip();
-
-                MotionFieldCreator.SaveAnimPose(newAnim, 20, "bloop");
-            }
-            */
 
             if (GUILayout.Button("print path")) {
                 selectedMotionField.animClipInfoList[0].PrintPathTest();
