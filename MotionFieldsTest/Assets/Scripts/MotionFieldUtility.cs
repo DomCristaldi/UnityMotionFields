@@ -8,7 +8,7 @@ namespace AnimationMotionFields {
     public enum VelocityCalculationMode {
         DropLastFrame = 0,
         LoopToFirstFrame = 1,
-        UseSecondToLastAsRefrence = 2,
+        UseVelocityFromSecondToLastFrame = 2,
         SetLastFrameToZero = 3,
     }
 
@@ -86,6 +86,15 @@ namespace AnimationMotionFields {
                 case VelocityCalculationMode.DropLastFrame:
                     return DetermineKeyframeComponentVelocities_DropLastFrame(motionPoses);
 
+                case VelocityCalculationMode.LoopToFirstFrame:
+                    return DetermineKeyframeComponentVelocities_LoopToFirstFrame(motionPoses);
+
+                case VelocityCalculationMode.UseVelocityFromSecondToLastFrame:
+                    return DetermineKeyframeComponentVelocities_UseVelocityFromSecondToLastFrame(motionPoses);
+
+                case VelocityCalculationMode.SetLastFrameToZero:
+                    return DetermineKeyframeComponentVelocities_SetLastFrameToZero(motionPoses);
+
                 default:
                     goto case VelocityCalculationMode.DropLastFrame;
             }
@@ -95,19 +104,10 @@ namespace AnimationMotionFields {
             for (int i = 0; i < motionPoses.Length - 1; ++i) {//loop through all values in the keyframe data, ignore the last one
                 for (int j = 0; j < motionPoses[i].keyframeData.Length; ++j) {//move across all the KeyframeData within the current Motion Pose
 
-                    //Calculate the velocity by subtracting the next value from the current value
+                    //Calculate the velocity by subtracting the current value from the next value
                     motionPoses[i].keyframeData[j].inVelocity = motionPoses[i + 1].keyframeData[j].value - motionPoses[i].keyframeData[j].value;
                 }
             }
-
-            //Remove last frame from the Motion Pose
-            /*
-            MotionPose[] mpReturnArray = new MotionPose[motionPoses.Length - 1];
-            for (int i = 0; i < mpReturnArray.Length; ++i) {
-                mpReturnArray[i] = motionPoses[i];
-            }
-            return mpReturnArray;
-            */
             
             List<MotionPose> mpList = motionPoses.ToList<MotionPose>();
             mpList.RemoveAt(mpList.Count - 1);
@@ -116,13 +116,69 @@ namespace AnimationMotionFields {
 
         }
 
-/// <summary>
-/// Generates all Motion Poses for the supplied Animation Clip
-/// </summary>
-/// <param name="animClip">Clip to generate Motion Poses from</param>
-/// <param name="sampleStepSize">How many frames to skip when generating (Warning: smaller numbers is longer time, must be greater than 0)</param>
-/// <param name="totalUniquePaths">All the paths from all the Animation Clips in the Motion Field. Get using MotionFieldUtility().GetUniquePaths()</param>
-/// <returns></returns>
+        private static MotionPose[] DetermineKeyframeComponentVelocities_LoopToFirstFrame(MotionPose[] motionPoses) {
+            for (int i = 0; i < motionPoses.Length; ++i) {//loop through all values in the keyframe data
+                for (int j = 0; j < motionPoses[i].keyframeData.Length; ++j) {//move across all the KeyframeData within the current Motion Pose
+
+                    //SPECIAL CASE
+                    if (i == motionPoses.Length - 1) {//do the velocity calculation using the first frame as the next frame for the math
+                        motionPoses[i].keyframeData[j].inVelocity = motionPoses[0].keyframeData[j].value - motionPoses[i].keyframeData[j].value;
+                    }
+                    //BUSINESS AS USUAL
+                    else {//Calculate the velocity by subtracting the current value from the next value
+                        motionPoses[i].keyframeData[j].inVelocity = motionPoses[i + 1].keyframeData[j].value - motionPoses[i].keyframeData[j].value;
+                    }
+                }
+            }
+
+            return motionPoses;
+        }
+
+        private static MotionPose[] DetermineKeyframeComponentVelocities_UseVelocityFromSecondToLastFrame(MotionPose[] motionPoses) {
+            for (int i = 0; i < motionPoses.Length; ++i) {//loop through all values in the keyframe data
+                for (int j = 0; j < motionPoses[i].keyframeData.Length; ++j) {//move across all the KeyframeData within the current Motion Pose
+
+                    //SPECIAL CASE
+                    if (i == motionPoses.Length - 1) {//we're at the end of the array, use the value from the frame before it
+                        motionPoses[i].keyframeData[j].inVelocity = motionPoses[i - 1].keyframeData[j].inVelocity;
+                    }
+                    //BUSINESS AS USUAL
+                    else {//Calculate the velocity by subtracting the current value from the next value
+                        motionPoses[i].keyframeData[j].inVelocity = motionPoses[i + 1].keyframeData[j].value - motionPoses[i].keyframeData[j].value;
+                    }
+                }
+            }
+
+            return motionPoses;
+        }
+
+        private static MotionPose[] DetermineKeyframeComponentVelocities_SetLastFrameToZero(MotionPose[] motionPoses) {
+            for (int i = 0; i < motionPoses.Length; ++i) {//loop through all values in the keyframe data
+                for (int j = 0; j < motionPoses[i].keyframeData.Length; ++j) {//move across all the KeyframeData within the current Motion Pose
+
+                    //SPECIAL CASE
+                    if (i == motionPoses.Length - 1) {
+                        motionPoses[i].keyframeData[j].inVelocity = 0.0f;
+                    }
+                    //BUSINESS AS USUAL
+                    else {//Calculate the velocity by subtracting the current value from the next value
+                        motionPoses[i].keyframeData[j].inVelocity = motionPoses[i + 1].keyframeData[j].value - motionPoses[i].keyframeData[j].value;
+                    }
+                }
+            }
+
+            return motionPoses;
+        }
+        
+
+
+        /// <summary>
+        /// Generates all Motion Poses for the supplied Animation Clip
+        /// </summary>
+        /// <param name="animClip">Clip to generate Motion Poses from</param>
+        /// <param name="sampleStepSize">How many frames to skip when generating (Warning: smaller numbers is longer time, must be greater than 0)</param>
+        /// <param name="totalUniquePaths">All the paths from all the Animation Clips in the Motion Field. Get using MotionFieldUtility().GetUniquePaths()</param>
+        /// <returns></returns>
         public static MotionPose[] GenerateMotionPoses(AnimationClip animClip, string[] totalUniquePaths, int sampleStepSize = 100, VelocityCalculationMode velCalculationMode = VelocityCalculationMode.DropLastFrame) {
 
             //Debug.LogFormat("Total Unique Paths: {0}", totalUniquePaths.Length);
