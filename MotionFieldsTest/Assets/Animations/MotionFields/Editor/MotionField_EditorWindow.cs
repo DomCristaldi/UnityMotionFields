@@ -9,7 +9,10 @@ namespace AnimationMotionFields {
     public class MotionField_EditorWindow : EditorWindow {
 
         [SerializeField]
-        public MotionFieldController selectedMotionField;
+        public MotionFieldController selectedMotionFieldController;
+
+        public ModelImporterClipAnimation skinnedMesh;
+        
 
         //[SerializeField]
         //public List<AnimationClip> animClips;
@@ -49,12 +52,12 @@ namespace AnimationMotionFields {
             }
             */
             //OBJECT FIELD FOR THE MOTION FIELD
-            selectedMotionField = (MotionFieldController) EditorGUILayout.ObjectField("Motion Field: ", selectedMotionField, typeof(MotionFieldController), false);
+            selectedMotionFieldController = (MotionFieldController) EditorGUILayout.ObjectField("Motion Field: ", selectedMotionFieldController, typeof(MotionFieldController), false);
 
 
             EditorGUILayout.EndHorizontal();
 
-            if (selectedMotionField != null) {
+            if (selectedMotionFieldController != null) {
                 //reorderableAnimClips.DoLayoutList();
                 /*
                 GUILayout.BeginHorizontal();
@@ -77,7 +80,7 @@ namespace AnimationMotionFields {
                 GUILayout.BeginHorizontal();
 
                 if (GUILayout.Button("Generate Poses")) {
-                    selectedMotionField.GenerateMotionField(frameResolution);
+                    selectedMotionFieldController.GenerateMotionField(frameResolution);
                 }
 
                 frameResolution = EditorGUILayout.IntField("Frame Resolution ", frameResolution);
@@ -87,8 +90,24 @@ namespace AnimationMotionFields {
             }
 
             if (GUILayout.Button("print path")) {
-                selectedMotionField.animClipInfoList[0].PrintPathTest();
+                selectedMotionFieldController.animClipInfoList[0].PrintPathTest();
             }
+
+
+            if (GUILayout.Button("test point 0")) {
+                float[] queryPoint = new float[MotionFieldUtility.GetUniquePaths(selectedMotionFieldController).Length];
+                for (int i = 0; i < queryPoint.Length; ++i) {
+                    queryPoint[i] = 0.0f;
+                }
+
+                foreach (NodeData node in selectedMotionFieldController.NearestNeighbor(queryPoint)) {
+                    Debug.Log(node.PrintNode() + "\n");
+                }
+
+            }
+
+            //skinnedMesh = (ModelImporterClipAnimation) EditorGUILayout.ObjectField("skinMesh: ", skinnedMesh, typeof(ModelImporterClipAnimation), false);
+
 
             EditorGUILayout.EndVertical();
 

@@ -58,6 +58,7 @@ namespace AnimationMotionFields {
     [System.Serializable]
     public class AnimClipInfo {
         public bool useClip = true;
+        public VelocityCalculationMode velocityCalculationMode;
         public AnimationClip animClip;
 
         public MotionPose[] motionPoses;//all the poses generated for this animation clip
@@ -66,8 +67,9 @@ namespace AnimationMotionFields {
 
         public void GenerateMotionPoses(int samplingResolution, string[] totalAnimPaths) {
             motionPoses = MotionFieldUtility.GenerateMotionPoses(animClip,
+                                                                 totalAnimPaths,
                                                                  samplingResolution,
-                                                                 totalAnimPaths);
+                                                                 velocityCalculationMode);
         }
 
         public void PrintPathTest() {
@@ -157,6 +159,10 @@ namespace AnimationMotionFields {
 			this.clipId = id;
 			this.timeStamp = time;
 		}
+
+        public string PrintNode() {
+            return string.Format("Clip ID: {0}, Timestamp: {1}", clipId, timeStamp);
+        }
 	}
 
 
