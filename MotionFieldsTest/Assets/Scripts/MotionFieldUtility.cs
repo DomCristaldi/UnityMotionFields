@@ -6,7 +6,7 @@ using System.Linq;
 namespace AnimationMotionFields {
 
     public enum VelocityCalculationMode {
-        DropLastFrame = 0,
+        DropLastTwoFrames = 0,
         LoopToFirstFrame = 1,
         UseVelocityFromSecondToLastFrame = 2,
         SetLastFrameToZero = 3,
@@ -81,10 +81,10 @@ namespace AnimationMotionFields {
 
 
 
-        public static MotionPose[] DetermineKeyframeComponentVelocities(MotionPose[] motionPoses, VelocityCalculationMode calculationMode = VelocityCalculationMode.DropLastFrame) {
+        public static MotionPose[] DetermineKeyframeComponentVelocities(MotionPose[] motionPoses, VelocityCalculationMode calculationMode = VelocityCalculationMode.DropLastTwoFrames) {
             switch (calculationMode) {
-                case VelocityCalculationMode.DropLastFrame:
-                    return DetermineKeyframeComponentVelocities_DropLastFrame(motionPoses);
+                case VelocityCalculationMode.DropLastTwoFrames:
+                    return DetermineKeyframeComponentVelocities_DropLastTwoFrames(motionPoses);
 
                 case VelocityCalculationMode.LoopToFirstFrame:
                     return DetermineKeyframeComponentVelocities_LoopToFirstFrame(motionPoses);
@@ -96,16 +96,17 @@ namespace AnimationMotionFields {
                     return DetermineKeyframeComponentVelocities_SetLastFrameToZero(motionPoses);
 
                 default:
-                    goto case VelocityCalculationMode.DropLastFrame;
+                    goto case VelocityCalculationMode.DropLastTwoFrames;
             }
         }
 
-        private static MotionPose[] DetermineKeyframeComponentVelocities_DropLastFrame(MotionPose[] motionPoses) {
-            for (int i = 0; i < motionPoses.Length - 1; ++i) {//loop through all values in the keyframe data, ignore the last one
+        private static MotionPose[] DetermineKeyframeComponentVelocities_DropLastTwoFrames(MotionPose[] motionPoses) {
+            for (int i = 0; i < motionPoses.Length - 2; ++i) {//loop through all values in the keyframe data, ignore the last two
                 for (int j = 0; j < motionPoses[i].keyframeData.Length; ++j) {//move across all the KeyframeData within the current Motion Pose
 
                     //Calculate the velocity by subtracting the current value from the next value
                     motionPoses[i].keyframeData[j].velocity = motionPoses[i + 1].keyframeData[j].value - motionPoses[i].keyframeData[j].value;
+					motionPoses[i].keyframeData[j].velocityNext = motionPoses[i + 2].keyframeData[j].value - motionPoses[i + 1].keyframeData[j].value;
                 }
             }
             
@@ -179,7 +180,7 @@ namespace AnimationMotionFields {
         /// <param name="sampleStepSize">How many frames to skip when generating (Warning: smaller numbers is longer time, must be greater than 0)</param>
         /// <param name="totalUniquePaths">All the paths from all the Animation Clips in the Motion Field. Get using MotionFieldUtility().GetUniquePaths()</param>
         /// <returns></returns>
-        public static MotionPose[] GenerateMotionPoses(AnimationClip animClip, string[] totalUniquePaths, int sampleStepSize = 100, VelocityCalculationMode velCalculationMode = VelocityCalculationMode.DropLastFrame) {
+        public static MotionPose[] GenerateMotionPoses(AnimationClip animClip, string[] totalUniquePaths, int sampleStepSize = 100, VelocityCalculationMode velCalculationMode = VelocityCalculationMode.DropLastTwoFrames) {
 
             //Debug.LogFormat("Total Unique Paths: {0}", totalUniquePaths.Length);
 

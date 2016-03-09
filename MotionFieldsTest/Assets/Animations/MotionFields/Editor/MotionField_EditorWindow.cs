@@ -106,6 +106,24 @@ namespace AnimationMotionFields {
 
             }
 
+			if (GUILayout.Button("test generate actions")) {
+				float[] queryPoint = new float[MotionFieldUtility.GetUniquePaths(selectedMotionFieldController).Length * 2];
+				for (int i = 0; i < queryPoint.Length; ++i) {
+					queryPoint[i] = 0.0f;
+				}
+
+				double[][] actions = selectedMotionFieldController.GenerateActions (queryPoint, 20);
+				string outstring = "";
+				for(int i = 0; i < actions.Length; i++){
+					outstring += "( ";
+					for(int j = 0; j < actions[0].Length; j++){
+							outstring += actions[i][j] + " ";
+					}
+							outstring += ")\n";
+				}
+				Debug.Log(outstring);
+			}
+
             //skinnedMesh = (ModelImporterClipAnimation) EditorGUILayout.ObjectField("skinMesh: ", skinnedMesh, typeof(ModelImporterClipAnimation), false);
 
 

@@ -15,10 +15,12 @@ namespace AnimationMotionFields {
     public class KeyframeData {
         public float value;
         public float velocity;
+		public float velocityNext;
 
-        public KeyframeData(float value = 0.0f, float velocity = 0.0f, float outVelocity = 0.0f) {
+		public KeyframeData(float value = 0.0f, float velocity = 0.0f, float velocityNext = 0.0f) {
             this.value = value;
             this.velocity = velocity;
+			this.velocityNext = velocityNext;
         }
     }
 
@@ -114,15 +116,16 @@ namespace AnimationMotionFields {
 				foreach (MotionPose pose in clipinfo.motionPoses) {
 			
                     //extract all the values from the Motion Field Controller's Keyframe Datas and convert them to a list of doubles
-					double[] pos = pose.keyframeData.Select(x => System.Convert.ToDouble(x.value)).ToArray();//hot damn LINQ
-					double[] vel = pose.keyframeData.Select(x => System.Convert.ToDouble(x.velocity)).ToArray();//hot damn LINQ
+					double[] position = pose.keyframeData.Select(x => System.Convert.ToDouble(x.value)).ToArray();//hot damn LINQ
+					double[] velocity = pose.keyframeData.Select(x => System.Convert.ToDouble(x.velocity)).ToArray();//hot damn LINQ
+					double[] velocityNext = pose.keyframeData.Select(x => System.Convert.ToDouble(x.velocityNext)).ToArray();//hot damn LINQ
 
-					NodeData data = new NodeData (pose.animClipRef.name, pose.timestamp, pos, vel);
+					NodeData data = new NodeData (pose.animClipRef.name, pose.timestamp, position, velocity, velocityNext);
 
 					double[] position_velocity_pairings = new double[numDimensions];
-					for(int i = 0; i < pos.Length; i++){
-						position_velocity_pairings[i*2] = pos[i];
-						position_velocity_pairings[i*2+1] = vel[i];
+					for(int i = 0; i < position.Length; i++){
+						position_velocity_pairings[i*2] = position[i];
+						position_velocity_pairings[i*2+1] = velocity[i];
 					}
 
 					string stuff = "Inserting id:" + data.clipId + " , time: " + data.timeStamp.ToString () + "  position_velocity_pairing:(";
@@ -154,6 +157,52 @@ namespace AnimationMotionFields {
 			}
 			return data;
 		}
+
+		public double[][] GenerateActions(float[] float_pos, int numActions = 1){
+			List<NodeData> neighbors = NearestNeighbor (float_pos, numActions);
+
+			double[] weights = GenerateWeights (float_pos, neighbors);
+
+			double[][] actions = new double[numActions] [];
+			for(int i = 0; i < numActions; i++){
+				//for each action array, set weight[i] to 1 and renormalize
+				actions [i] = new double[weights.Length];
+				actions [i] = (double[])weights.Clone ();
+				actions [i] [i] = 1;
+				double actionSum = actions[i].Sum();
+				for(int j = 0; j < actions[i].Length; j++){
+					actions[i][j] =actions[i][j] / actionSum;
+				}
+			}
+
+			return actions;
+		}
+
+		public double[] GenerateWeights(float[] float_pos, List<NodeData> neighbors){
+
+			double[] weights = new double[neighbors.Count];
+
+			//weights[i] = 1/distance(neighbors[i] , floatpos) ^2 
+			for(int i = 0; i < neighbors.Count; i++){
+				weights [i] = 0;
+				for(int j = 0; j < neighbors[i].position.Length; j++){
+					weights [i] += (double)Mathf.Pow (float_pos [i * 2] - (float)neighbors [i].position [j], 2);
+					weights [i] += (double)Mathf.Pow (float_pos [i * 2 + 1] - (float)neighbors [i].velocity [j], 2);
+				}
+				weights [i] = 1.0 / weights [i];
+			}
+
+			//now normalize weights so that they sum to 1
+			double weightsSum = weights.Sum();
+			string printW = "weights: ";
+			for(int i = 0; i < weights.Length; i++){
+				weights [i] = weights [i] / weightsSum;
+				printW += weights[i] + "  ";
+			}
+			Debug.Log (printW);
+
+			return weights;
+		}
 			
     }
 
@@ -162,12 +211,14 @@ namespace AnimationMotionFields {
 		public float timeStamp;
 		public double[] position;
 		public double[] velocity;
+		public double[] velocityNext;
 
-		public NodeData(string id, float time, double[] p, double[] v){
+		public NodeData(string id, float time, double[] position, double[] velocity, double[] velocityNext){
 			this.clipId = id;
 			this.timeStamp = time;
-			this.position = p;
-			this.velocity = v;
+			this.position = position;
+			this.velocity = velocity;
+			this.velocityNext = velocityNext;
 		}
 
         public string PrintNode() {
