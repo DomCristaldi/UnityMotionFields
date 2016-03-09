@@ -21,6 +21,9 @@ namespace AnimationMotionFields {
 
         [SerializeField]
         public int frameResolution = 1;
+
+		[SerializeField]
+		public int numActions = 1;
     
 
         [MenuItem("MotionFields/Motion Field Author")]
@@ -106,13 +109,15 @@ namespace AnimationMotionFields {
 
             }
 
+			EditorGUILayout.BeginHorizontal ();
+
 			if (GUILayout.Button("test generate actions")) {
 				float[] queryPoint = new float[MotionFieldUtility.GetUniquePaths(selectedMotionFieldController).Length * 2];
 				for (int i = 0; i < queryPoint.Length; ++i) {
 					queryPoint[i] = 0.0f;
 				}
 
-				double[][] actions = selectedMotionFieldController.GenerateActions (queryPoint, 20);
+				double[][] actions = selectedMotionFieldController.GenerateActions (queryPoint, numActions);
 				string outstring = "";
 				for(int i = 0; i < actions.Length; i++){
 					outstring += "( ";
@@ -123,6 +128,10 @@ namespace AnimationMotionFields {
 				}
 				Debug.Log(outstring);
 			}
+
+			numActions = EditorGUILayout.IntField (numActions);
+
+			EditorGUILayout.EndHorizontal ();
 
             //skinnedMesh = (ModelImporterClipAnimation) EditorGUILayout.ObjectField("skinMesh: ", skinnedMesh, typeof(ModelImporterClipAnimation), false);
 
