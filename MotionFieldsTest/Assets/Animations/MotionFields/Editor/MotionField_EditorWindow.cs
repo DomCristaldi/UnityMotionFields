@@ -95,7 +95,7 @@ namespace AnimationMotionFields {
 
 
             if (GUILayout.Button("test point 0")) {
-                float[] queryPoint = new float[MotionFieldUtility.GetUniquePaths(selectedMotionFieldController).Length];
+                float[] queryPoint = new float[MotionFieldUtility.GetUniquePaths(selectedMotionFieldController).Length * 2];
                 for (int i = 0; i < queryPoint.Length; ++i) {
                     queryPoint[i] = 0.0f;
                 }

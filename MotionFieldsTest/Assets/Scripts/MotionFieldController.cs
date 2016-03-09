@@ -100,34 +100,42 @@ namespace AnimationMotionFields {
                 }
             }
 
-			GenerateKDTree (uniquePaths.Length);
+			GenerateKDTree (uniquePaths.Length * 2);
         }
 
-		public void GenerateKDTree(int dim){
+		public void GenerateKDTree(int numDimensions){
 			
-			kd = new KDTreeDLL.KDTree(dim); 
+			kd = new KDTreeDLL.KDTree(numDimensions); 
 
-			Debug.Log ("tree made with " + dim + " dimensions");
+			Debug.Log ("tree made with " + numDimensions + " dimensions");
 
 			foreach (AnimClipInfo clipinfo in animClipInfoList) {
 			
 				foreach (MotionPose pose in clipinfo.motionPoses) {
 			
-					NodeData data = new NodeData (pose.animClipRef.name, pose.timestamp);
                     //extract all the values from the Motion Field Controller's Keyframe Datas and convert them to a list of doubles
 					double[] pos = pose.keyframeData.Select(x => System.Convert.ToDouble(x.value)).ToArray();//hot damn LINQ
+					double[] vel = pose.keyframeData.Select(x => System.Convert.ToDouble(x.velocity)).ToArray();//hot damn LINQ
 
-					string stuff = "Inserting id:" + data.clipId + " , time: " + data.timeStamp.ToString () + "  pos:(";
-					foreach(double p in pos){ stuff += p.ToString() + ", ";  }
+					NodeData data = new NodeData (pose.animClipRef.name, pose.timestamp, pos, vel);
+
+					double[] position_velocity_pairings = new double[numDimensions];
+					for(int i = 0; i < pos.Length; i++){
+						position_velocity_pairings[i*2] = pos[i];
+						position_velocity_pairings[i*2+1] = vel[i];
+					}
+
+					string stuff = "Inserting id:" + data.clipId + " , time: " + data.timeStamp.ToString () + "  position_velocity_pairing:(";
+					foreach(double p in position_velocity_pairings){ stuff += p.ToString() + ", ";  }
 					Debug.Log (stuff + ")");
 
 					try
 					{
-						kd.insert (pos, data);
+						kd.insert (position_velocity_pairings, data);
 					}
 					catch (KDTreeDLL.KeyDuplicateException e)
 					{
-						Debug.Log("Duplicate pos! skip inserting pt.");
+						Debug.Log("Duplicate position_velocity_pairing! skip inserting pt.");
 					}
 				}
 			}
@@ -152,10 +160,14 @@ namespace AnimationMotionFields {
 	public class NodeData{
 		public string clipId;
 		public float timeStamp;
+		public double[] position;
+		public double[] velocity;
 
-		public NodeData(string id, float time){
+		public NodeData(string id, float time, double[] p, double[] v){
 			this.clipId = id;
 			this.timeStamp = time;
+			this.position = p;
+			this.velocity = v;
 		}
 
         public string PrintNode() {
