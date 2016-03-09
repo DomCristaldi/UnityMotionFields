@@ -83,6 +83,17 @@ namespace AnimationMotionFields {
     [CreateAssetMenu]
     public class MotionFieldController : ScriptableObject {
 
+        //USER DEFINED ANIMATION CURVE PATHS FOR ROOT MOTION COMPONENT
+        public string rootComponent_tx;
+        public string rootComponent_ty;
+        public string rootComponent_tz;
+
+        public string rootComponent_qx;
+        public string rootComponent_qy;
+        public string rootComponent_qz;
+        public string rootComponent_qw;
+
+
         public List<AnimClipInfo> animClipInfoList;
 
 		public KDTreeDLL.KDTree kd;

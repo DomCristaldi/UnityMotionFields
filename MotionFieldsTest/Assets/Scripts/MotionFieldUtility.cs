@@ -111,7 +111,7 @@ namespace AnimationMotionFields {
             }
             
             List<MotionPose> mpList = motionPoses.ToList<MotionPose>();
-            mpList.RemoveAt(mpList.Count - 1);
+            mpList.RemoveRange(mpList.Count - 2, 2);
             return mpList.ToArray();
             
 
