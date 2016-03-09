@@ -105,7 +105,7 @@ namespace AnimationMotionFields {
                 for (int j = 0; j < motionPoses[i].keyframeData.Length; ++j) {//move across all the KeyframeData within the current Motion Pose
 
                     //Calculate the velocity by subtracting the current value from the next value
-                    motionPoses[i].keyframeData[j].inVelocity = motionPoses[i + 1].keyframeData[j].value - motionPoses[i].keyframeData[j].value;
+                    motionPoses[i].keyframeData[j].velocity = motionPoses[i + 1].keyframeData[j].value - motionPoses[i].keyframeData[j].value;
                 }
             }
             
@@ -122,11 +122,11 @@ namespace AnimationMotionFields {
 
                     //SPECIAL CASE
                     if (i == motionPoses.Length - 1) {//do the velocity calculation using the first frame as the next frame for the math
-                        motionPoses[i].keyframeData[j].inVelocity = motionPoses[0].keyframeData[j].value - motionPoses[i].keyframeData[j].value;
+                        motionPoses[i].keyframeData[j].velocity = motionPoses[0].keyframeData[j].value - motionPoses[i].keyframeData[j].value;
                     }
                     //BUSINESS AS USUAL
                     else {//Calculate the velocity by subtracting the current value from the next value
-                        motionPoses[i].keyframeData[j].inVelocity = motionPoses[i + 1].keyframeData[j].value - motionPoses[i].keyframeData[j].value;
+                        motionPoses[i].keyframeData[j].velocity = motionPoses[i + 1].keyframeData[j].value - motionPoses[i].keyframeData[j].value;
                     }
                 }
             }
@@ -140,11 +140,11 @@ namespace AnimationMotionFields {
 
                     //SPECIAL CASE
                     if (i == motionPoses.Length - 1) {//we're at the end of the array, use the value from the frame before it
-                        motionPoses[i].keyframeData[j].inVelocity = motionPoses[i - 1].keyframeData[j].inVelocity;
+                        motionPoses[i].keyframeData[j].velocity = motionPoses[i - 1].keyframeData[j].velocity;
                     }
                     //BUSINESS AS USUAL
                     else {//Calculate the velocity by subtracting the current value from the next value
-                        motionPoses[i].keyframeData[j].inVelocity = motionPoses[i + 1].keyframeData[j].value - motionPoses[i].keyframeData[j].value;
+                        motionPoses[i].keyframeData[j].velocity = motionPoses[i + 1].keyframeData[j].value - motionPoses[i].keyframeData[j].value;
                     }
                 }
             }
@@ -158,11 +158,11 @@ namespace AnimationMotionFields {
 
                     //SPECIAL CASE
                     if (i == motionPoses.Length - 1) {
-                        motionPoses[i].keyframeData[j].inVelocity = 0.0f;
+                        motionPoses[i].keyframeData[j].velocity = 0.0f;
                     }
                     //BUSINESS AS USUAL
                     else {//Calculate the velocity by subtracting the current value from the next value
-                        motionPoses[i].keyframeData[j].inVelocity = motionPoses[i + 1].keyframeData[j].value - motionPoses[i].keyframeData[j].value;
+                        motionPoses[i].keyframeData[j].velocity = motionPoses[i + 1].keyframeData[j].value - motionPoses[i].keyframeData[j].value;
                     }
                 }
             }
@@ -203,8 +203,16 @@ namespace AnimationMotionFields {
                 motionPoses.Add(new MotionPose(animClip, currentFrameTimePointer, motionPoseKeyframes));
 
                 currentFrameTimePointer += frameStep * sampleStepSize;
+
+                
+                if (EditorUtility.DisplayCancelableProgressBar("Creating Motion Poses", "", currentFrameTimePointer / animClip.length)) {
+                    EditorUtility.ClearProgressBar();
+                    return motionPoses.ToArray();
+                }
+
             }
 
+            EditorUtility.ClearProgressBar();
             motionPoses = DetermineKeyframeComponentVelocities(motionPoses.ToArray<MotionPose>(), velCalculationMode).ToList<MotionPose>();
 
             //Debug.LogFormat("Frame Count: {0} | Aggregate: {1}", frameCount, currentFramePointer);

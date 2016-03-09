@@ -14,13 +14,11 @@ namespace AnimationMotionFields {
     [System.Serializable]
     public class KeyframeData {
         public float value;
-        public float inVelocity;
-        public float outVelocity;
+        public float velocity;
 
-        public KeyframeData(float value = 0.0f, float inVelocity = 0.0f, float outVelocity = 0.0f) {
+        public KeyframeData(float value = 0.0f, float velocity = 0.0f, float outVelocity = 0.0f) {
             this.value = value;
-            this.inVelocity = inVelocity;
-            this.outVelocity = outVelocity;
+            this.velocity = velocity;
         }
     }
 
