@@ -223,5 +223,25 @@ namespace AnimationMotionFields {
 
         }
 
+        public static List<AnimClipInfo> GenerateMotionField(List<AnimClipInfo> animClipInfos, int samplingRate) {
+            string[] uniquePaths = MotionFieldUtility.GetUniquePaths(animClipInfos.Select(x => x.animClip).ToArray());
+
+
+            foreach (AnimClipInfo clipInfo in animClipInfos) {
+                if (!clipInfo.useClip) {//only generate motion poses for the selected animations
+                    clipInfo.motionPoses = new MotionPose[] { };
+                }
+                else {
+                    //clipInfo.GenerateMotionPoses(samplingRate, uniquePaths);
+                    clipInfo.motionPoses = MotionFieldUtility.GenerateMotionPoses(clipInfo.animClip,
+                                                                                  uniquePaths,
+                                                                                  samplingRate,
+                                                                                  clipInfo.velocityCalculationMode);
+                }
+            }
+
+            return animClipInfos;
+        }
+
     }
 }

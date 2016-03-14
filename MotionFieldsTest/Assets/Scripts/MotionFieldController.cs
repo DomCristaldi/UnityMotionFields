@@ -64,13 +64,14 @@ namespace AnimationMotionFields {
         public MotionPose[] motionPoses;//all the poses generated for this animation clip
 
         public int frameSampleRate;//sampel rate that was used to create these poses
-
+        /*
         public void GenerateMotionPoses(int samplingResolution, string[] totalAnimPaths) {
             motionPoses = MotionFieldUtility.GenerateMotionPoses(animClip,
                                                                  totalAnimPaths,
                                                                  samplingResolution,
                                                                  velocityCalculationMode);
         }
+        */
 
         public void PrintPathTest() {
             foreach (EditorCurveBinding ecb in AnimationUtility.GetCurveBindings(animClip)) {
@@ -101,9 +102,9 @@ namespace AnimationMotionFields {
         public void GenerateMotionField(int samplingResolution) {
 
             //Debug.LogFormat("Total things: {0}", MotionFieldCreator.GetUniquePaths(animClipInfoList.Select(x => x.animClip).ToArray()).Length);
-
+            
 			string[] uniquePaths = MotionFieldUtility.GetUniquePaths(animClipInfoList.Select(x => x.animClip).ToArray());
-
+            /*
             foreach (AnimClipInfo clipInfo in animClipInfoList) {
                 if (!clipInfo.useClip) {//only generate motion poses for the selected animations
                     clipInfo.motionPoses = new MotionPose[] { };
@@ -112,6 +113,8 @@ namespace AnimationMotionFields {
                     clipInfo.GenerateMotionPoses(samplingResolution, uniquePaths);
                 }
             }
+            */
+            MotionFieldUtility.GenerateMotionField(animClipInfoList, samplingResolution);
 
 			GenerateKDTree (uniquePaths.Length * 2);
         }
