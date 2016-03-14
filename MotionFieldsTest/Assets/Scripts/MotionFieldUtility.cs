@@ -223,8 +223,7 @@ namespace AnimationMotionFields {
 
         }
 
-        public static List<AnimClipInfo> GenerateMotionField(List<AnimClipInfo> animClipInfos, int samplingRate) {
-            string[] uniquePaths = MotionFieldUtility.GetUniquePaths(animClipInfos.Select(x => x.animClip).ToArray());
+        public static List<AnimClipInfo> GenerateMotionField(List<AnimClipInfo> animClipInfos, int samplingRate, string[] totalUniquePaths) {
 
 
             foreach (AnimClipInfo clipInfo in animClipInfos) {
@@ -234,7 +233,7 @@ namespace AnimationMotionFields {
                 else {
                     //clipInfo.GenerateMotionPoses(samplingRate, uniquePaths);
                     clipInfo.motionPoses = MotionFieldUtility.GenerateMotionPoses(clipInfo.animClip,
-                                                                                  uniquePaths,
+                                                                                  totalUniquePaths,
                                                                                   samplingRate,
                                                                                   clipInfo.velocityCalculationMode);
                 }
@@ -243,5 +242,56 @@ namespace AnimationMotionFields {
             return animClipInfos;
         }
 
+        public static void GenerateMotionField(ref MotionFieldController mfController, int samplingRate) {
+            string[] uniquePaths = MotionFieldUtility.GetUniquePaths(mfController.animClipInfoList.Select(x => x.animClip).ToArray());
+
+            mfController.animClipInfoList = MotionFieldUtility.GenerateMotionField(mfController.animClipInfoList, samplingRate, uniquePaths);
+            MotionFieldUtility.GenerateKDTree(ref mfController, uniquePaths.Length * 2);
+        }
+
+
+        public static void GenerateKDTree(ref KDTreeDLL.KDTree kdTree, List<AnimClipInfo> animClipInfoList, int numDimensions) {
+
+            kdTree = new KDTreeDLL.KDTree(numDimensions);
+
+            Debug.Log("tree made with " + numDimensions + " dimensions");
+
+            foreach (AnimClipInfo clipinfo in animClipInfoList) {
+
+                foreach (MotionPose pose in clipinfo.motionPoses) {
+
+                    //extract all the values from the Motion Field Controller's Keyframe Datas and convert them to a list of doubles
+                    double[] position = pose.keyframeData.Select(x => System.Convert.ToDouble(x.value)).ToArray();//hot damn LINQ
+                    double[] velocity = pose.keyframeData.Select(x => System.Convert.ToDouble(x.velocity)).ToArray();//hot damn LINQ
+                    double[] velocityNext = pose.keyframeData.Select(x => System.Convert.ToDouble(x.velocityNext)).ToArray();//hot damn LINQ
+
+                    NodeData data = new NodeData(pose.animClipRef.name, pose.timestamp, position, velocity, velocityNext);
+
+                    double[] position_velocity_pairings = new double[numDimensions];
+                    Debug.Log(position.Length);
+                    for (int i = 0; i < position.Length; i++) {
+                        position_velocity_pairings[i * 2] = position[i];
+                        position_velocity_pairings[i * 2 + 1] = velocity[i];
+                    }
+
+                    string stuff = "Inserting id:" + data.clipId + " , time: " + data.timeStamp.ToString() + "  position_velocity_pairing:(";
+                    foreach (double p in position_velocity_pairings) { stuff += p.ToString() + ", "; }
+                    Debug.Log(stuff + ")");
+
+                    try {
+                        kdTree.insert(position_velocity_pairings, data);
+                    }
+                    catch (KDTreeDLL.KeyDuplicateException e) {
+                        Debug.Log("Duplicate position_velocity_pairing! skip inserting pt.");
+                    }
+                }
+            }
+
+            Debug.Log("tree generated");
+        }
+
+        public static void GenerateKDTree(ref MotionFieldController mfController, int numDimensions) {
+            MotionFieldUtility.GenerateKDTree(ref mfController.kd, mfController.animClipInfoList, numDimensions);
+        }
     }
 }

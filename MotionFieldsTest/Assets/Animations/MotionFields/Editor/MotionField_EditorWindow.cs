@@ -20,9 +20,28 @@ namespace AnimationMotionFields {
         private ReorderableList reorderableAnimClips;
 
         [SerializeField]
-        public int frameResolution = 1;
+        private int _frameResolution = 1;
+        public int frameResolution {
+            get { return _frameResolution; }
+            set {
+                if (value > 0) {
+                    _frameResolution = value;
+                }
+            }
+        }
 
-		[SerializeField]
+        [SerializeField]
+        private int _numKDTreeDimensions = 1;
+        public int numKDTreeDimensions {
+            get { return _numKDTreeDimensions; }
+            set {
+                if (value > 0) {
+                    _numKDTreeDimensions = value;
+                }
+            }
+        }
+
+        [SerializeField]
 		public int numActions = 1;
     
 
@@ -82,12 +101,14 @@ namespace AnimationMotionFields {
 
                 GUILayout.BeginHorizontal();
 
+//MOTION POSE GENERATION
                 if (GUILayout.Button("Generate Poses")) {
-                    selectedMotionFieldController.GenerateMotionField(frameResolution);
+                    BuildMotionField();
                 }
 
-                frameResolution = EditorGUILayout.IntField("Frame Resolution ", frameResolution);
-                if (frameResolution < 1) { frameResolution = 1; }
+            //FRAME RESOLUTION
+                frameResolution = EditorGUILayout.IntField("Frame Resolution", frameResolution);
+
 
                 GUILayout.EndHorizontal();
             }
@@ -155,6 +176,12 @@ namespace AnimationMotionFields {
         
         }
         */
+
+        private void BuildMotionField() {
+            if (selectedMotionFieldController != null) {
+                MotionFieldUtility.GenerateMotionField(ref selectedMotionFieldController, frameResolution);
+            }
+        }
 
     }
 }

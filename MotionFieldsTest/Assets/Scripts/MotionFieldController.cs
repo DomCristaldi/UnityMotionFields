@@ -94,71 +94,9 @@ namespace AnimationMotionFields {
         public string rootComponent_qz;
         public string rootComponent_qw;
 
-
         public List<AnimClipInfo> animClipInfoList;
 
 		public KDTreeDLL.KDTree kd;
-
-        public void GenerateMotionField(int samplingResolution) {
-
-            //Debug.LogFormat("Total things: {0}", MotionFieldCreator.GetUniquePaths(animClipInfoList.Select(x => x.animClip).ToArray()).Length);
-            
-			string[] uniquePaths = MotionFieldUtility.GetUniquePaths(animClipInfoList.Select(x => x.animClip).ToArray());
-            /*
-            foreach (AnimClipInfo clipInfo in animClipInfoList) {
-                if (!clipInfo.useClip) {//only generate motion poses for the selected animations
-                    clipInfo.motionPoses = new MotionPose[] { };
-                }
-                else {
-                    clipInfo.GenerateMotionPoses(samplingResolution, uniquePaths);
-                }
-            }
-            */
-            MotionFieldUtility.GenerateMotionField(animClipInfoList, samplingResolution);
-
-			GenerateKDTree (uniquePaths.Length * 2);
-        }
-
-		public void GenerateKDTree(int numDimensions){
-			
-			kd = new KDTreeDLL.KDTree(numDimensions); 
-
-			Debug.Log ("tree made with " + numDimensions + " dimensions");
-
-			foreach (AnimClipInfo clipinfo in animClipInfoList) {
-			
-				foreach (MotionPose pose in clipinfo.motionPoses) {
-			
-                    //extract all the values from the Motion Field Controller's Keyframe Datas and convert them to a list of doubles
-					double[] position = pose.keyframeData.Select(x => System.Convert.ToDouble(x.value)).ToArray();//hot damn LINQ
-					double[] velocity = pose.keyframeData.Select(x => System.Convert.ToDouble(x.velocity)).ToArray();//hot damn LINQ
-					double[] velocityNext = pose.keyframeData.Select(x => System.Convert.ToDouble(x.velocityNext)).ToArray();//hot damn LINQ
-
-					NodeData data = new NodeData (pose.animClipRef.name, pose.timestamp, position, velocity, velocityNext);
-
-					double[] position_velocity_pairings = new double[numDimensions];
-					for(int i = 0; i < position.Length; i++){
-						position_velocity_pairings[i*2] = position[i];
-						position_velocity_pairings[i*2+1] = velocity[i];
-					}
-
-					string stuff = "Inserting id:" + data.clipId + " , time: " + data.timeStamp.ToString () + "  position_velocity_pairing:(";
-					foreach(double p in position_velocity_pairings){ stuff += p.ToString() + ", ";  }
-					Debug.Log (stuff + ")");
-
-					try
-					{
-						kd.insert (position_velocity_pairings, data);
-					}
-					catch (KDTreeDLL.KeyDuplicateException e)
-					{
-						Debug.Log("Duplicate position_velocity_pairing! skip inserting pt.");
-					}
-				}
-			}
-
-			Debug.Log ("tree generated");
-		}
 
 		public List<NodeData> NearestNeighbor(float[] float_pos, int num_neighbors = 1){
 
