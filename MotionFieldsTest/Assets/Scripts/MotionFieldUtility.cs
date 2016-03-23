@@ -43,15 +43,15 @@ namespace AnimationMotionFields {
             return extractedUniquePaths.ToArray<string>();
         }
 
-        public static string[] GetUniquePaths(MotionFieldController motionFieldController) {
-            return (GetUniquePaths(motionFieldController.animClipInfoList.Select(x => x.animClip).ToArray()));
+        public static string[] GetUniquePaths(MotionFieldController motionFieldConroller) {
+            return (GetUniquePaths(motionFieldConroller.animClipInfoList.Select(x => x.animClip).ToArray()));
         }
 
 //RETURN AN ARRAY OF ALL THE FLOATS AT A TIMESLICE OF THE SUPPLIED ANIMATION CLIP
         public static float[] ExtractKeyframe(AnimationClip animClipRefernce, float timestamp, string[] totalUniquePaths) {
             //public static float[] ExtractKeyframe(AnimationClip animClipRefernce, float timestamp) {
 
-            Debug.LogFormat("timestamp: {0}", timestamp);
+            //Debug.LogFormat("timestamp: {0}", timestamp);
 
             //convert the totalUniquePaths[] to a List for quick, convenient lookup
             List<string> totalUniquePaths_List = new List<string>(totalUniquePaths);
@@ -245,14 +245,27 @@ namespace AnimationMotionFields {
         public static void GenerateMotionField(ref MotionFieldController mfController, int samplingRate) {
             string[] uniquePaths = MotionFieldUtility.GetUniquePaths(mfController.animClipInfoList.Select(x => x.animClip).ToArray());
 
-            mfController.animClipInfoList = MotionFieldUtility.GenerateMotionField(mfController.animClipInfoList, samplingRate, uniquePaths);
-            MotionFieldUtility.GenerateKDTree(ref mfController, uniquePaths.Length * 2);
+			mfController.animClipInfoList = MotionFieldUtility.GenerateMotionField(mfController.animClipInfoList, samplingRate, uniquePaths);
+			MotionFieldUtility.GenerateKDTree(ref mfController, uniquePaths, mfController.rootComponents);
         }
 
 
-        public static void GenerateKDTree(ref KDTreeDLL.KDTree kdTree, List<AnimClipInfo> animClipInfoList, int numDimensions) {
+		public static void GenerateKDTree(ref KDTreeDLL.KDTree kdTree, List<AnimClipInfo> animClipInfoList, string[] uniquePaths, MotionFieldController.RootComponents rootComponents, int numDimensions) {
 
             kdTree = new KDTreeDLL.KDTree(numDimensions);
+
+			int rootComponent_tx = ArrayUtility.IndexOf (uniquePaths, rootComponents.tx);
+			int rootComponent_ty = ArrayUtility.IndexOf (uniquePaths, rootComponents.ty);
+			int rootComponent_tz = ArrayUtility.IndexOf (uniquePaths, rootComponents.tz);
+
+			int rootComponent_qx = ArrayUtility.IndexOf (uniquePaths, rootComponents.qx);
+			int rootComponent_qy = ArrayUtility.IndexOf (uniquePaths, rootComponents.qy);
+			int rootComponent_qz = ArrayUtility.IndexOf (uniquePaths, rootComponents.qz);
+			int rootComponent_qw = ArrayUtility.IndexOf (uniquePaths, rootComponents.qw);
+
+			Debug.Log("root components: " + rootComponent_tx + " " + rootComponent_ty + " " + rootComponent_tz + " " + rootComponent_qx + " " + rootComponent_qy + " " + rootComponent_qz + " " + rootComponent_qw);
+
+			Debug.Log("unique path ex " + uniquePaths[0] + "     " + uniquePaths[1]);
 
             Debug.Log("tree made with " + numDimensions + " dimensions");
 
@@ -265,10 +278,12 @@ namespace AnimationMotionFields {
                     double[] velocity = pose.keyframeData.Select(x => System.Convert.ToDouble(x.velocity)).ToArray();//hot damn LINQ
                     double[] velocityNext = pose.keyframeData.Select(x => System.Convert.ToDouble(x.velocityNext)).ToArray();//hot damn LINQ
 
-                    NodeData data = new NodeData(pose.animClipRef.name, pose.timestamp, position, velocity, velocityNext);
+					NodeData data = new NodeData(pose.animClipRef.name, pose.timestamp, position, velocity, velocityNext, 
+												rootComponent_tx, rootComponent_ty, rootComponent_tz, 
+												rootComponent_qx, rootComponent_qy, rootComponent_qz, rootComponent_qw);
 
                     double[] position_velocity_pairings = new double[numDimensions];
-                    Debug.Log(position.Length);
+                    //Debug.Log(position.Length);
                     for (int i = 0; i < position.Length; i++) {
                         position_velocity_pairings[i * 2] = position[i];
                         position_velocity_pairings[i * 2 + 1] = velocity[i];
@@ -290,8 +305,8 @@ namespace AnimationMotionFields {
             Debug.Log("tree generated");
         }
 
-        public static void GenerateKDTree(ref MotionFieldController mfController, int numDimensions) {
-            MotionFieldUtility.GenerateKDTree(ref mfController.kd, mfController.animClipInfoList, numDimensions);
+		public static void GenerateKDTree(ref MotionFieldController mfController, string[] uniquePaths, MotionFieldController.RootComponents rootComponents ) {
+			MotionFieldUtility.GenerateKDTree(ref mfController.kd, mfController.animClipInfoList, uniquePaths, rootComponents, uniquePaths.Length * 2);
         }
     }
 }

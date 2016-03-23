@@ -85,14 +85,19 @@ namespace AnimationMotionFields {
     public class MotionFieldController : ScriptableObject {
 
         //USER DEFINED ANIMATION CURVE PATHS FOR ROOT MOTION COMPONENT
-        public string rootComponent_tx;
-        public string rootComponent_ty;
-        public string rootComponent_tz;
+		[System.Serializable]
+		public class  RootComponents{
+			public string tx;
+			public string ty;
+			public string tz;
 
-        public string rootComponent_qx;
-        public string rootComponent_qy;
-        public string rootComponent_qz;
-        public string rootComponent_qw;
+			public string qx;
+			public string qy;
+			public string qz;
+			public string qw;
+		}
+
+		public RootComponents rootComponents;
 
         public List<AnimClipInfo> animClipInfoList;
 
@@ -165,12 +170,30 @@ namespace AnimationMotionFields {
 		public double[] velocity;
 		public double[] velocityNext;
 
-		public NodeData(string id, float time, double[] position, double[] velocity, double[] velocityNext){
+		public int rootComponent_tx;
+		public int rootComponent_ty;
+		public int rootComponent_tz;
+
+		public int rootComponent_qx;
+		public int rootComponent_qy;
+		public int rootComponent_qz;
+		public int rootComponent_qw;
+
+
+		public NodeData(string id, float time, double[] position, double[] velocity, double[] velocityNext, 
+			int rootComponent_tx, int rootComponent_ty, int rootComponent_tz, int rootComponent_qx, int rootComponent_qy, int rootComponent_qz, int rootComponent_qw ){
 			this.clipId = id;
 			this.timeStamp = time;
 			this.position = position;
 			this.velocity = velocity;
 			this.velocityNext = velocityNext;
+			this.rootComponent_tx = rootComponent_tx;
+			this.rootComponent_ty = rootComponent_ty;
+			this.rootComponent_tz = rootComponent_tz;
+			this.rootComponent_qx = rootComponent_qx;
+			this.rootComponent_qy = rootComponent_qy;
+			this.rootComponent_qz = rootComponent_qz;
+			this.rootComponent_qw = rootComponent_qw;
 		}
 
         public string PrintNode() {
