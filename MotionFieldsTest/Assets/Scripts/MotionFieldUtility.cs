@@ -43,8 +43,8 @@ namespace AnimationMotionFields {
             return extractedUniquePaths.ToArray<string>();
         }
 
-        public static string[] GetUniquePaths(MotionFieldController motionFieldConroller) {
-            return (GetUniquePaths(motionFieldConroller.animClipInfoList.Select(x => x.animClip).ToArray()));
+        public static string[] GetUniquePaths(MotionFieldController motionFieldController) {
+            return (GetUniquePaths(motionFieldController.animClipInfoList.Select(x => x.animClip).ToArray()));
         }
 
 //RETURN AN ARRAY OF ALL THE FLOATS AT A TIMESLICE OF THE SUPPLIED ANIMATION CLIP
