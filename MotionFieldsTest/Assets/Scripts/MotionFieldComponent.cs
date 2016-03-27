@@ -21,15 +21,24 @@ namespace AnimationMotionFields {
         void Awake() {
             _animatorComponent = GetComponent<Animator>();
 
-        }
-
-	    // Use this for initialization
-	    void Start () {
             motionFieldMixer = new MotionFieldMixerRoot(assignedMotionFieldController.animClipInfoList
-                                                                                            .Where(x => x.useClip)
-                                                                                            .Select(x => x.animClip).ToArray(),
+                                                                                        .Where(x => x.useClip)
+                                                                                        .Select(x => x.animClip).ToArray(),
                                                         numFramesToBlend
                                                         );
+
+            //_animatorComponent.Play(motionFieldMixer);
+
+            motionFieldMixer.SetClipWeight(assignedMotionFieldController.animClipInfoList[0].animClip.name, 0.5f);
+            //motionFieldMixer.SetClipWeight(assignedMotionFieldController.animClipInfoList[0].animClip.name, 0.5f);
+
+            //motionFieldMixer.SetClipWeight(assignedMotionFieldController.animClipInfoList[1].animClip.name, 0.9f);
+
+        }
+
+        // Use this for initialization
+        void Start () {
+
 	    }
 	
 	    // Update is called once per frame
