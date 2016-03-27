@@ -27,13 +27,13 @@ namespace AnimationMotionFields {
                                                         numFramesToBlend
                                                         );
 
-            //_animatorComponent.Play(motionFieldMixer);
 
-            motionFieldMixer.SetClipWeight(assignedMotionFieldController.animClipInfoList[0].animClip.name, 0.5f);
+            //motionFieldMixer.SetClipWeight(assignedMotionFieldController.animClipInfoList[0].animClip.name, 0.5f);
             //motionFieldMixer.SetClipWeight(assignedMotionFieldController.animClipInfoList[0].animClip.name, 0.5f);
 
-            //motionFieldMixer.SetClipWeight(assignedMotionFieldController.animClipInfoList[1].animClip.name, 0.9f);
+            motionFieldMixer.SetClipWeight(assignedMotionFieldController.animClipInfoList[1].animClip.name, 0.9f);
 
+            _animatorComponent.Play(motionFieldMixer);
         }
 
         // Use this for initialization
@@ -46,6 +46,11 @@ namespace AnimationMotionFields {
             //GraphVisualizerClient.Show(animMixer, gameObject.name);
             GraphVisualizerClient.Show(motionFieldMixer, gameObject.name);
 	    }
+
+        void OnDestroy() {
+            //CURRENTLY CRASHES EDITOR WHEN STOP PLAYING
+            //motionFieldMixer.Dispose();//dump all resources that were allocated to the mixer
+        }
     }
 
 }
