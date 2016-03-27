@@ -2,6 +2,8 @@
 using System.Collections.Generic;
 using System.Linq;
 
+using AnimationMotionFields;
+
 #if UNITY_EDITOR
 using UnityEditor;
 using UnityEditorInternal;
@@ -9,7 +11,7 @@ using UnityEditorInternal;
 
 
 
-namespace AnimationMotionFields {
+//namespace AnimationMotionFields {
 
     [System.Serializable]
     public class KeyframeData {
@@ -236,4 +238,4 @@ namespace AnimationMotionFields {
     #endif
     */
 
-}
+//}
