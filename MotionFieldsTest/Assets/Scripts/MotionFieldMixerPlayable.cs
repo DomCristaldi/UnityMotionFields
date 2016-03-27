@@ -1,7 +1,6 @@
 ﻿using UnityEngine;
 using UnityEngine.Experimental.Director;
 using System.Collections.Generic;
-//using System.Linq;
 
 namespace AnimationMotionFields {
 
@@ -45,27 +44,13 @@ namespace AnimationMotionFields {
 
     public class MotionFieldMixerRoot : AnimationMixerPlayable {
 
-        //float[] clipWeights;
-
-        //public Dictionary
-        /*
-        public override void PrepareFrame(FrameData info) {
-            Playable[] inputs = GetInputs();
-        }
-        */
-
-        //private Dictionary<string, AnimationMixerPlayable> mixerMappings;
         private Dictionary<string, MotionFieldClipMixer> mixerMappings;
 
-        //public MotionFieldMixerRoot() {}
-        
-        //public MotionFieldMixerRoot(MotionFieldController motionFieldController) {
         public MotionFieldMixerRoot(AnimationClip[] animClips, int numDuplicateClips) {
 
             //mixerMappings = new Dictionary<string, AnimationMixerPlayable>();
             mixerMappings = new Dictionary<string, MotionFieldClipMixer>();
 
-            //foreach (AnimationClip clip in motionFieldController.animClipInfoList.Select(x => x.animClip)) {
             foreach (AnimationClip clip in animClips) {
 
                 MotionFieldClipMixer mfClipMixer = new MotionFieldClipMixer(clip, numDuplicateClips);
@@ -73,46 +58,8 @@ namespace AnimationMotionFields {
                 mixerMappings.Add(clip.name, mfClipMixer);//adds to dictoinary for easy lookup
                 AddInput(mfClipMixer);//adds to actual mixer so it can be used
 
-                //AnimationMixerPlayable duplicatesMixer = new AnimationMixerPlayable();
-
-                /*
-                for (int i = 0; i < )
-
-                mixerMappings.Add(clip.name,
-                                  new AnimationClipPlayable(clip));
-                */
-
             }
 
         }
-
-
-        /*
-        public void AddMotionFieldClip(AnimationClip clip, int numDuplicates) {
-
-            //clipWeights = new float[numDuplicates];
-
-            AnimationMixerPlayable duplicatesMixer = new AnimationMixerPlayable();
-
-            for (int i = 0; i < numDuplicates; ++i) {//create the duplicate anim mixer clips (allows use of multiple frames from same clip)
-                int index = duplicatesMixer.AddInput(new AnimationClipPlayable(clip));//add the clip to the mixer, record it's index
-                //clipWeights[index] = 0.0f;//intialize weight to 0.0f
-                duplicatesMixer.SetInputWeight(i, 0.0f);
-            }
-
-            //********
-            //AddInput(duplicatesMixer);
-
-            //UpdateInputWeights();
-        }
-        */
-        /*
-    //UPDATE ALL WEIGHTS TO MATCH THE CLIP WEIGHTS ARRAY
-        public void UpdateInputWeights() {
-            for (int i = 0; i < clipWeights.Length; ++i) {
-                SetInputWeight(i, clipWeights[i]);
-            }
-        }
-        */
     }
 }
