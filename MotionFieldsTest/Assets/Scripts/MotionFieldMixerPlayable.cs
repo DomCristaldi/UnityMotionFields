@@ -118,6 +118,9 @@ namespace AnimationMotionFields {
 
         public MotionFieldMixerRoot(AnimationClip[] animClips, int numDuplicateClips) {
 
+            //turn off playing animations by default (we just want this for poses)
+            //state = PlayState.Paused;
+
             //mixerMappings = new Dictionary<string, AnimationMixerPlayable>();
             mixerMappings = new Dictionary<string, int>();
 
