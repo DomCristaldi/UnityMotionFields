@@ -308,5 +308,24 @@ namespace AnimationMotionFields {
 		public static void GenerateKDTree(ref MotionFieldController mfController, string[] uniquePaths, MotionFieldController.RootComponents rootComponents ) {
 			MotionFieldUtility.GenerateKDTree(ref mfController.kd, mfController.animClipInfoList, uniquePaths, rootComponents, uniquePaths.Length * 2);
         }
+
+		public static List<List<float>> CartesianProduct( List<List<float>> sequences){
+			// base case: 
+			List<List<float>> product = new List<List<float>>(); 
+			product.Add (new List<float> ());
+			foreach(List<float> sequence in sequences) 
+			{ 
+				// don't close over the loop variable (fixed in C# 5 BTW)
+				List<float> s = sequence; 
+				List<List<float>> newProduct = new List<List<float>> ();
+				foreach (List<float> p in product){
+					foreach (float item in s){
+						newProduct.Add(p.Concat (new List<float> (new float[] { item })).ToList());
+					}
+				}
+				product = newProduct;
+			} 
+			return product; 
+		}
     }
 }

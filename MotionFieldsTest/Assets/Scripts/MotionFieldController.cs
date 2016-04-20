@@ -105,6 +105,37 @@ using UnityEditorInternal;
 
 		public KDTreeDLL.KDTree kd;
 
+		public ValueFunc vf;
+
+		public void moveOneTick(float[] currentPos, int numActions = 1){
+			List<NodeData> neighbors = NearestNeighbor (currentPos, numActions);
+
+			double[] weights = GenerateWeights (currentPos, neighbors);
+
+			double[][] actionWeights = GenerateActions(weights, numActions);
+
+			List<float[]> candidateActions = new List<float[]>(); //not actuallu MotionPose. datatyoe is type of dome new skeleton heirarchy.
+			foreach (double[] action in actionWeights){
+				candidateActions.Add(GeneratePose(currentPos, neighbors, action)); //GeneratePose does the weighted blending, will be written by Dom later.
+			}
+
+			int chosenAction = -1;
+			float bestReward = 0;
+			for (int i=0; i < candidateActions.Count(); i++){
+			float reward = vf.ComputeReward(candidateActions[i]);
+				if (reward > bestReward){
+					bestReward = reward;
+					chosenAction = i;
+				}
+			}
+
+			//action for player to move through known! it is candidateActions[chosenAction]. 
+			//TODO: apply it to the character, then using this new current state, find next state for him to move to.
+			
+			
+			
+		}
+
 		public List<NodeData> NearestNeighbor(float[] float_pos, int num_neighbors = 1){
 
 			double[] pos = float_pos.Select (x => System.Convert.ToDouble (x)).ToArray ();
@@ -117,10 +148,7 @@ using UnityEditorInternal;
 			return data;
 		}
 
-		public double[][] GenerateActions(float[] float_pos, int numActions = 1){
-			List<NodeData> neighbors = NearestNeighbor (float_pos, numActions);
-
-			double[] weights = GenerateWeights (float_pos, neighbors);
+		public double[][] GenerateActions(double[] weights, int numActions = 1){
 
 			double[][] actions = new double[numActions] [];
 			for(int i = 0; i < numActions; i++){
@@ -162,8 +190,13 @@ using UnityEditorInternal;
 
 			return weights;
 		}
-			
-    }
+
+		public float[] GeneratePose(float[] currentPos, List<NodeData> neighbors, double[] action){
+			//placeholder func. takes in current motionstate, neighbor states, and weights of neighbor states.
+			//does weighted blending, returns blended state
+				
+	    }
+	}
 
 	public class NodeData{
 		public string clipId;
