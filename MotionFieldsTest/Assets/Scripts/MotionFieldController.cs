@@ -11,9 +11,11 @@ using UnityEditorInternal;
 
 
 
+
+
 //namespace AnimationMotionFields {
 
-    [System.Serializable]
+[System.Serializable]
     public class KeyframeData {
         public float value;
         public float velocity;

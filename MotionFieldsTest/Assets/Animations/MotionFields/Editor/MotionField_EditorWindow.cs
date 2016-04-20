@@ -1,4 +1,5 @@
 ﻿using UnityEngine;
+using UnityEngine.Experimental.Director;
 using UnityEditor;
 using UnityEditorInternal;
 using System.Collections.Generic;
@@ -8,10 +9,25 @@ namespace AnimationMotionFields {
 
     public class MotionField_EditorWindow : EditorWindow {
 
+        public enum WindowSetting {
+            Markup = 0,
+            Generation = 1,
+        }
+        public WindowSetting curWindowSetting;
+        protected bool lockSelection = false;
+
+
+        public GameObject selectedGO;
+
+
+        MotionSkeleton selectedMotionSkeleton;
+        SerializedObject serializedSelectedMotoinSkeleton;
+
+
         [SerializeField]
         public MotionFieldController selectedMotionFieldController;
 
-        public ModelImporterClipAnimation skinnedMesh;
+        //public ModelImporterClipAnimation skinnedMesh;
         
 
         //[SerializeField]
@@ -59,8 +75,122 @@ namespace AnimationMotionFields {
 
         }
 
+        void OnSelectionChange() {
+            if (lockSelection) { return; }
+
+            selectedGO = Selection.activeGameObject;
+            serializedSelectedMotoinSkeleton = new SerializedObject(Selection.activeGameObject);
+            Repaint();
+        }
+
 
         void OnGUI() {
+
+            EditorGUILayout.BeginHorizontal(EditorStyles.toolbar);
+            if (GUILayout.Button("Markup", EditorStyles.toolbarButton)) {
+                curWindowSetting = WindowSetting.Markup;
+            }
+            if (GUILayout.Button("Generation", EditorStyles.toolbarButton)) {
+                curWindowSetting = WindowSetting.Generation;
+            }
+
+            GUILayout.FlexibleSpace();
+
+            lockSelection = GUILayout.Toggle(lockSelection, "Lock", EditorStyles.radioButton);
+
+            EditorGUILayout.EndHorizontal();
+
+
+            switch (curWindowSetting) {
+                case WindowSetting.Markup:
+                    DoMarkupGUI();
+                    break;
+
+                case WindowSetting.Generation:
+                    DoGenerationGUI();
+                    break;
+
+                default:
+                    goto case WindowSetting.Markup;
+            }
+
+        }
+
+//RUNTIME SKELETON MARKUP
+        private void DoMarkupGUI() {
+
+            EditorGUILayout.BeginVertical();
+
+
+            if (selectedGO == null) {
+                EditorGUILayout.HelpBox("Please Select a GameObject to Mark Up", MessageType.Info);
+                EditorGUILayout.EndVertical();
+                return;
+            }
+
+            EditorGUILayout.BeginHorizontal();
+            selectedMotionSkeleton = (MotionSkeleton) EditorGUILayout.ObjectField("Motion Skeleton: ", selectedMotionSkeleton, typeof(MotionSkeleton), false);
+            EditorGUILayout.EndHorizontal();
+
+            if (selectedMotionSkeleton == null) {
+                EditorGUILayout.HelpBox("Please Select a Motion Skeleton to Modify", MessageType.Info);
+                EditorGUILayout.EndVertical();
+                return;
+            }
+
+
+            if (selectedMotionSkeleton.rootBone == null) {
+                if (GUILayout.Button("Assign Root Bone")) {
+                    selectedMotionSkeleton.rootBone = new MotionSkeletonBone(selectedGO.transform);
+                    //SerializedProperty rootBone = serializedSelectedMotoinSkeleton.FindProperty("rootBone");
+                    //rootBone.objectReferenceValue = new MotionSkeletonBone(selectedGO.transform);
+                }
+            }
+            else {
+                EditorGUILayout.BeginVertical();
+
+                DisplayMotionSkeletonHierarchy(selectedMotionSkeleton.rootBone);
+
+                EditorGUILayout.EndVertical();
+            }
+
+
+
+            EditorGUILayout.EndVertical();
+
+        }
+
+        private void DisplayMotionSkeletonHierarchy(MotionSkeletonBone skeletonRoot) {
+
+            EditorGUILayout.LabelField(skeletonRoot.boneTransformRef.name);
+
+            EditorGUI.indentLevel++;
+
+            Playable[] skeletonInputs = skeletonRoot.GetInputs();
+            if (skeletonInputs.Length == 0) {
+                foreach (Transform tf in skeletonRoot.boneTransformRef) {
+
+//*********COME HERE, IMPLEMENT + AND - BUTTONS FOR ADDING AND SUBTRACTING BONES FROM MOTION SKELETON***************
+                    /*if (GUILayout.Button("+", tf.name)) {
+
+                    }*/
+
+                    EditorGUILayout.LabelField(tf.name);
+                }
+            }
+            else {
+                foreach (Playable p in skeletonInputs) {
+                    EditorGUILayout.BeginVertical();
+                    DisplayMotionSkeletonHierarchy((MotionSkeletonBone) p);
+                    EditorGUILayout.EndVertical();
+                }
+            }
+
+            EditorGUI.indentLevel--;
+        }
+
+//MOTION FIELD GENERATION TOOLS
+        private void DoGenerationGUI() {
 
             EditorGUILayout.BeginVertical();
             EditorGUILayout.BeginHorizontal();
@@ -101,7 +231,7 @@ namespace AnimationMotionFields {
 
                 GUILayout.BeginHorizontal();
 
-//MOTION POSE GENERATION
+        //MOTION POSE GENERATION
                 if (GUILayout.Button("Generate Poses")) {
                     BuildMotionField();
                 }

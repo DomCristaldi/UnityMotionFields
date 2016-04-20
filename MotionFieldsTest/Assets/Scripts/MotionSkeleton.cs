@@ -1,22 +1,40 @@
 ﻿using UnityEngine;
+using UnityEngine.Experimental.Director;
 using System.Collections;
+
+
+
+
+[System.Serializable]
+public class MotionSkeletonBone : Playable {
+
+    public Transform boneTransformRef;
+
+    public MotionSkeletonBone(Transform boneTransformRef) {
+        this.boneTransformRef = boneTransformRef;
+    }
+
+    public override void ProcessFrame(FrameData info, object playerData) {
+        base.ProcessFrame(info, playerData);
+    }
+
+}
 
 /*
 [System.Serializable]
-public class MotionSkeletonBone {
+public class MotionSkeletonBoneBinder {
 
+    public MotionSkeletonBone parentBone;
+
+    public MotionSkeletonBone[] childBones;
 }
 */
 
 [CreateAssetMenu]
 public class MotionSkeleton : ScriptableObject {
 
-    public Transform rootTransform;
-
-    //public Transform[] excludedTransforms;
-
-    public void SetRootTransform(Transform root) {
-
-    } 
+    [SerializeField]
+    public MotionSkeletonBone rootBone;
+    
 
 }
