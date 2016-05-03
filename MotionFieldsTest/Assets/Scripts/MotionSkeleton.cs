@@ -6,11 +6,15 @@ using System.Collections.Generic;
 public class MotionSkeletonBonePlayable : Playable {
 
     public Transform boneTransformRef;
-
+    /*
+    public MotionSkeletonBonePlayable() {
+        //boneTransformRef = null;
+    }
+    */
     public MotionSkeletonBonePlayable(Transform boneTransformRef) {
         this.boneTransformRef = boneTransformRef;
     }
-
+    
     public override void ProcessFrame(FrameData info, object playerData) {
         base.ProcessFrame(info, playerData);
     }
@@ -31,6 +35,11 @@ public class MotionSkeletonBoneJoint : ScriptableObject {
 [CreateAssetMenu]
 public class MotionSkeleton : ScriptableObject, ISerializationCallbackReceiver {
 
+    public class MSBoneDeserialized {
+        public Transform referencedTransform;
+        public List<MSBoneDeserialized> children;
+    }
+
     [System.Serializable]
     public struct MSBoneSerialized {
         //public List<> 
@@ -50,18 +59,28 @@ public class MotionSkeleton : ScriptableObject, ISerializationCallbackReceiver {
     public MotionSkeletonBonePlayable rootBone;
 
 
+    void OnDestroy() {
+        //rootBone.Dispose();
+    }
+
+
     public void OnBeforeSerialize() {
+        
         serializedBones.Clear();//wipe the serialization storage
 
+        if (rootBone == null) { return; }
         AddBoneToSerialization(rootBone);//make sure we start by adding the root (assumed it's index 0 when we deserialize)
 
+        //rootBone.Dispose();
+
         //throw new System.NotImplementedException();
+        
     }
 
     void AddBoneToSerialization(MotionSkeletonBonePlayable rootBone) {
 
         MSBoneSerialized newSerializedBone = new MSBoneSerialized() {
-            referencedTransform = rootBone.boneTransformRef,
+            //referencedTransform = rootBone.boneTransformRef,
             numInputs = rootBone.GetInputs().Length,
             indexOfSelf = serializedBones.Count,
             indexOfFirstChild = serializedBones.Count + 1,
@@ -73,12 +92,23 @@ public class MotionSkeleton : ScriptableObject, ISerializationCallbackReceiver {
             AddBoneToSerialization(msBone);
         }
 
+        Debug.Log("before serialize: " + serializedBones.Count);
+
+
     }
 
 
     public void OnAfterDeserialize() {
 
+        Debug.Log("Deserialize");
+
+        //Debug.Log("after serialize");
+        rootBone.Dispose();
+        rootBone = null;
+
         if (serializedBones.Count > 0) {
+
+            Debug.Log("We have info to deserialize");
 
             rootBone = new MotionSkeletonBonePlayable(serializedBones[0].referencedTransform);
             GenerateMotionSkeleton(0, ref rootBone);
@@ -89,10 +119,14 @@ public class MotionSkeleton : ScriptableObject, ISerializationCallbackReceiver {
             rootBone = null;
         }
         //throw new System.NotImplementedException();
+        
     }
 
     //Recursively generate the Motion Skeleton from root bone's index
     private void GenerateMotionSkeleton(int rootIndex, ref MotionSkeletonBonePlayable rootBoneReference) {//NOTE TO SELF: THE AMOUNT OF RECURSIVE NESTED FOR LOOPS IS SCARY. CONSIDER REFACTORING
+
+        Debug.Log("generate bone");
+
         MotionSkeletonBonePlayable[] children = new MotionSkeletonBonePlayable[serializedBones[rootIndex].numInputs];
         MSBoneSerialized[] inputBones = new MSBoneSerialized[serializedBones[rootIndex].numInputs];
 
@@ -100,8 +134,9 @@ public class MotionSkeleton : ScriptableObject, ISerializationCallbackReceiver {
             children[i] = new MotionSkeletonBonePlayable(inputBones[i].referencedTransform);
         }
         
-        //compound for loop b/c these arrays are order-synchronized
-        for (int i = 0, j = serializedBones[rootIndex].indexOfFirstChild;
+
+        //RECURSIVLEY BUILD ALL CHILDREN OF THE CHILD BONES
+        for (int i = 0, j = serializedBones[rootIndex].indexOfFirstChild;//compound for loop b/c these arrays are order-synchronized
                 i < children.Length;
                 ++i, ++j)
         {
@@ -112,34 +147,8 @@ public class MotionSkeleton : ScriptableObject, ISerializationCallbackReceiver {
             Playable.Connect(rootBoneReference, child);
         }
 
-
-        /*
-        for (int i = 0; i < serializedBones[rootIndex].numInputs; ++i) {
-
-            children[i] = new MotionSkeletonBonePlayable(serializedBones[rootIndex].referencedTransform);
-        }
-
-        for (int i = 0; i < serializedBones[rootIndex].numInputs; ++i) {
-            MotionSkeletonBonePlayable childSkeletalBone = new MotionSkeletonBonePlayable(children[i].boneTransformRef);
-
-            for (int childIndex = )
-
-            
-        }
-        */
-
-        //return _root;
     }
-
-    /*
-    private void GenerateDeserializedTree(ref MotionSkeletonBonePlayable rootBone) {
-        for (int i = 0; i < serializedBones.Count; ++i) {
-
-        }
-    }
-    */
     
-
     public void Init() {
 
     }
