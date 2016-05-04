@@ -145,12 +145,16 @@ namespace AnimationMotionFields {
 
             if (selectedMotionSkeleton.rootDeserializedBone == null) {
                 if (GUILayout.Button("Assign Root Bone")) {
-                    selectedMotionSkeleton.rootDeserializedBone = new MotionSkeleton.MSBoneDeserialized();
+                    selectedMotionSkeleton.rootDeserializedBone = new MotionSkeleton.MSBoneDeserialized() { boneLabel = selectedGO.transform.name };
 
                     EditorUtility.SetDirty(selectedMotionSkeleton);
                     //AssetDatabase.SaveAssets();
                 }
             }
+            else {
+                DisplayMotionSkeletonHierarchy(selectedMotionSkeleton.rootDeserializedBone);
+            }
+            
 
             /*
             if (selectedMotionSkeleton.rootBone == null) {
@@ -173,6 +177,25 @@ namespace AnimationMotionFields {
             EditorGUILayout.EndVertical();
 
         }
+
+        private void DisplayMotionSkeletonHierarchy(MotionSkeleton.MSBoneDeserialized rootBone) {
+            EditorGUILayout.BeginVertical();
+
+            ++EditorGUI.indentLevel;
+
+            EditorGUILayout.LabelField(rootBone.boneLabel);
+
+            if (rootBone.children.Count > 0) {
+                foreach (MotionSkeleton.MSBoneDeserialized child in rootBone.children) {
+                    DisplayMotionSkeletonHierarchy(child);
+                }   
+            }
+
+            --EditorGUI.indentLevel;
+
+            EditorGUILayout.EndVertical();
+        }
+
         /*
         private void DisplayMotionSkeletonHierarchy(MotionSkeletonBone skeletonRoot) {
 
@@ -200,7 +223,7 @@ namespace AnimationMotionFields {
             EditorGUI.indentLevel--;
         }
         */
-//MOTION FIELD GENERATION TOOLS
+        //MOTION FIELD GENERATION TOOLS
         private void DoGenerationGUI() {
 
             EditorGUILayout.BeginVertical();

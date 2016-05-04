@@ -23,6 +23,8 @@ namespace AnimationMotionFields {
         //MotionSkeletonBonePlayable testPlayable;
 
         void Awake() {
+            skeleton.Init();
+
 
             //testPlayable = new MotionSkeletonBonePlayable();
 
@@ -32,7 +34,6 @@ namespace AnimationMotionFields {
 
             //_animatorComponent = GetComponent<Animator>();
 
-            skeleton.Init();
             //testRoot = new MotionSkeletonBonePlayable();
             /*
             motionFieldMixer = new MotionFieldMixerRoot(assignedMotionFieldController.animClipInfoList
@@ -47,7 +48,7 @@ namespace AnimationMotionFields {
 
             //motionFieldMixer.SetClipWeight(assignedMotionFieldController.animClipInfoList[0].animClip.name, 0.6f);
 
-            
+
             //_animatorComponent.Play(motionFieldMixer);
 
             //motionFieldMixer.state = PlayState.Paused;
@@ -55,7 +56,6 @@ namespace AnimationMotionFields {
 
         // Use this for initialization
         void Start () {
-            //skeleton.Init();
 
         }
 
