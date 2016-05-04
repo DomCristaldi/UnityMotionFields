@@ -78,8 +78,13 @@ namespace AnimationMotionFields {
         void OnSelectionChange() {
             if (lockSelection) { return; }
 
-            selectedGO = Selection.activeGameObject;
-            serializedSelectedMotoinSkeleton = new SerializedObject(Selection.activeGameObject);
+            if (Selection.activeGameObject == null) {
+                selectedGO = null;
+            }
+            else {
+                selectedGO = Selection.activeGameObject;
+            }
+            //serializedSelectedMotoinSkeleton = new SerializedObject(Selection.activeGameObject);
             Repaint();
         }
 
@@ -138,7 +143,16 @@ namespace AnimationMotionFields {
                 return;
             }
 
+            if (selectedMotionSkeleton.rootDeserializedBone == null) {
+                if (GUILayout.Button("Assign Root Bone")) {
+                    selectedMotionSkeleton.rootDeserializedBone = new MotionSkeleton.MSBoneDeserialized();
 
+                    EditorUtility.SetDirty(selectedMotionSkeleton);
+                    //AssetDatabase.SaveAssets();
+                }
+            }
+
+            /*
             if (selectedMotionSkeleton.rootBone == null) {
                 if (GUILayout.Button("Assign Root Bone")) {
                     selectedMotionSkeleton.rootBone = new MotionSkeletonBone(selectedGO.transform);
@@ -153,13 +167,13 @@ namespace AnimationMotionFields {
 
                 EditorGUILayout.EndVertical();
             }
-
+            */
 
 
             EditorGUILayout.EndVertical();
 
         }
-
+        /*
         private void DisplayMotionSkeletonHierarchy(MotionSkeletonBone skeletonRoot) {
 
             EditorGUILayout.LabelField(skeletonRoot.boneTransformRef.name);
@@ -171,10 +185,7 @@ namespace AnimationMotionFields {
                 foreach (Transform tf in skeletonRoot.boneTransformRef) {
 
 //*********COME HERE, IMPLEMENT + AND - BUTTONS FOR ADDING AND SUBTRACTING BONES FROM MOTION SKELETON***************
-                    /*if (GUILayout.Button("+", tf.name)) {
-
-                    }*/
-
+                    
                     EditorGUILayout.LabelField(tf.name);
                 }
             }
@@ -188,7 +199,7 @@ namespace AnimationMotionFields {
 
             EditorGUI.indentLevel--;
         }
-
+        */
 //MOTION FIELD GENERATION TOOLS
         private void DoGenerationGUI() {
 

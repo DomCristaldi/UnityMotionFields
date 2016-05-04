@@ -2,42 +2,40 @@
 using UnityEngine.Experimental.Director;
 using System.Collections.Generic;
 
-[System.Serializable]
 public class MotionSkeletonBonePlayable : Playable {
 
-    public Transform boneTransformRef;
+    //public Transform boneTransformRef;
     /*
     public MotionSkeletonBonePlayable() {
         //boneTransformRef = null;
     }
     */
+    /*
     public MotionSkeletonBonePlayable(Transform boneTransformRef) {
         this.boneTransformRef = boneTransformRef;
     }
-    
+    */
+    /*
     public override void ProcessFrame(FrameData info, object playerData) {
         base.ProcessFrame(info, playerData);
     }
-
-}
-
-public class MotionSkeletonBone : ScriptableObject {
-    //public
-    public MotionSkeletonBoneJoint inJoint;
-    public MotionSkeletonBoneJoint outJoint;
-}
-
-public class MotionSkeletonBoneJoint : ScriptableObject {
-    public List<MotionSkeletonBone> inBones;
-    public List<MotionSkeletonBone> outBones;
+    */
 }
 
 [CreateAssetMenu]
 public class MotionSkeleton : ScriptableObject, ISerializationCallbackReceiver {
 
     public class MSBoneDeserialized {
-        public Transform referencedTransform;
+        //public Transform referencedTransform;
+        public int posX, posY, posZ;
+        public int quatX, quatY, quatZ, quatW;
+        public int scaleX, scaleY, scaleZ;
+
         public List<MSBoneDeserialized> children;
+
+        public MSBoneDeserialized() {
+            children = new List<MSBoneDeserialized>();
+        }
     }
 
     [System.Serializable]
@@ -45,113 +43,100 @@ public class MotionSkeleton : ScriptableObject, ISerializationCallbackReceiver {
         //public List<> 
         //public int[] boneInputIndexes;
         //public int[] boneOutputIndexes;
-        public Transform referencedTransform;
-        public int numInputs;
+        //public Transform referencedTransform;
+
+        public int posX, posY, posZ;
+        public int quatX, quatY, quatZ, quatW;
+        public int scaleX, scaleY, scaleZ;
+
+        public int numChildren;
         public int indexOfSelf;
         public int indexOfFirstChild;
     }
 
-    //[SerializeField]
+    public MSBoneDeserialized rootDeserializedBone = new MSBoneDeserialized();
     public List<MSBoneSerialized> serializedBones;
 
-
-    [SerializeField]
-    public MotionSkeletonBonePlayable rootBone;
-
-
-    void OnDestroy() {
-        //rootBone.Dispose();
-    }
-
-
     public void OnBeforeSerialize() {
-        
-        serializedBones.Clear();//wipe the serialization storage
+        serializedBones.Clear();
 
-        if (rootBone == null) { return; }
-        AddBoneToSerialization(rootBone);//make sure we start by adding the root (assumed it's index 0 when we deserialize)
+        if (rootDeserializedBone == null) { return; }//don't bother serializeing, we don't have any data
 
-        //rootBone.Dispose();
-
+        SerializeBone(rootDeserializedBone);
         //throw new System.NotImplementedException();
-        
     }
+    private void SerializeBone(MSBoneDeserialized boneToAdd) {
+        MSBoneSerialized serBone = new MSBoneSerialized() {
 
-    void AddBoneToSerialization(MotionSkeletonBonePlayable rootBone) {
-
-        MSBoneSerialized newSerializedBone = new MSBoneSerialized() {
-            //referencedTransform = rootBone.boneTransformRef,
-            numInputs = rootBone.GetInputs().Length,
-            indexOfSelf = serializedBones.Count,
-            indexOfFirstChild = serializedBones.Count + 1,
+            numChildren = boneToAdd.children.Count,
+            //indexOfSelf = index,
+            indexOfFirstChild = serializedBones.Count + 1
         };
 
-        serializedBones.Add(newSerializedBone);
-
-        foreach (MotionSkeletonBonePlayable msBone in rootBone.GetInputs()) {
-            AddBoneToSerialization(msBone);
+        serializedBones.Add(serBone);
+        foreach (MSBoneDeserialized child in boneToAdd.children) {
+            SerializeBone(child);
         }
-
-        Debug.Log("before serialize: " + serializedBones.Count);
-
-
     }
 
 
     public void OnAfterDeserialize() {
 
-        Debug.Log("Deserialize");
-
-        //Debug.Log("after serialize");
-        rootBone.Dispose();
-        rootBone = null;
-
         if (serializedBones.Count > 0) {
 
-            Debug.Log("We have info to deserialize");
+        }
+        else { rootDeserializedBone = null; }
 
-            rootBone = new MotionSkeletonBonePlayable(serializedBones[0].referencedTransform);
-            GenerateMotionSkeleton(0, ref rootBone);
-            //GenerateDeserializedTree(ref root);
-        }
-        else {
-            Debug.LogWarning("No serialized bones found. Setting root to null");
-            rootBone = null;
-        }
         //throw new System.NotImplementedException();
-        
     }
 
-    //Recursively generate the Motion Skeleton from root bone's index
-    private void GenerateMotionSkeleton(int rootIndex, ref MotionSkeletonBonePlayable rootBoneReference) {//NOTE TO SELF: THE AMOUNT OF RECURSIVE NESTED FOR LOOPS IS SCARY. CONSIDER REFACTORING
-
-        Debug.Log("generate bone");
-
-        MotionSkeletonBonePlayable[] children = new MotionSkeletonBonePlayable[serializedBones[rootIndex].numInputs];
-        MSBoneSerialized[] inputBones = new MSBoneSerialized[serializedBones[rootIndex].numInputs];
-
-        for (int i = 0; i < inputBones.Length; ++i) {
-            children[i] = new MotionSkeletonBonePlayable(inputBones[i].referencedTransform);
-        }
-        
-
-        //RECURSIVLEY BUILD ALL CHILDREN OF THE CHILD BONES
-        for (int i = 0, j = serializedBones[rootIndex].indexOfFirstChild;//compound for loop b/c these arrays are order-synchronized
-                i < children.Length;
-                ++i, ++j)
-        {
-            GenerateMotionSkeleton(i, ref children[j]);
+    private MSBoneDeserialized GenerateDeserializedBoneGraph(int index) {
+        var serBone = serializedBones[index];
+        List<MSBoneDeserialized> children = new List<MSBoneDeserialized>();
+        for (int i = 0; i != serBone.numChildren; ++i) {
+            children.Add(GenerateDeserializedBoneGraph(serBone.indexOfFirstChild + i));
         }
 
-        foreach (MotionSkeletonBonePlayable child in children) {
-            Playable.Connect(rootBoneReference, child);
-        }
+        return new MSBoneDeserialized() {
+            children = children,
+        };
+    }
 
+
+    public MotionSkeletonBonePlayable rootBonePlayable;
+
+    public void Init() {
+        /*
+        if (rootBonePlayable != null) {
+            rootBonePlayable.Dispose();
+        }
+        */
+        /*
+        if (rootDeserializedBone == null) {
+            Debug.LogWarningFormat("Root Bone was not serialized or is null. Setting Skeleton to null");
+            rootBonePlayable = null;
+            return;
+        }
+        */
+
+        rootBonePlayable = RecursivelyGenerateSkeleton(rootDeserializedBone);
     }
     
-    public void Init() {
-
+    public MotionSkeletonBonePlayable GenerateSkeleton() {
+        return RecursivelyGenerateSkeleton(rootDeserializedBone);
     }
 
+    private MotionSkeletonBonePlayable RecursivelyGenerateSkeleton(MSBoneDeserialized rootBone) {
 
+        MotionSkeletonBonePlayable newRoot = new MotionSkeletonBonePlayable();
+
+        
+        foreach (MSBoneDeserialized child in rootBone.children) {
+            Playable.Connect(newRoot, RecursivelyGenerateSkeleton(child));
+        }
+        
+
+        return newRoot;
+    }
+    
 }
