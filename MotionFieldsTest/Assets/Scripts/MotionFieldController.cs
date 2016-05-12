@@ -211,7 +211,8 @@ public class MotionFieldController : ScriptableObject {
 	//using an ArrayList because Unity is dumb and doesn't have tuples.
 	//each arralist should holds a vfkey in [0], and a float in [1]
 	//since ArrayList stores everything as object, must cast it when taking out data
-	private List<ArrayList> precomputedRewards_Initializer;
+	[HideInInspector]
+	public List<ArrayList> precomputedRewards_Initializer;
 
 	public float[] poseToPosVelArray(MotionPose pose){
 		//from MP, create float array with only position+velocity information
@@ -343,7 +344,7 @@ public class MotionFieldController : ScriptableObject {
 
 	}
 
-	public static List<List<float>> CartesianProduct( List<List<float>> sequences){
+	public List<List<float>> CartesianProduct( List<List<float>> sequences){
 		// base case: 
 		List<List<float>> product = new List<List<float>>(); 
 		product.Add (new List<float> ());

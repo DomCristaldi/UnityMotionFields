@@ -3,6 +3,7 @@ using UnityEngine.Experimental.Director;
 using UnityEditor;
 using UnityEditorInternal;
 using System.Collections.Generic;
+using System.Collections;
 using System.Linq;
 
 namespace AnimationMotionFields {
@@ -331,7 +332,44 @@ namespace AnimationMotionFields {
 			EditorGUILayout.EndHorizontal ();
 
             //skinnedMesh = (ModelImporterClipAnimation) EditorGUILayout.ObjectField("skinMesh: ", skinnedMesh, typeof(ModelImporterClipAnimation), false);
+			if (GUILayout.Button("Generate Rewards Table")) {
+				//initialize values of precomputedRewards_Initializer
+				//poses - one for each MotionPose in animclipinfo
+				//task arrays - one for every combo of numsamples
+				//total size - every combo of poses and tasks - VERY LARGE
+				int taskSize = selectedMotionFieldController.TArrayInfo.TaskArray.Count();
+				List<List<float>> taskArr_samples = new List<List<float>> ();
+				for(int i=0; i < taskSize; i++){
+					List<float> tasksamples = new List<float> ();
+					float min = selectedMotionFieldController.TArrayInfo.TaskArray [i].min;
+					float max = selectedMotionFieldController.TArrayInfo.TaskArray [i].max;
+					int numSamples = selectedMotionFieldController.TArrayInfo.TaskArray [i].numSamples;
 
+					float interval = (max - min) / numSamples;
+					for(int j = 0; j < numSamples; j++){
+						tasksamples.Add (min + (interval * j));
+					}
+					taskArr_samples.Add (tasksamples);
+				}
+				taskArr_samples = selectedMotionFieldController.CartesianProduct(taskArr_samples);
+
+				selectedMotionFieldController.precomputedRewards_Initializer = new List<ArrayList> ();
+
+				foreach(AnimClipInfo animclip in selectedMotionFieldController.animClipInfoList ){
+					foreach(MotionPose pose in animclip.motionPoses){
+						foreach(List<float> taskArr in taskArr_samples){
+							vfKey key = new vfKey (pose.animClipRef.name, pose.timestamp, taskArr.ToArray ());
+							ArrayList arr = new ArrayList();
+							arr.Add (key);
+							arr.Add (0.0f);
+							selectedMotionFieldController.precomputedRewards_Initializer.Add (arr);
+						}
+					}
+				}
+
+				//now recursively update fitness values to get the future reward
+				
+			}
 
             EditorGUILayout.EndVertical();
 
