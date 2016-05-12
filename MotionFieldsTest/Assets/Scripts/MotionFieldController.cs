@@ -35,11 +35,21 @@ public class BoneTransform {
                  rotW, rotX, rotY, rotZ,
                  sclX, sclY, sclZ;
 
+    //Initialize everyting to default values
     public BoneTransform() {
-
+        this.posX = this.posY = this.posZ = this.rotX = this.rotY = this.rotZ = 0.0f;
+        this.rotW = this.sclX = this.sclY = this.sclZ = 1.0f;
     }
 
-    //initialize with positional information
+    //Initialize everything to the same constant value (useful for setting velocity to 0)
+    public BoneTransform(float constant) {
+        posX = posY = posZ
+            = rotW = rotX = rotY = rotZ
+            = sclX = sclY = sclZ
+            = constant;
+    }
+
+    //Initialize with positional information
     public BoneTransform(Transform tf) {
         posX = tf.localPosition.x;
         posY = tf.localPosition.y;
@@ -53,6 +63,38 @@ public class BoneTransform {
         sclX = tf.localScale.x;
         sclY = tf.localScale.y;
         sclZ = tf.localScale.z;
+    }
+
+    //Used for calculating velocity
+    public BoneTransform(BoneTransform origin, BoneTransform destination) {
+        posX = destination.posX - origin.posX;
+        posY = destination.posY - origin.posY;
+        posZ = destination.posZ - origin.posZ;
+
+        rotW = destination.rotW - origin.rotW;
+        rotX = destination.rotX - origin.rotX;
+        rotY = destination.rotY - origin.rotY;
+        rotZ = destination.rotZ - origin.rotZ;
+
+        sclX = destination.sclX - origin.sclX;
+        sclY = destination.sclY - origin.sclY;
+        sclZ = destination.sclZ - origin.sclZ;
+    }
+
+    //Used for creating a copy
+    public BoneTransform(BoneTransform copy) {
+        posX = copy.posX;
+        posY = copy.posY;
+        posZ = copy.posZ;
+
+        rotW = copy.rotW;
+        rotX = copy.rotX;
+        rotY = copy.rotY;
+        rotZ = copy.rotZ;
+
+        sclX = copy.sclX;
+        sclY = copy.sclY;
+        sclZ = copy.sclZ;
     }
 }
 
