@@ -28,6 +28,9 @@ namespace AnimationMotionFields {
         [SerializeField]
         public MotionFieldController selectedMotionFieldController;
 
+        [SerializeField]
+        public MotionFieldComponent selectedMotionFieldComponent;
+
         //public ModelImporterClipAnimation skinnedMesh;
         
 
@@ -98,6 +101,9 @@ namespace AnimationMotionFields {
             }
             if (GUILayout.Button("Generation", EditorStyles.toolbarButton)) {
                 curWindowSetting = WindowSetting.Generation;
+            }
+            if (GUILayout.Button("Clip Extraction", EditorStyles.toolbarButton)) {
+                curWindowSetting = WindowSetting.ClipExtraction;
             }
 
             GUILayout.FlexibleSpace();
@@ -233,7 +239,7 @@ namespace AnimationMotionFields {
         private void DoGenerationGUI() {
 
             EditorGUILayout.BeginVertical();
-            EditorGUILayout.BeginHorizontal();
+            //EditorGUILayout.BeginHorizontal();
 
 
             /*
@@ -243,13 +249,31 @@ namespace AnimationMotionFields {
                 }
             }
             */
+
+            EditorGUILayout.BeginVertical();
+
             //OBJECT FIELD FOR THE MOTION FIELD
             selectedMotionFieldController = (MotionFieldController) EditorGUILayout.ObjectField("Motion Field: ", selectedMotionFieldController, typeof(MotionFieldController), false);
 
+            selectedMotionFieldComponent = (MotionFieldComponent)EditorGUILayout.ObjectField("Model: ", selectedMotionFieldComponent, typeof(MotionFieldComponent), true);
 
-            EditorGUILayout.EndHorizontal();
+            //EditorGUILayout.EndHorizontal();
 
-            if (selectedMotionFieldController != null) {
+            if (selectedMotionFieldController == null) {
+                EditorGUILayout.HelpBox("Please assign a Motion Field Controller", MessageType.Info);
+            }
+            if (selectedMotionFieldComponent == null) {
+                EditorGUILayout.HelpBox("Please assign a GameObject in the scene with a Motion Field Component attatched to it to Model", MessageType.Info);
+            }
+
+            EditorGUILayout.EndVertical();
+
+            if (selectedMotionFieldController == null || selectedMotionFieldComponent == null) {
+                return;
+            } 
+
+            //if (selectedMotionFieldController != null) {
+            else {
                 //reorderableAnimClips.DoLayoutList();
                 /*
                 GUILayout.BeginHorizontal();
@@ -334,7 +358,7 @@ namespace AnimationMotionFields {
 
         private void BuildMotionField() {
             if (selectedMotionFieldController != null) {
-                MotionFieldUtility.GenerateMotionField(ref selectedMotionFieldController, frameResolution);
+                MotionFieldUtility.GenerateMotionField(ref selectedMotionFieldController, selectedMotionFieldComponent, frameResolution);
             }
         }
 

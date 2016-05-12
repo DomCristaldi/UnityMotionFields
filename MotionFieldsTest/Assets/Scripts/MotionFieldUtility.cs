@@ -23,6 +23,16 @@ namespace AnimationMotionFields {
         /// <returns></returns>
 
 
+        public static BonePose[] ExtractBonePoses(AnimationClip animClipRefrence, MotionFieldComponent modelRef, float timestamp) {
+            Debug.LogError("IMPLEMENT ME!!!");
+            return new BonePose[] { };
+        }
+
+        public static MotionPose[] DetermineBonePoseComponentVelocities(MotionPose[] motionPoses, VelocityCalculationMode calculationMode = VelocityCalculationMode.DropLastTwoFrames) {
+            Debug.LogError("IMPLEMENT ME!!!");
+            return new MotionPose[] { };
+        }
+
 //GET EVERY UNIQUE PATH FROM THE SUPPLIED ANIM CLIPS
         public static string[] GetUniquePaths(AnimationClip[] animClips) {
             //List<string> extractedUniquePaths = new List<string>();
@@ -172,7 +182,7 @@ namespace AnimationMotionFields {
         }
         
 
-
+        
         /// <summary>
         /// Generates all Motion Poses for the supplied Animation Clip
         /// </summary>
@@ -193,12 +203,6 @@ namespace AnimationMotionFields {
             while (currentFrameTimePointer <= ((animClip.length * animClip.frameRate) - frameStep) / animClip.frameRate) {
 
                 float[] motionPoseKeyframes = ExtractKeyframe(animClip, currentFrameTimePointer, totalUniquePaths);
-                                
-                /*
-                for (int i = 0; i < totalUniquePaths.Length; ++i) {
-                    motionPoseKeyframes[i] = ExtractKeyframe(animClip, currentFramePointer, totalUniquePaths);
-                }
-                */
 
                 //*******
                 motionPoses.Add(new MotionPose(animClip, currentFrameTimePointer, motionPoseKeyframes));
@@ -222,8 +226,46 @@ namespace AnimationMotionFields {
             return motionPoses.ToArray();
 
         }
+        
+        
 
-        public static List<AnimClipInfo> GenerateMotionField(List<AnimClipInfo> animClipInfos, int samplingRate, string[] totalUniquePaths) {
+        public static MotionPose[] GenerateMotionPoses(AnimationClip animClip, MotionFieldComponent modelRef, int sampleStepSize = 100, VelocityCalculationMode velCalculationMode = VelocityCalculationMode.DropLastTwoFrames) {
+            List<MotionPose> motionPoses = new List<MotionPose>();
+
+            float frameStep = 1.0f / animClip.frameRate;//time for one animation frame
+            float currentFrameTimePointer = 0.0f;
+
+            //MOVE ACROSS ANIMATION CLIP FRAME BY FRAME
+            while (currentFrameTimePointer <= ((animClip.length * animClip.frameRate) - frameStep) / animClip.frameRate) {
+
+                //float[] motionPoseKeyframes = ExtractKeyframe(animClip, currentFrameTimePointer, totalUniquePaths);
+                BonePose[] extractedBonePoses = ExtractBonePoses(animClip, modelRef, currentFrameTimePointer);
+                //*******
+                //motionPoses.Add(new MotionPose(animClip, currentFrameTimePointer, motionPoseKeyframes));
+                motionPoses.Add(new MotionPose(extractedBonePoses, animClip, currentFrameTimePointer));
+
+                currentFrameTimePointer += frameStep * sampleStepSize;
+
+                /*
+                if (EditorUtility.DisplayCancelableProgressBar("Creating Motion Poses", "", currentFrameTimePointer / animClip.length)) {
+                    EditorUtility.ClearProgressBar();
+                    return motionPoses.ToArray();
+                }
+                */
+            }
+
+            //EditorUtility.ClearProgressBar();
+            //motionPoses = DetermineKeyframeComponentVelocities(motionPoses.ToArray<MotionPose>(), velCalculationMode).ToList<MotionPose>();
+
+            motionPoses = DetermineBonePoseComponentVelocities(motionPoses.ToArray<MotionPose>(), velCalculationMode).ToList<MotionPose>();
+
+            //Debug.LogFormat("Frame Count: {0} | Aggregate: {1}", frameCount, currentFramePointer);
+            //Debug.LogFormat("Aggregate: {0} | Clip Length: {1}", currentFramePointer / animClip.frameRate, animClip.length);
+
+            return motionPoses.ToArray();
+        }
+
+        public static List<AnimClipInfo> GenerateMotionField(List<AnimClipInfo> animClipInfos, MotionFieldComponent modelRef, int samplingRate, string[] totalUniquePaths) {
 
 
             foreach (AnimClipInfo clipInfo in animClipInfos) {
@@ -233,7 +275,8 @@ namespace AnimationMotionFields {
                 else {
                     //clipInfo.GenerateMotionPoses(samplingRate, uniquePaths);
                     clipInfo.motionPoses = MotionFieldUtility.GenerateMotionPoses(clipInfo.animClip,
-                                                                                  totalUniquePaths,
+                                                                                  //totalUniquePaths,
+                                                                                  modelRef,
                                                                                   samplingRate,
                                                                                   clipInfo.velocityCalculationMode);
                 }
@@ -242,10 +285,10 @@ namespace AnimationMotionFields {
             return animClipInfos;
         }
 
-        public static void GenerateMotionField(ref MotionFieldController mfController, int samplingRate) {
+        public static void GenerateMotionField(ref MotionFieldController mfController, MotionFieldComponent modelRef, int samplingRate) {
             string[] uniquePaths = MotionFieldUtility.GetUniquePaths(mfController.animClipInfoList.Select(x => x.animClip).ToArray());
 
-			mfController.animClipInfoList = MotionFieldUtility.GenerateMotionField(mfController.animClipInfoList, samplingRate, uniquePaths);
+			mfController.animClipInfoList = MotionFieldUtility.GenerateMotionField(mfController.animClipInfoList, modelRef, samplingRate, uniquePaths);
 			MotionFieldUtility.GenerateKDTree(ref mfController, uniquePaths, mfController.rootComponents);
         }
 
