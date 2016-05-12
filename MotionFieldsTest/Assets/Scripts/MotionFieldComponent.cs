@@ -74,7 +74,7 @@ namespace AnimationMotionFields {
     }
 #endif
 
-    [RequireComponent(typeof(Animator))]
+    //[RequireComponent(typeof(Animator))]
     public class MotionFieldComponent : MonoBehaviour {
 
         //private Animator _animatorComponent;

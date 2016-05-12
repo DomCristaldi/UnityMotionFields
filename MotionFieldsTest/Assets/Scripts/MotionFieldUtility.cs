@@ -25,6 +25,9 @@ namespace AnimationMotionFields {
 
         public static BonePose[] ExtractBonePoses(AnimationClip animClipRefrence, MotionFieldComponent modelRef, float timestamp) {
             Debug.LogError("IMPLEMENT ME!!!");
+
+
+
             return new BonePose[] { };
         }
 
@@ -288,8 +291,30 @@ namespace AnimationMotionFields {
         public static void GenerateMotionField(ref MotionFieldController mfController, MotionFieldComponent modelRef, int samplingRate) {
             string[] uniquePaths = MotionFieldUtility.GetUniquePaths(mfController.animClipInfoList.Select(x => x.animClip).ToArray());
 
+            Animator modelRefAnimator = modelRef.gameObject.GetComponent<Animator>();
+            bool addedAnimator = false;
+            bool addedRuntimeController = false;
+
+            if (modelRefAnimator == null) {
+                modelRefAnimator = modelRef.gameObject.AddComponent<Animator>();
+                addedAnimator = true;
+            }
+            if (modelRefAnimator.runtimeAnimatorController == null) {
+                modelRefAnimator.runtimeAnimatorController = new RuntimeAnimatorController();
+                addedRuntimeController = true;
+            }
+
 			mfController.animClipInfoList = MotionFieldUtility.GenerateMotionField(mfController.animClipInfoList, modelRef, samplingRate, uniquePaths);
-			MotionFieldUtility.GenerateKDTree(ref mfController, uniquePaths, mfController.rootComponents);
+
+            if (addedRuntimeController) {
+                MonoBehaviour.DestroyImmediate(modelRefAnimator.runtimeAnimatorController, true);
+            }
+
+            if (addedAnimator) {
+                MonoBehaviour.DestroyImmediate(modelRefAnimator);
+            }
+
+            MotionFieldUtility.GenerateKDTree(ref mfController, uniquePaths, mfController.rootComponents);
         }
 
 
