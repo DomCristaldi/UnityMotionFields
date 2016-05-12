@@ -1,5 +1,6 @@
 ﻿using UnityEngine;
 using System.Collections.Generic;
+using System.Collections;
 using System.Linq;
 
 using AnimationMotionFields;
@@ -165,14 +166,10 @@ public class MotionFieldController : ScriptableObject {
 
 	private Dictionary<vfKey, float> precomputedRewards;
 
-	private List<Tuple<vfKey,float>> precomputedRewards_Initializer;
-
-	//TODO: have the precomputed value func dictionary here
-	//wait...wouldn't this have to be a dictionary.
-	//dictionaries are not serializable...
-	//if i remember correctly, we found a way to manually make dicts serializable. 
-	//create it as a list, then at runtime we transfer it to a dictionary lookup.
-
+	//using an ArrayList because Unity is dumb and doesn't have tuples.
+	//each arralist should holds a vfkey in [0], and a float in [1]
+	//since ArrayList stores everything as object, must cast it when taking out data
+	private List<ArrayList> precomputedRewards_Initializer;
 
 	public float[] poseToPosVelArray(MotionPose pose){
 		//from MP, create float array with only position+velocity information
