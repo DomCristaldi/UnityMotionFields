@@ -30,18 +30,42 @@ public class KeyframeData {
 
 [System.Serializable]
 public class BoneTransform {
-    float posX, posY, posZ,
-          rotW, rotX, rotY, rotZ,
-          sclX, sclY, sclZ;
+    public float posX, posY, posZ,
+                 rotW, rotX, rotY, rotZ,
+                 sclX, sclY, sclZ;
+
+    public BoneTransform() {
+
+    }
+
+    //initialize with positional information
+    public BoneTransform(Transform tf) {
+        posX = tf.localPosition.x;
+        posY = tf.localPosition.y;
+        posZ = tf.localPosition.z;
+
+        rotW = tf.localRotation.w;
+        rotX = tf.localRotation.x;
+        rotY = tf.localRotation.y;
+        rotZ = tf.localRotation.z;
+
+        sclX = tf.localScale.x;
+        sclY = tf.localScale.y;
+        sclZ = tf.localScale.z;
+    }
 }
 
 [System.Serializable]
 public class BonePose {
     public string boneLabel;
 
-    BoneTransform position;
-    BoneTransform velocity;
-    BoneTransform velocityNext;
+    public BoneTransform position;
+    public BoneTransform velocity;
+    public BoneTransform velocityNext;
+
+    public BonePose(string boneLabel) {
+        this.boneLabel = boneLabel;
+    }
 }
 
 [System.Serializable]
@@ -85,11 +109,11 @@ public class MotionPose {
     }
 }
 
-    [System.Serializable]
-    public class AnimClipInfo {
-        public bool useClip = true;
-        public VelocityCalculationMode velocityCalculationMode;
-        public AnimationClip animClip;
+[System.Serializable]
+public class AnimClipInfo {
+    public bool useClip = true;
+    public VelocityCalculationMode velocityCalculationMode;
+    public AnimationClip animClip;
 
     public MotionPose[] motionPoses;//all the poses generated for this animation clip
 
