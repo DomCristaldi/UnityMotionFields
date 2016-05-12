@@ -28,12 +28,15 @@ namespace AnimationMotionFields {
                                                         );
 
 
-            //motionFieldMixer.SetClipWeight(assignedMotionFieldController.animClipInfoList[0].animClip.name, 0.5f);
-            //motionFieldMixer.SetClipWeight(assignedMotionFieldController.animClipInfoList[0].animClip.name, 0.5f);
+            //motionFieldMixer.SetClipWeight(assignedMotionFieldController.animClipInfoList[0].animClip.name, 0.3f);
+            //motionFieldMixer.SetClipWeight(assignedMotionFieldController.animClipInfoList[0].animClip.name, 0.1f);
 
-            motionFieldMixer.SetClipWeight(assignedMotionFieldController.animClipInfoList[1].animClip.name, 0.9f);
+            motionFieldMixer.SetClipWeight(assignedMotionFieldController.animClipInfoList[0].animClip.name, 0.6f);
 
+            
             _animatorComponent.Play(motionFieldMixer);
+
+            //motionFieldMixer.state = PlayState.Paused;
         }
 
         // Use this for initialization
