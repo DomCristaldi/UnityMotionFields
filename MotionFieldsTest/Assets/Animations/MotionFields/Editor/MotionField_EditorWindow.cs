@@ -318,8 +318,8 @@ namespace AnimationMotionFields {
                     queryPoint[i] = 0.0f;
                 }
 
-                foreach (NodeData node in selectedMotionFieldController.NearestNeighbor(queryPoint)) {
-                    Debug.Log(node.PrintNode() + "\n");
+				foreach (MotionPose pose in selectedMotionFieldController.NearestNeighbor(queryPoint)) {
+					Debug.Log("AnimName: " + pose.animClipRef.name + ", Timestamp: " + pose.timestamp + "\n");
                 }
 
             }
