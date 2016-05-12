@@ -93,9 +93,11 @@ public class SampleClipTool : EditorWindow {
 
             SceneView.RepaintAll();
         }
+        /*
         else {
             Debug.Log("something else broke");
         }
+        */
     }
 
     void ToggleAnimationMode() {

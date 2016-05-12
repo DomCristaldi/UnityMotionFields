@@ -12,6 +12,7 @@ namespace AnimationMotionFields {
         public enum WindowSetting {
             Markup = 0,
             Generation = 1,
+            ClipExtraction = 2,
         }
         public WindowSetting curWindowSetting;
         protected bool lockSelection = false;
@@ -115,6 +116,10 @@ namespace AnimationMotionFields {
                     DoGenerationGUI();
                     break;
 
+                case WindowSetting.ClipExtraction:
+                    DoClipExtractionGUI();
+                    break;
+               
                 default:
                     goto case WindowSetting.Markup;
             }
@@ -223,7 +228,8 @@ namespace AnimationMotionFields {
             EditorGUI.indentLevel--;
         }
         */
-        //MOTION FIELD GENERATION TOOLS
+        
+//MOTION FIELD GENERATION TOOLS
         private void DoGenerationGUI() {
 
             EditorGUILayout.BeginVertical();
@@ -326,6 +332,17 @@ namespace AnimationMotionFields {
 
         }
 
+        private void BuildMotionField() {
+            if (selectedMotionFieldController != null) {
+                MotionFieldUtility.GenerateMotionField(ref selectedMotionFieldController, frameResolution);
+            }
+        }
+
+        //CLIP EXTRACTION
+        private void DoClipExtractionGUI() {
+
+        }
+
     /*
         private void LoadMotionField() {
             if (selectedMotionField != null) {
@@ -341,11 +358,7 @@ namespace AnimationMotionFields {
         }
         */
 
-        private void BuildMotionField() {
-            if (selectedMotionFieldController != null) {
-                MotionFieldUtility.GenerateMotionField(ref selectedMotionFieldController, frameResolution);
-            }
-        }
+
 
     }
 }

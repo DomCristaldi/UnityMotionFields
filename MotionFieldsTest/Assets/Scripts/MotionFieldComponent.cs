@@ -3,9 +3,76 @@ using UnityEngine.Experimental.Director;
 using System.Collections.Generic;
 using System.Linq;
 
+#if UNITY_EDITOR
+using UnityEditor;
+using UnityEditorInternal;
+#endif
+
 namespace AnimationMotionFields {
 
+    [System.Serializable]
+    public class CosmeticSkeletonBone {
+        public string boneLabel;
+        public Transform boneTf;
+    }
 
+    [System.Serializable]
+    public class CosmeticSkeleton {
+        public List<CosmeticSkeletonBone> cosmeticBones;
+    }
+
+#if UNITY_EDITOR
+    [CustomPropertyDrawer(typeof(CosmeticSkeleton))]
+    public class CosmeticSkeleton_PropertyDrawer : PropertyDrawer {
+
+        private ReorderableList reorderList;
+
+        private ReorderableList GetReorderList(SerializedProperty property) {
+            if (reorderList == null) {
+
+                reorderList = new ReorderableList(property.serializedObject, property, true, true, true, true);
+                reorderList.drawElementCallback = (Rect rect, int index, bool isActive, bool isFocused) => {
+                    rect.width -= 40;
+                    rect.x += 20;
+                    EditorGUI.PropertyField(rect, property.GetArrayElementAtIndex(index), true);
+                };
+            }
+            return reorderList;
+        }
+
+        public override float GetPropertyHeight(SerializedProperty property, GUIContent label) {
+
+            return GetReorderList(property.FindPropertyRelative("cosmeticBones")).GetHeight();
+
+            /*
+            if (reorderList != null) {
+
+                //return reorderList.elementHeight * reorderList.count;
+                return reorderList.GetHeight();
+            }
+            else { return base.GetPropertyHeight(property, label); }
+            */
+        }
+
+        public override void OnGUI(Rect position, SerializedProperty property, GUIContent label) {
+            //base.OnGUI(position, property, label);
+
+            EditorGUI.BeginProperty(position, label, property);
+
+            SerializedProperty listProp = property.FindPropertyRelative("cosmeticBones");
+            reorderList = GetReorderList(listProp);
+            float height = 0.0f;
+            for (int i = 0; i < listProp.arraySize; ++i) {
+                height = Mathf.Max(height, EditorGUI.GetPropertyHeight(listProp.GetArrayElementAtIndex(i)));
+            }
+            reorderList.elementHeight = height;
+            reorderList.DoList(position);
+
+            EditorGUI.EndProperty();
+        }
+
+    }
+#endif
 
     [RequireComponent(typeof(Animator))]
     public class MotionFieldComponent : MonoBehaviour {
@@ -18,12 +85,14 @@ namespace AnimationMotionFields {
 
         //private MotionFieldMixerRoot motionFieldMixer;
 
+        public CosmeticSkeleton cosmeticSkel;
+
         public MotionSkeleton skeleton;
         //public MotionSkeletonBonePlayable testRoot;
         //MotionSkeletonBonePlayable testPlayable;
 
         void Awake() {
-            skeleton.Init();
+            //skeleton.Init();
 
 
             //testPlayable = new MotionSkeletonBonePlayable();

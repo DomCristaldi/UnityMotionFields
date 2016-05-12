@@ -28,36 +28,62 @@ using UnityEditorInternal;
         }
     }
 
-    [System.Serializable]
-    public class MotionPose {
+[System.Serializable]
+public class BoneTransform {
+    float posX, posY, posZ,
+          rotW, rotX, rotY, rotZ,
+          sclX, sclY, sclZ;
+}
 
-        public MotionPose(AnimationClip animClipRef, float timestamp, KeyframeData[] keyframeData) {
-            this.animClipRef = animClipRef;
-            this.timestamp = timestamp;
-            this.keyframeData = keyframeData;
-        }
+[System.Serializable]
+public class BonePose {
+    public string boneLabel;
 
-        public MotionPose(AnimationClip animClipRef, float timestamp, float[] keyframeValueData) {
-            this.animClipRef = animClipRef;
-            this.timestamp = timestamp;
-            this.keyframeData = new KeyframeData[keyframeValueData.Length];//initialize array length
+    BoneTransform position;
+    BoneTransform velocity;
+    BoneTransform velocityNext;
+}
 
-            for (int i = 0; i < keyframeData.Length; ++i) {
-                //must create object so it exists in the array
-                keyframeData[i] = new KeyframeData(value:keyframeValueData[i]);
-            }
-        }
+[System.Serializable]
+public class MotionPose {
 
-        //public AnimationClip[] poses;
-        public AnimationClip animClipRef;
-        public float timestamp;
+    public BonePose[] bonePoses;
 
-        //public float[] keyframeData;
-        public KeyframeData[] keyframeData;
+    //public AnimationClip[] poses;
+    public AnimationClip animClipRef;
+    public float timestamp;
 
-        public int frameSampleRate;//sampel rate that was used to create these poses
+    //public float[] keyframeData;
+    public KeyframeData[] keyframeData;
 
+    public int frameSampleRate;//sampel rate that was used to create these poses
+
+    //NEW
+    public MotionPose(BonePose[] bonePoses, AnimationClip animClipRef, float timestamp) {
+        this.bonePoses = bonePoses;
+
+        this.animClipRef = animClipRef;
+        this.timestamp = timestamp;
     }
+
+    //OLD
+    public MotionPose(AnimationClip animClipRef, float timestamp, KeyframeData[] keyframeData) {
+        this.animClipRef = animClipRef;
+        this.timestamp = timestamp;
+        this.keyframeData = keyframeData;
+    }
+    //OLD
+    public MotionPose(AnimationClip animClipRef, float timestamp, float[] keyframeValueData) {
+        this.animClipRef = animClipRef;
+        this.timestamp = timestamp;
+        this.keyframeData = new KeyframeData[keyframeValueData.Length];//initialize array length
+
+        for (int i = 0; i < keyframeData.Length; ++i) {
+            //must create object so it exists in the array
+            keyframeData[i] = new KeyframeData(value: keyframeValueData[i]);
+        }
+    }
+}
 
     [System.Serializable]
     public class AnimClipInfo {

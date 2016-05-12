@@ -29,6 +29,7 @@ public class MotionSkeletonBonePlayable : Playable {
 [CreateAssetMenu]
 public class MotionSkeleton : ScriptableObject, ISerializationCallbackReceiver {
 
+    //UNSERIALIZED
     public class MSBoneDeserialized {
         //public Transform referencedTransform;
         public int posX, posY, posZ;
@@ -48,6 +49,16 @@ public class MotionSkeleton : ScriptableObject, ISerializationCallbackReceiver {
 
             this.children = new List<MSBoneDeserialized>();
         }
+
+#if UNITY_EDITOR
+        public void DisplayValues_Editor() {
+            EditorGUILayout.BeginHorizontal();
+
+            boneLabel = EditorGUILayout.TextField(boneLabel);
+
+            EditorGUILayout.EndHorizontal();
+        }
+#endif
     }
 
     [System.Serializable]
@@ -59,13 +70,14 @@ public class MotionSkeleton : ScriptableObject, ISerializationCallbackReceiver {
 
         [SerializeField]
         public string boneLabel;
-
+        /*
         public int posX, posY, posZ;
         public int quatX, quatY, quatZ, quatW;
         public int scaleX, scaleY, scaleZ;
+        */
 
         public int numChildren;
-        public int indexOfSelf;
+        //public int indexOfSelf;
         public int indexOfFirstChild;
     }
 
@@ -81,6 +93,8 @@ public class MotionSkeleton : ScriptableObject, ISerializationCallbackReceiver {
         SerializeBone(rootDeserializedBone);
     }
     private void SerializeBone(MSBoneDeserialized boneToAdd) {
+
+        //Debug.Log("Serialize: " + boneToAdd.boneLabel);
 
         //create the serializable struct to hold the info we want to save
         MSBoneSerialized serBone = new MSBoneSerialized() {
@@ -106,6 +120,12 @@ public class MotionSkeleton : ScriptableObject, ISerializationCallbackReceiver {
 
         //we have info to serialize
         if (serializedBones.Count > 0) {
+            /*
+            for (int i = 0; i < serializedBones.Count; ++i) {
+                Debug.Log(serializedBones[i].boneLabel);
+            }
+            */
+
             rootDeserializedBone = GenerateDeserializedBoneGraph(0);
         }
         //nothing to serialize, set the root ot null
@@ -113,12 +133,41 @@ public class MotionSkeleton : ScriptableObject, ISerializationCallbackReceiver {
 
     }
     private MSBoneDeserialized GenerateDeserializedBoneGraph(int index) {
+
+        //Debug.Log("index: " + index);
+
+        MSBoneDeserialized newRoot = new MSBoneDeserialized() {
+            boneLabel = serializedBones[index].boneLabel,
+        };
+
+        MSBoneSerialized serBone = serializedBones[index];
+
+        //Debug.Log("Deserialize Bone: " + serBone.boneLabel);
+        
+        for (int i = 0; i < serBone.numChildren; ++i) {
+            newRoot.children.Add(GenerateDeserializedBoneGraph(i + serBone.indexOfFirstChild));
+        }
+        
+        /*
+        List<MSBoneDeserialized> childNodes = new List<MSBoneDeserialized>();
+        for (int i = 0; i < serBone.numChildren; ++i) {
+
+        }
+        */
+        return newRoot;
+
+        /*
         //record reference for easy access
         MSBoneSerialized serBone = serializedBones[index];
         
         //generate all children before we can link them b/c they need to link their children
         List<MSBoneDeserialized> children = new List<MSBoneDeserialized>();
-        for (int i = 0; i != serBone.numChildren; ++i) {
+
+
+        for (int i = 0; i < serBone.numChildren; ++i) {
+
+            if (serBone.numChildren == 0) { Debug.Log(serBone.boneLabel); }
+
             children.Add(GenerateDeserializedBoneGraph(serBone.indexOfFirstChild + i));//link children after recursive generation call
         }
 
@@ -127,6 +176,7 @@ public class MotionSkeleton : ScriptableObject, ISerializationCallbackReceiver {
             boneLabel = serBone.boneLabel,
             children = children,
         };
+        */
     }
 
 
@@ -166,7 +216,26 @@ public class MotionSkeleton : ScriptableObject, ISerializationCallbackReceiver {
 
         return newRoot;
     }
-    
+
+    public MSBoneDeserialized CreateSkeletonFromSuppliedHierarchy_Recursive(Transform hierarchyRoot) {
+        MSBoneDeserialized newRoot = new MSBoneDeserialized() { boneLabel = hierarchyRoot.name };
+
+        //MSBoneDeserialized[] children = new MSBoneDeserialized[hierarchyRoot.childCount];
+        /*
+        List<MSBoneDeserialized> children = new List<MSBoneDeserialized>(hierarchyRoot.childCount);
+        for (int i = 0; i < hierarchyRoot.childCount; ++i) {
+            children[i] = CreateSkeletonFromSuppliedHierarchy_Recursive(hierarchyRoot.GetChild(i));
+        }
+        */
+        List<MSBoneDeserialized> children = new List<MSBoneDeserialized>();
+        foreach (Transform childTf in hierarchyRoot) {
+            children.Add(CreateSkeletonFromSuppliedHierarchy_Recursive(childTf));
+        }
+
+        newRoot.children = children;
+
+        return newRoot;
+    }
 
     void OnDestroy() {
         //clean up the Playable using built-in disposal function
@@ -182,4 +251,6 @@ public class MotionSkeleton : ScriptableObject, ISerializationCallbackReceiver {
 public class MotionSkeleton_Editor : Editor {
 
 }
+
+
 #endif
