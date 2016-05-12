@@ -54,12 +54,119 @@ namespace AnimationMotionFields {
         }
 
         public static MotionPose[] DetermineBonePoseComponentVelocities(MotionPose[] motionPoses, VelocityCalculationMode calculationMode = VelocityCalculationMode.DropLastTwoFrames) {
-            Debug.LogError("IMPLEMENT ME!!!");
+            //Debug.LogError("IMPLEMENT ME!!!");
             //return new MotionPose[] { };
+
+            switch (calculationMode) {
+                case VelocityCalculationMode.DropLastTwoFrames:
+                    return DetermineBonePoseComponentVelocities_DropLastTwoFrames(motionPoses);
+
+                case VelocityCalculationMode.LoopToFirstFrame:
+                    return DetermineBonePoseComponentVelocities_LoopToFirstFrame(motionPoses);
+
+                case VelocityCalculationMode.UseVelocityFromSecondToLastFrame:
+                    return DetermineBonePoseComponentVelocities_UseVelocityFromSecondToLastFrame(motionPoses);
+
+                    /*
+                case VelocityCalculationMode.SetLastFrameToZero:
+                    return DetermineBonePoseComponentVelocities_SetLastFrameToZero(motionPoses);
+                    */
+
+                default:
+                    goto case VelocityCalculationMode.DropLastTwoFrames;
+            }
+
+            //return motionPoses;
+        }
+
+        private static MotionPose[] DetermineBonePoseComponentVelocities_DropLastTwoFrames(MotionPose[] motionPoses) {
+            for (int i = 0; i < motionPoses.Length - 2; ++i) {//loop through all values in the keyframe data, ignore the last two
+                for (int j = 0; j < motionPoses[i].bonePoses.Length; ++j) {//move across all the BonePoses within the current Motion Pose
+
+                    //Calculate the velocity by subtracting the current value from the next value
+                    motionPoses[i].bonePoses[j].velocity = new BoneTransform(motionPoses[i + 1].bonePoses[j].position, motionPoses[i].bonePoses[j].position);
+                    motionPoses[i].bonePoses[j].velocityNext = new BoneTransform(motionPoses[i + 2].bonePoses[j].position, motionPoses[i + 1].bonePoses[j].position);
+                }
+            }
+
+            List<MotionPose> mpList = motionPoses.ToList<MotionPose>();
+            mpList.RemoveRange(mpList.Count - 2, 2);
+            return mpList.ToArray();
+
+
+        }
+
+        private static MotionPose[] DetermineBonePoseComponentVelocities_LoopToFirstFrame(MotionPose[] motionPoses) {
+            for (int i = 0; i < motionPoses.Length; ++i) {//loop through all values in the keyframe data
+                for (int j = 0; j < motionPoses[i].bonePoses.Length; ++j) {//move across all the BonePoses within the current Motion Pose
+
+                    //SPECIAL CASE
+                    if (i == motionPoses.Length - 1) {//do the velocity calculation using the first frame as the next frame for the math
+                        motionPoses[i].bonePoses[j].velocity = new BoneTransform(motionPoses[0].bonePoses[j].position, motionPoses[i].bonePoses[j].position);
+                        motionPoses[i].bonePoses[j].velocityNext = new BoneTransform(motionPoses[1].bonePoses[j].position, motionPoses[0].bonePoses[j].position);
+                    }
+                    //BUSINESS AS USUAL
+                    else {//Calculate the velocity by subtracting the current value from the next value
+                        motionPoses[i].bonePoses[j].velocity = new BoneTransform(motionPoses[i + 1].bonePoses[j].position, motionPoses[i].bonePoses[j].position);
+
+                        if (i == motionPoses.Length - 2) {
+                            motionPoses[i].bonePoses[j].velocityNext = new BoneTransform(motionPoses[0].bonePoses[j].position, motionPoses[i + 1].bonePoses[j].position);
+                        }
+                    }
+
+                }
+            }
+
             return motionPoses;
         }
 
-//GET EVERY UNIQUE PATH FROM THE SUPPLIED ANIM CLIPS
+        private static MotionPose[] DetermineBonePoseComponentVelocities_UseVelocityFromSecondToLastFrame(MotionPose[] motionPoses) {
+            for (int i = 0; i < motionPoses.Length; ++i) {//loop through all values in the keyframe data
+                for (int j = 0; j < motionPoses[i].bonePoses.Length; ++j) {//move across all the BonePoses within the current Motion Pose
+
+                    //SPECIAL CASE
+                    if (i == motionPoses.Length - 1) {//we're at the end of the array, use the value from the frame before it
+                        motionPoses[i].bonePoses[j].velocity = new BoneTransform(motionPoses[i - 1].bonePoses[j].velocity);
+
+                        //we can't calculate any further next velocities, use the last calculateable velocity
+                        motionPoses[i].bonePoses[j].velocityNext = new BoneTransform(motionPoses[i - 1].bonePoses[j].velocity);
+                    }
+                    //BUSINESS AS USUAL
+                    else {//Calculate the velocity by subtracting the current value from the next value
+                        motionPoses[i].bonePoses[j].velocity = new BoneTransform(motionPoses[i + 1].bonePoses[j].position, motionPoses[i].bonePoses[j].position);
+                        
+                        //we can't calculate any further next velocities, use the last calculateable velocity
+                        if (i == motionPoses.Length - 2) {
+                            motionPoses[i].bonePoses[j].velocityNext = new BoneTransform(motionPoses[i + 1].bonePoses[j].position, motionPoses[i].bonePoses[j].position);
+                        }
+                    }
+                }
+            }
+
+            return motionPoses;
+        }
+        /*
+        private static MotionPose[] DetermineBonePoseComponentVelocities_SetLastFrameToZero(MotionPose[] motionPoses) {
+            for (int i = 0; i < motionPoses.Length; ++i) {//loop through all values in the keyframe data
+                for (int j = 0; j < motionPoses[i].bonePoses.Length; ++j) {//move across all the BonePoses within the current Motion Pose
+
+                    //SPECIAL CASE
+                    if (i == motionPoses.Length - 1) {
+                        motionPoses[i].bonePoses[j].velocity = new BoneTransform(0.0f);
+                    }
+                    //BUSINESS AS USUAL
+                    else {//Calculate the velocity by subtracting the current value from the next value
+                        motionPoses[i].bonePoses[j].velocity = new BoneTransform(motionPoses[i + 1].bonePoses[j].position, motionPoses[i].bonePoses[j].position);
+                    }
+                }
+            }
+
+            return motionPoses;
+        }
+        */
+
+
+        //GET EVERY UNIQUE PATH FROM THE SUPPLIED ANIM CLIPS
         public static string[] GetUniquePaths(AnimationClip[] animClips) {
             //List<string> extractedUniquePaths = new List<string>();
             HashSet<string> extractedUniquePaths = new HashSet<string>();
@@ -114,7 +221,6 @@ namespace AnimationMotionFields {
 
             return motionPoseCoords;
         }
-
 
 
         public static MotionPose[] DetermineKeyframeComponentVelocities(MotionPose[] motionPoses, VelocityCalculationMode calculationMode = VelocityCalculationMode.DropLastTwoFrames) {
