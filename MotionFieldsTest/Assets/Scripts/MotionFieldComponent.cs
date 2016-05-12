@@ -12,6 +12,13 @@ namespace AnimationMotionFields {
 
     [System.Serializable]
     public class CosmeticSkeletonBone {
+        public enum MovementSpace {
+            Local = 0,
+            World = 1,
+        }
+
+        public MovementSpace boneMovementSpace;
+
         public string boneLabel;
         public Transform boneTf;
     }
@@ -26,6 +33,7 @@ namespace AnimationMotionFields {
     public class CosmeticSkeleton_PropertyDrawer : PropertyDrawer {
 
         private ReorderableList reorderList;
+        private float elementPadding = 0.5f;
 
         private ReorderableList GetReorderList(SerializedProperty property) {
             if (reorderList == null) {
@@ -34,8 +42,21 @@ namespace AnimationMotionFields {
                 reorderList.drawElementCallback = (Rect rect, int index, bool isActive, bool isFocused) => {
                     rect.width -= 40;
                     rect.x += 20;
-                    EditorGUI.PropertyField(rect, property.GetArrayElementAtIndex(index), true);
+
+                    //if (isFocused) { Debug.Log(property.GetArrayElementAtIndex(index).FindPropertyRelative("boneLabel").stringValue); }
+
+
+                    EditorGUI.PropertyField(rect, 
+                                            property.GetArrayElementAtIndex(index), 
+                                            new GUIContent(property.GetArrayElementAtIndex(index).FindPropertyRelative("boneLabel").stringValue), 
+                                            true);
                 };
+
+                reorderList.drawHeaderCallback = (Rect rect) => {
+
+                    EditorGUI.LabelField(rect, "Bone Lookup Table", EditorStyles.boldLabel);
+                };
+
             }
             return reorderList;
         }
@@ -63,7 +84,7 @@ namespace AnimationMotionFields {
             reorderList = GetReorderList(listProp);
             float height = 0.0f;
             for (int i = 0; i < listProp.arraySize; ++i) {
-                height = Mathf.Max(height, EditorGUI.GetPropertyHeight(listProp.GetArrayElementAtIndex(i)));
+                height = Mathf.Max(height, EditorGUI.GetPropertyHeight(listProp.GetArrayElementAtIndex(i))) + elementPadding;
             }
             reorderList.elementHeight = height;
             reorderList.DoList(position);
