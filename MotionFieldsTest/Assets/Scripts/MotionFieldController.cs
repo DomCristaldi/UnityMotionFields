@@ -201,7 +201,13 @@ public class MotionFieldController : ScriptableObject {
 
 	public TaskArrayInfo TArrayInfo;
 
-	public float[] currentTaskArray;
+	private MotionPose currentPose;
+
+	private float[] currentTaskArray;
+
+	private Dictionary<vfKey, float> precomputedRewards;
+
+	private List<Tuple<vfKey,float>> precomputedRewards_Initializer;
 
 	//TODO: have the precomputed value func dictionary here
 	//wait...wouldn't this have to be a dictionary.
@@ -209,7 +215,15 @@ public class MotionFieldController : ScriptableObject {
 	//if i remember correctly, we found a way to manually make dicts serializable. 
 	//create it as a list, then at runtime we transfer it to a dictionary lookup.
 
-	public void moveOneTick(float[] currentPos, int numActions = 1){
+
+	public float[] poseToPosVelArray(MotionPose pose){
+		//from MP, create float array with only position+velocity information
+		//in order [p1,v1,p2,v2,p3,v3,ect...]
+
+		
+	}
+
+	public void moveOneTick(int numActions = 1){
 		List<NodeData> neighbors = NearestNeighbor (currentPos, numActions);
 
 		double[] weights = GenerateWeights (currentPos, neighbors);
@@ -385,6 +399,7 @@ public class MotionFieldController : ScriptableObject {
 	}
 }
 
+//NodeData to be removed, MotionPose will be the data field of the kd tree
 public class NodeData{
 	public string clipId;
 	public float timeStamp;
@@ -423,6 +438,17 @@ public class NodeData{
     }
 }
 
+public class vfKey{
+	public string clipId;
+	public float timeStamp;
+	public float[] tasks;
+
+	public vfKey(string id, float time, float[] tasks){
+		this.clipId = id;
+		this.timeStamp = time;
+		this.tasks = tasks;
+	}
+}
 
 
     /*
