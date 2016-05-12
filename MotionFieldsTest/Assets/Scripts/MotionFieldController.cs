@@ -174,20 +174,45 @@ public class MotionFieldController : ScriptableObject {
 	public float[] poseToPosVelArray(MotionPose pose){
 		//from MP, create float array with only position+velocity information
 		//in order [p1,v1,p2,v2,p3,v3,ect...]
-
-		
+		float[] poseArray = new float[pose.bonePoses.Length * 20]; //20 because each bonePose has 10 pos vals and 10 vel vals
+		for (int i = 0; i < pose.bonePoses.Length; i++) {
+			poseArray[i*20] = pose.bonePoses[i].position.posX;
+			poseArray[i * 20 + 1] = pose.bonePoses [i].velocity.posX;
+			poseArray[i * 20 + 2] = pose.bonePoses[i].position.posY;
+			poseArray[i * 20 + 3] = pose.bonePoses [i].velocity.posY;
+			poseArray[i * 20 + 4] = pose.bonePoses[i].position.posZ;
+			poseArray[i * 20 + 5] = pose.bonePoses [i].velocity.posZ;
+			poseArray[i * 20 + 6] = pose.bonePoses[i].position.rotX;
+			poseArray[i * 20 + 7] = pose.bonePoses [i].velocity.rotX;
+			poseArray[i * 20 + 8] = pose.bonePoses[i].position.rotY;
+			poseArray[i * 20 + 9] = pose.bonePoses [i].velocity.rotY;
+			poseArray[i * 20 + 10] = pose.bonePoses[i].position.rotZ;
+			poseArray[i * 20 + 11] = pose.bonePoses [i].velocity.rotZ;
+			poseArray[i * 20 + 12] = pose.bonePoses[i].position.rotW;
+			poseArray[i * 20 + 13] = pose.bonePoses [i].velocity.rotW;
+			poseArray[i * 20 + 14] = pose.bonePoses[i].position.sclX;
+			poseArray[i * 20 + 15] = pose.bonePoses [i].velocity.sclX;
+			poseArray[i * 20 + 16] = pose.bonePoses[i].position.sclY;
+			poseArray[i * 20 + 17] = pose.bonePoses [i].velocity.sclY;
+			poseArray[i * 20 + 18] = pose.bonePoses[i].position.sclZ;
+			poseArray[i * 20 + 19] = pose.bonePoses [i].velocity.sclZ;
+		}
+		return poseArray;
 	}
 
 	public void moveOneTick(int numActions = 1){
-		List<NodeData> neighbors = NearestNeighbor (currentPos, numActions);
+		float[] currentPoseArr = poseToPosVelArray (currentPose);
 
-		double[] weights = GenerateWeights (currentPos, neighbors);
+		List<MotionPose> neighbors = NearestNeighbor (currentPoseArr, numActions);
+		float[][] neighborsArr = neighbors.Select (x => poseToPosVelArray (x)).ToArray ();
 
-		double[][] actionWeights = GenerateActions(weights, numActions);
+		float[] weights = GenerateWeights (currentPoseArr, neighborsArr);
 
-		List<float[]> candidateActions = new List<float[]>(); //not actuallu MotionPose. datatyoe is type of dome new skeleton heirarchy.
-		foreach (double[] action in actionWeights){
-			candidateActions.Add(GeneratePose(currentPos, neighbors, action)); //GeneratePose does the weighted blending, will be written by Dom later.
+		float[][] actionWeights = GenerateActions(weights, numActions);
+
+		List<MotionPose> candidateActions = new List<MotionPose>(); //not actuallu MotionPose. datatyoe is type of dome new skeleton heirarchy.
+		foreach (float[] action in actionWeights){
+			candidateActions.Add(GeneratePose(neighbors, action)); //GeneratePose does the weighted blending, will be written by Dom later.
 		}
 
 		int chosenAction = -1;
@@ -196,62 +221,59 @@ public class MotionFieldController : ScriptableObject {
 			float reward = ComputeReward(candidateActions[i], numActions);
 			if (reward > bestReward){
 				bestReward = reward;
+				//TODO: need not only the chosen MotionPose, but also the chosen Task Array
 				chosenAction = i;
 			}
 		}
 
 		//action for player to move through known! it is candidateActions[chosenAction]. 
 		//TODO: apply it to the character, then using this new current state, find next state for him to move to.
-		
-		
-		
 	}
 
-	public List<NodeData> NearestNeighbor(float[] float_pos, int num_neighbors = 1){
+	public List<MotionPose> NearestNeighbor(float[] pose, int num_neighbors = 1){
+		
+		double[] dbl_pose = pose.Select (x => System.Convert.ToDouble (x)).ToArray ();
+		object[] nn_data = kd.nearest (dbl_pose, num_neighbors);
 
-		double[] pos = float_pos.Select (x => System.Convert.ToDouble (x)).ToArray ();
-		object[] nn_data = kd.nearest (pos, num_neighbors);
-
-		List<NodeData> data = new List<NodeData>();
+		List<MotionPose> data = new List<MotionPose>();
 		foreach(object obj in nn_data){
-			data.Add((NodeData) obj);
+			data.Add((MotionPose) obj);
 		}
 		return data;
 	}
 
-	public double[][] GenerateActions(double[] weights, int numActions = 1){
+	public float[][] GenerateActions(float[] weights, int numActions = 1){
 
-		double[][] actions = new double[numActions] [];
+		float[][] actions = new float[numActions] [];
 		for(int i = 0; i < numActions; i++){
 			//for each action array, set weight[i] to 1 and renormalize
-			actions [i] = new double[weights.Length];
-			actions [i] = (double[])weights.Clone ();
+			actions [i] = new float[weights.Length];
+			actions [i] = (float[])weights.Clone ();
 			actions [i] [i] = 1;
-			double actionSum = actions[i].Sum();
+			float actionSum = actions[i].Sum();
 			for(int j = 0; j < actions[i].Length; j++){
-				actions[i][j] =actions[i][j] / actionSum;
+				actions[i][j] = actions[i][j] / actionSum;
 			}
 		}
 
 		return actions;
 	}
 
-	public double[] GenerateWeights(float[] float_pos, List<NodeData> neighbors){
-
-		double[] weights = new double[neighbors.Count];
+	public float[] GenerateWeights(float[] pose, float[][] neighbors){
+		float[] weights = new float[neighbors.Length];
 
 		//weights[i] = 1/distance(neighbors[i] , floatpos) ^2 
-		for(int i = 0; i < neighbors.Count; i++){
+		for(int i = 0; i < neighbors.Length; i++){
 			weights [i] = 0;
-			for(int j = 0; j < neighbors[i].position.Length; j++){
-				weights [i] += (double)Mathf.Pow (float_pos [i * 2] - (float)neighbors [i].position [j], 2);
-				weights [i] += (double)Mathf.Pow (float_pos [i * 2 + 1] - (float)neighbors [i].velocity [j], 2);
+			for(int j = 0; j < pose.Length; j++){
+				weights [i] += Mathf.Pow (pose [j] - neighbors [i][j], 2);
+				weights [i] += Mathf.Pow (pose [j] - neighbors [i][j], 2);
 			}
-			weights [i] = 1.0 / weights [i];
+			weights [i] = 1.0f / weights [i];
 		}
 
 		//now normalize weights so that they sum to 1
-		double weightsSum = weights.Sum();
+		float weightsSum = weights.Sum();
 		string printW = "weights: ";
 		for(int i = 0; i < weights.Length; i++){
 			weights [i] = weights [i] / weightsSum;
@@ -262,11 +284,10 @@ public class MotionFieldController : ScriptableObject {
 		return weights;
 	}
 
-	public float[] GeneratePose(float[] currentPos, List<NodeData> neighbors, double[] action){
+	public MotionPose GeneratePose(List<MotionPose> neighbors, float[] action){
 		//placeholder func. takes in current motionstate, neighbor states, and weights of neighbor states.
 		//does weighted blending, returns blended state
-		float[] ret = new float[1] {0.0f};
-		return ret;
+		return neighbors[0];
     }
 
 	public static List<List<float>> CartesianProduct( List<List<float>> sequences){
@@ -288,21 +309,22 @@ public class MotionFieldController : ScriptableObject {
 		return product; 
 	}
 
-	public float ComputeReward(float[] candidatePos, int numActions = 1){
+	public float ComputeReward(MotionPose candidatePos, int numActions = 1){
 		//Calculates the reward for a specific motionstate
 
 		//frst, get the current task array for the motionstate
 		//simultaneously calculate immediate reward
+		float[] candidatePosArr = poseToPosVelArray (candidatePos);
 		int tasklength = TArrayInfo.TaskArray.Count();
 		float immediateReward = 0.0f;
 		float[] newtasks = new float[tasklength];
 		for(int i = 0; i < tasklength; i++){
-			newtasks[i] = TArrayInfo.TaskArray[i].DetermineTaskValue(candidatePos);
+			newtasks[i] = TArrayInfo.TaskArray[i].DetermineTaskValue(candidatePosArr);
 			immediateReward += TArrayInfo.TaskArray[i].CheckReward (currentTaskArray[i], newtasks [i]);
 		}
 
 		//calculate continuousReward
-		float continuousReward = RewardLookup(candidatePos, newtasks, numActions);
+		float continuousReward = RewardLookup(candidatePosArr, newtasks, numActions);
 
 		return immediateReward + continuousReward;
 	}
@@ -314,8 +336,10 @@ public class MotionFieldController : ScriptableObject {
 		//then get weighted rewards from lookup table for each pose+task combo
 
 		//get closest poses.
-		List<NodeData> neighbors = NearestNeighbor (pose, numActions);
-		double[] neighbors_weights = GenerateWeights(pose, neighbors);
+		List<MotionPose> neighbors = NearestNeighbor (pose, numActions);
+		float[][] neighborsArr = neighbors.Select (x => poseToPosVelArray (x)).ToArray ();
+
+		float[] neighbors_weights = GenerateWeights(pose, neighborsArr);
 
 		//get closest tasks.
 		List<List<float>> nearest_vals = new List<List<float>> ();
@@ -335,8 +359,8 @@ public class MotionFieldController : ScriptableObject {
 		//get matrix of neighbors x tasks. The corresponding weight matrix should sum to 1.
 		List<List<float>> taskNeighbors = new List<List<float>> ();
 		List<float> taskNeighbors_weights = new List<float> ();
-		for (int i = 0; i < neighbors.Count(); i++){
-			List<float> pos = neighbors [i].position.Select(x => (float)x).ToList();
+		for (int i = 0; i < neighborsArr.Length; i++){
+			List<float> pos = neighborsArr [i].ToList();
 			for (int j = 0; j < taskMatrixCurrent.Count(); j++){
 				taskNeighbors.Add (pos.Concat (taskMatrixCurrent [j]).ToList ());
 				taskNeighbors_weights.Add ((float)neighbors_weights [i] * taskMatrixCurrent_weights [j]);
