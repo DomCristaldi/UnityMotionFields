@@ -16,24 +16,47 @@ namespace AnimationMotionFields {
     public static class MotionFieldUtility {
 
         /// <summary>
-        /// Creates Animation Poses from a Supplied Animation Clip
+        /// Extract Bone Poses from the Animation Clip at the supplied timestamp (POSITION INFO ONLY, NO VELOCITIES)
         /// </summary>
-        /// <param name="animClip"> Animation Clip to generate Poses from</param>
-        /// <param name="sampleStepSize"> Grab every n frame (1 is every frame, 3 is every third, 5 is every fifth) </param>
-        /// <returns></returns>
-
-
+        /// <param name="animClipRefrence">Animation Clip to generate Poses from</param>
+        /// <param name="modelRef">Model to use as reference for extracting animation info</param>
+        /// <param name="timestamp">Grab every n frame (1 is every frame, 3 is every third, 5 is every fifth)</param>
+        /// <returns>BonePose[] representing the pose at the current timestamp</returns>
         public static BonePose[] ExtractBonePoses(AnimationClip animClipRefrence, MotionFieldComponent modelRef, float timestamp) {
-            Debug.LogError("IMPLEMENT ME!!!");
+            //Debug.LogError("IMPLEMENT ME!!!");
 
+            //we return this
+            BonePose[] bonePoses = new BonePose[modelRef.cosmeticSkel.cosmeticBones.Count];
 
+            //turn on animation sampling so we can sample the model
+            if (!AnimationMode.InAnimationMode()) {
+                AnimationMode.StartAnimationMode();
+            }
+            AnimationMode.BeginSampling();
 
-            return new BonePose[] { };
+            //set the model to the pose we want so we can sample the transforms
+            AnimationMode.SampleAnimationClip(modelRef.gameObject, animClipRefrence, timestamp);
+
+            //record all the transforms
+            for (int i = 0; i < modelRef.cosmeticSkel.cosmeticBones.Count; ++i) {
+                //create bone Pose
+                bonePoses[i] = new BonePose(modelRef.cosmeticSkel.cosmeticBones[i].boneLabel);
+
+                //assign Position to the bone pose
+                bonePoses[i].position = new BoneTransform(modelRef.cosmeticSkel.cosmeticBones[i].boneTf);
+            }
+
+            //return model to it's non-animated pose
+            AnimationMode.EndSampling();
+            AnimationMode.StopAnimationMode();
+
+            return bonePoses;
         }
 
         public static MotionPose[] DetermineBonePoseComponentVelocities(MotionPose[] motionPoses, VelocityCalculationMode calculationMode = VelocityCalculationMode.DropLastTwoFrames) {
             Debug.LogError("IMPLEMENT ME!!!");
-            return new MotionPose[] { };
+            //return new MotionPose[] { };
+            return motionPoses;
         }
 
 //GET EVERY UNIQUE PATH FROM THE SUPPLIED ANIM CLIPS
@@ -314,7 +337,8 @@ namespace AnimationMotionFields {
                 MonoBehaviour.DestroyImmediate(modelRefAnimator);
             }
 
-            MotionFieldUtility.GenerateKDTree(ref mfController, uniquePaths, mfController.rootComponents);
+            //*****************UNCOMMENT TO GENERATE KD TREE*********************
+            //MotionFieldUtility.GenerateKDTree(ref mfController, uniquePaths, mfController.rootComponents);
         }
 
 
