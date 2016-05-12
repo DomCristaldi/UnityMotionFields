@@ -259,17 +259,23 @@ public class MotionFieldController : ScriptableObject {
 
 		int chosenAction = -1;
 		float bestReward = 0;
+		float[] bestTaskArray = new float[TArrayInfo.TaskArray.Count()];
 		for (int i=0; i < candidateActions.Count(); i++){
-			float reward = ComputeReward(candidateActions[i], numActions);
+			float[] newTaskArray = GetTaskArray (candidateActions [i]);
+			float reward = ComputeReward(candidateActions[i], newTaskArray, numActions);
 			if (reward > bestReward){
 				bestReward = reward;
+				bestTaskArray = newTaskArray;
 				//TODO: need not only the chosen MotionPose, but also the chosen Task Array
 				chosenAction = i;
 			}
 		}
 
-		//action for player to move through known! it is candidateActions[chosenAction]. 
-		//TODO: apply it to the character, then using this new current state, find next state for him to move to.
+		Debug.Log ("best fitness is " + bestReward + " from Action " + chosenAction + "\n");
+		currentPose = candidateActions [chosenAction];
+		currentTaskArray = bestTaskArray;
+
+		ApplyPose ();
 	}
 
 	public List<MotionPose> NearestNeighbor(float[] pose, int num_neighbors = 1){
@@ -332,6 +338,11 @@ public class MotionFieldController : ScriptableObject {
 		return neighbors[0];
     }
 
+	public void ApplyPose(){
+		//placeholder func. send currentPose to skeleton to update model
+
+	}
+
 	public static List<List<float>> CartesianProduct( List<List<float>> sequences){
 		// base case: 
 		List<List<float>> product = new List<List<float>>(); 
@@ -351,37 +362,43 @@ public class MotionFieldController : ScriptableObject {
 		return product; 
 	}
 
-	public float ComputeReward(MotionPose candidatePos, int numActions = 1){
+	public float[] GetTaskArray(MotionPose pose){
+		int tasklength = TArrayInfo.TaskArray.Count ();
+		float[] taskArr = new float[TArrayInfo.TaskArray.Count()];
+		for(int i = 0; i < tasklength; i++){
+			taskArr[i] = TArrayInfo.TaskArray[i].DetermineTaskValue(pose);
+		}
+		return taskArr;
+	}
+
+	public float ComputeReward(MotionPose pose, float[] taskArr, int numActions = 1){
 		//Calculates the reward for a specific motionstate
 
 		//frst, get the current task array for the motionstate
 		//simultaneously calculate immediate reward
-		float[] candidatePosArr = poseToPosVelArray (candidatePos);
 		int tasklength = TArrayInfo.TaskArray.Count();
 		float immediateReward = 0.0f;
-		float[] newtasks = new float[tasklength];
 		for(int i = 0; i < tasklength; i++){
-			newtasks[i] = TArrayInfo.TaskArray[i].DetermineTaskValue(candidatePosArr);
-			immediateReward += TArrayInfo.TaskArray[i].CheckReward (currentTaskArray[i], newtasks [i]);
+			immediateReward += TArrayInfo.TaskArray[i].CheckReward (currentTaskArray[i], taskArr [i]);
 		}
 
 		//calculate continuousReward
-		float continuousReward = RewardLookup(candidatePosArr, newtasks, numActions);
+		float continuousReward = RewardLookup(pose, taskArr, numActions);
 
 		return immediateReward + continuousReward;
 	}
 
-	public float RewardLookup(float[] pose, float[] Tasks, int numActions = 1){
+	public float RewardLookup(MotionPose pose, float[] Tasks, int numActions = 1){
 		//get continuous reward from valuefunc lookup table.
 		//reward is weighted blend of closest values in lookup table.
 		//get closest poses from kdtree, and closest tasks from cartesian product
 		//then get weighted rewards from lookup table for each pose+task combo
 
 		//get closest poses.
-		List<MotionPose> neighbors = NearestNeighbor (pose, numActions);
+		float[] poseArr = poseToPosVelArray(pose);
+		List<MotionPose> neighbors = NearestNeighbor (poseArr, numActions);
 		float[][] neighborsArr = neighbors.Select (x => poseToPosVelArray (x)).ToArray ();
-
-		float[] neighbors_weights = GenerateWeights(pose, neighborsArr);
+		float[] neighbors_weights = GenerateWeights(poseArr, neighborsArr);
 
 		//get closest tasks.
 		List<List<float>> nearest_vals = new List<List<float>> ();
@@ -394,26 +411,24 @@ public class MotionFieldController : ScriptableObject {
 			nearest_vals.Add (nearest_val);
 		}
 		//turn the above/below vals for each task into 2^Tasks.Length() task arrays, each of which exists in precalculated dataset
-		List<List<float>> taskMatrixCurrent = CartesianProduct(nearest_vals);
-		List<float> taskMatrixCurrent_weights = new List<float> (); //TODO: make helper func to get these weights
-																				//first normalize each element such that min-max is 0-1. so that each elem has equal weight.
+		List<List<float>> nearestTasks = CartesianProduct(nearest_vals);
+		float[][] nearestTasksArr = nearestTasks.Select(a => a.ToArray()).ToArray();
+		float[] nearestTasks_weights = GenerateWeights(Tasks, nearestTasksArr);
 
 		//get matrix of neighbors x tasks. The corresponding weight matrix should sum to 1.
-		List<List<float>> taskNeighbors = new List<List<float>> ();
-		List<float> taskNeighbors_weights = new List<float> ();
-		for (int i = 0; i < neighborsArr.Length; i++){
-			List<float> pos = neighborsArr [i].ToList();
-			for (int j = 0; j < taskMatrixCurrent.Count(); j++){
-				taskNeighbors.Add (pos.Concat (taskMatrixCurrent [j]).ToList ());
-				taskNeighbors_weights.Add ((float)neighbors_weights [i] * taskMatrixCurrent_weights [j]);
+		List<vfKey> dictKeys = new List<vfKey> ();
+		List<float> dictKeys_weights = new List<float> ();
+		for (int i = 0; i < neighbors.Count(); i++){
+			for (int j = 0; j < nearestTasksArr.Length; j++){
+				dictKeys.Add (new vfKey(neighbors[i].animClipRef.name, neighbors[i].timestamp, nearestTasksArr[j]));
+				dictKeys_weights.Add (neighbors_weights [i] * nearestTasks_weights [j]);
 			}
 		}
 
 		//do lookups in precomputed table, get weighted sum
 		float continuousReward = 0.0f;
-		for(int i = 0; i < taskNeighbors.Count(); i++){
-			//TODO: must first define precomputed table!
-			//continuousReward += precomputedTable(taskNeighbors[i])*taskNeighbors_weights[i];
+		for(int i = 0; i < dictKeys.Count(); i++){
+			continuousReward += precomputedRewards[dictKeys[i]]*dictKeys_weights[i];
 		}
 
 		return continuousReward;

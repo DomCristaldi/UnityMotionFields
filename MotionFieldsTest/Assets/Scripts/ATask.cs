@@ -28,7 +28,7 @@ public class ATask : ScriptableObject{
 	}
 
 	//determine task value takes in a motion state (position + velocity) and decides the value of this task at this state. It is NOT calculating reward/value func
-	virtual public float DetermineTaskValue (float[] currentPos){
+	virtual public float DetermineTaskValue (MotionPose pose){
 		try{
 			throw new UnityException();
 		}
