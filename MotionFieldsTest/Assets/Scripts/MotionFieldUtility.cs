@@ -43,7 +43,11 @@ namespace AnimationMotionFields {
                 bonePoses[i] = new BonePose(modelRef.cosmeticSkel.cosmeticBones[i].boneLabel);
 
                 //assign Position to the bone pose
-                bonePoses[i].position = new BoneTransform(modelRef.cosmeticSkel.cosmeticBones[i].boneTf);
+                bool isLocalSpace = true;//assume it is local space
+                if (modelRef.cosmeticSkel.cosmeticBones[i].boneMovementSpace == CosmeticSkeletonBone.MovementSpace.World) {
+                    isLocalSpace = false;
+                }
+                bonePoses[i].value = new BoneTransform(modelRef.cosmeticSkel.cosmeticBones[i].boneTf, isLocalSpace);
             }
 
             //return model to it's non-animated pose
@@ -84,8 +88,8 @@ namespace AnimationMotionFields {
                 for (int j = 0; j < motionPoses[i].bonePoses.Length; ++j) {//move across all the BonePoses within the current Motion Pose
 
                     //Calculate the velocity by subtracting the current value from the next value
-                    motionPoses[i].bonePoses[j].velocity = new BoneTransform(motionPoses[i + 1].bonePoses[j].position, motionPoses[i].bonePoses[j].position);
-                    motionPoses[i].bonePoses[j].velocityNext = new BoneTransform(motionPoses[i + 2].bonePoses[j].position, motionPoses[i + 1].bonePoses[j].position);
+                    motionPoses[i].bonePoses[j].velocity = new BoneTransform(motionPoses[i + 1].bonePoses[j].value, motionPoses[i].bonePoses[j].value);
+                    motionPoses[i].bonePoses[j].velocityNext = new BoneTransform(motionPoses[i + 2].bonePoses[j].value, motionPoses[i + 1].bonePoses[j].value);
                 }
             }
 
@@ -102,15 +106,15 @@ namespace AnimationMotionFields {
 
                     //SPECIAL CASE
                     if (i == motionPoses.Length - 1) {//do the velocity calculation using the first frame as the next frame for the math
-                        motionPoses[i].bonePoses[j].velocity = new BoneTransform(motionPoses[0].bonePoses[j].position, motionPoses[i].bonePoses[j].position);
-                        motionPoses[i].bonePoses[j].velocityNext = new BoneTransform(motionPoses[1].bonePoses[j].position, motionPoses[0].bonePoses[j].position);
+                        motionPoses[i].bonePoses[j].velocity = new BoneTransform(motionPoses[0].bonePoses[j].value, motionPoses[i].bonePoses[j].value);
+                        motionPoses[i].bonePoses[j].velocityNext = new BoneTransform(motionPoses[1].bonePoses[j].value, motionPoses[0].bonePoses[j].value);
                     }
                     //BUSINESS AS USUAL
                     else {//Calculate the velocity by subtracting the current value from the next value
-                        motionPoses[i].bonePoses[j].velocity = new BoneTransform(motionPoses[i + 1].bonePoses[j].position, motionPoses[i].bonePoses[j].position);
+                        motionPoses[i].bonePoses[j].velocity = new BoneTransform(motionPoses[i + 1].bonePoses[j].value, motionPoses[i].bonePoses[j].value);
 
                         if (i == motionPoses.Length - 2) {
-                            motionPoses[i].bonePoses[j].velocityNext = new BoneTransform(motionPoses[0].bonePoses[j].position, motionPoses[i + 1].bonePoses[j].position);
+                            motionPoses[i].bonePoses[j].velocityNext = new BoneTransform(motionPoses[0].bonePoses[j].value, motionPoses[i + 1].bonePoses[j].value);
                         }
                     }
 
@@ -133,11 +137,11 @@ namespace AnimationMotionFields {
                     }
                     //BUSINESS AS USUAL
                     else {//Calculate the velocity by subtracting the current value from the next value
-                        motionPoses[i].bonePoses[j].velocity = new BoneTransform(motionPoses[i + 1].bonePoses[j].position, motionPoses[i].bonePoses[j].position);
+                        motionPoses[i].bonePoses[j].velocity = new BoneTransform(motionPoses[i + 1].bonePoses[j].value, motionPoses[i].bonePoses[j].value);
                         
                         //we can't calculate any further next velocities, use the last calculateable velocity
                         if (i == motionPoses.Length - 2) {
-                            motionPoses[i].bonePoses[j].velocityNext = new BoneTransform(motionPoses[i + 1].bonePoses[j].position, motionPoses[i].bonePoses[j].position);
+                            motionPoses[i].bonePoses[j].velocityNext = new BoneTransform(motionPoses[i + 1].bonePoses[j].value, motionPoses[i].bonePoses[j].value);
                         }
                     }
                 }
@@ -190,177 +194,6 @@ namespace AnimationMotionFields {
             return (GetUniquePaths(motionFieldConroller.animClipInfoList.Select(x => x.animClip).ToArray()));
         }
 
-//RETURN AN ARRAY OF ALL THE FLOATS AT A TIMESLICE OF THE SUPPLIED ANIMATION CLIP
-        public static float[] ExtractKeyframe(AnimationClip animClipRefernce, float timestamp, string[] totalUniquePaths) {
-            //public static float[] ExtractKeyframe(AnimationClip animClipRefernce, float timestamp) {
-
-            //Debug.LogFormat("timestamp: {0}", timestamp);
-
-            //convert the totalUniquePaths[] to a List for quick, convenient lookup
-            List<string> totalUniquePaths_List = new List<string>(totalUniquePaths);
-
-            //array we return. it will contain all the floats for the curve data a a time slice of the animation clip
-            float[] motionPoseCoords = new float[totalUniquePaths.Length];
-
-            //initialize all values of the pose coordinates to 0
-            for (int i = 0; i < motionPoseCoords.Length; ++i) {
-                motionPoseCoords[i] = 0.0f;
-            }
-
-            foreach (EditorCurveBinding curveBinding in AnimationUtility.GetCurveBindings(animClipRefernce)) {
-                //float[] motionPoseCoords = Enumerable.Range<float>(0.0f, totalUniquePaths.Length).Select(x => x = 0.0f)
-
-                if (totalUniquePaths_List.Contains(curveBinding.propertyName)) {
-                    //Debug.Log("timestamp: " + timestamp);
-
-                    motionPoseCoords[totalUniquePaths_List.IndexOf(curveBinding.propertyName)] 
-                        = AnimationUtility.GetEditorCurve(animClipRefernce, curveBinding).Evaluate(timestamp);
-                }
-
-            }
-
-            return motionPoseCoords;
-        }
-
-
-        public static MotionPose[] DetermineKeyframeComponentVelocities(MotionPose[] motionPoses, VelocityCalculationMode calculationMode = VelocityCalculationMode.DropLastTwoFrames) {
-            switch (calculationMode) {
-                case VelocityCalculationMode.DropLastTwoFrames:
-                    return DetermineKeyframeComponentVelocities_DropLastTwoFrames(motionPoses);
-
-                case VelocityCalculationMode.LoopToFirstFrame:
-                    return DetermineKeyframeComponentVelocities_LoopToFirstFrame(motionPoses);
-
-                case VelocityCalculationMode.UseVelocityFromSecondToLastFrame:
-                    return DetermineKeyframeComponentVelocities_UseVelocityFromSecondToLastFrame(motionPoses);
-
-                case VelocityCalculationMode.SetLastFrameToZero:
-                    return DetermineKeyframeComponentVelocities_SetLastFrameToZero(motionPoses);
-
-                default:
-                    goto case VelocityCalculationMode.DropLastTwoFrames;
-            }
-        }
-
-        private static MotionPose[] DetermineKeyframeComponentVelocities_DropLastTwoFrames(MotionPose[] motionPoses) {
-            for (int i = 0; i < motionPoses.Length - 2; ++i) {//loop through all values in the keyframe data, ignore the last two
-                for (int j = 0; j < motionPoses[i].keyframeData.Length; ++j) {//move across all the KeyframeData within the current Motion Pose
-
-                    //Calculate the velocity by subtracting the current value from the next value
-                    motionPoses[i].keyframeData[j].velocity = motionPoses[i + 1].keyframeData[j].value - motionPoses[i].keyframeData[j].value;
-					motionPoses[i].keyframeData[j].velocityNext = motionPoses[i + 2].keyframeData[j].value - motionPoses[i + 1].keyframeData[j].value;
-                }
-            }
-            
-            List<MotionPose> mpList = motionPoses.ToList<MotionPose>();
-            mpList.RemoveRange(mpList.Count - 2, 2);
-            return mpList.ToArray();
-            
-
-        }
-
-        private static MotionPose[] DetermineKeyframeComponentVelocities_LoopToFirstFrame(MotionPose[] motionPoses) {
-            for (int i = 0; i < motionPoses.Length; ++i) {//loop through all values in the keyframe data
-                for (int j = 0; j < motionPoses[i].keyframeData.Length; ++j) {//move across all the KeyframeData within the current Motion Pose
-
-                    //SPECIAL CASE
-                    if (i == motionPoses.Length - 1) {//do the velocity calculation using the first frame as the next frame for the math
-                        motionPoses[i].keyframeData[j].velocity = motionPoses[0].keyframeData[j].value - motionPoses[i].keyframeData[j].value;
-                    }
-                    //BUSINESS AS USUAL
-                    else {//Calculate the velocity by subtracting the current value from the next value
-                        motionPoses[i].keyframeData[j].velocity = motionPoses[i + 1].keyframeData[j].value - motionPoses[i].keyframeData[j].value;
-                    }
-                }
-            }
-
-            return motionPoses;
-        }
-
-        private static MotionPose[] DetermineKeyframeComponentVelocities_UseVelocityFromSecondToLastFrame(MotionPose[] motionPoses) {
-            for (int i = 0; i < motionPoses.Length; ++i) {//loop through all values in the keyframe data
-                for (int j = 0; j < motionPoses[i].keyframeData.Length; ++j) {//move across all the KeyframeData within the current Motion Pose
-
-                    //SPECIAL CASE
-                    if (i == motionPoses.Length - 1) {//we're at the end of the array, use the value from the frame before it
-                        motionPoses[i].keyframeData[j].velocity = motionPoses[i - 1].keyframeData[j].velocity;
-                    }
-                    //BUSINESS AS USUAL
-                    else {//Calculate the velocity by subtracting the current value from the next value
-                        motionPoses[i].keyframeData[j].velocity = motionPoses[i + 1].keyframeData[j].value - motionPoses[i].keyframeData[j].value;
-                    }
-                }
-            }
-
-            return motionPoses;
-        }
-
-        private static MotionPose[] DetermineKeyframeComponentVelocities_SetLastFrameToZero(MotionPose[] motionPoses) {
-            for (int i = 0; i < motionPoses.Length; ++i) {//loop through all values in the keyframe data
-                for (int j = 0; j < motionPoses[i].keyframeData.Length; ++j) {//move across all the KeyframeData within the current Motion Pose
-
-                    //SPECIAL CASE
-                    if (i == motionPoses.Length - 1) {
-                        motionPoses[i].keyframeData[j].velocity = 0.0f;
-                    }
-                    //BUSINESS AS USUAL
-                    else {//Calculate the velocity by subtracting the current value from the next value
-                        motionPoses[i].keyframeData[j].velocity = motionPoses[i + 1].keyframeData[j].value - motionPoses[i].keyframeData[j].value;
-                    }
-                }
-            }
-
-            return motionPoses;
-        }
-        
-
-        
-        /// <summary>
-        /// Generates all Motion Poses for the supplied Animation Clip
-        /// </summary>
-        /// <param name="animClip">Clip to generate Motion Poses from</param>
-        /// <param name="sampleStepSize">How many frames to skip when generating (Warning: smaller numbers is longer time, must be greater than 0)</param>
-        /// <param name="totalUniquePaths">All the paths from all the Animation Clips in the Motion Field. Get using MotionFieldUtility().GetUniquePaths()</param>
-        /// <returns></returns>
-        public static MotionPose[] GenerateMotionPoses(AnimationClip animClip, string[] totalUniquePaths, int sampleStepSize = 100, VelocityCalculationMode velCalculationMode = VelocityCalculationMode.DropLastTwoFrames) {
-
-            //Debug.LogFormat("Total Unique Paths: {0}", totalUniquePaths.Length);
-
-            List<MotionPose> motionPoses = new List<MotionPose>();
-
-            float frameStep = 1.0f / animClip.frameRate;//time for one animation frame
-            float currentFrameTimePointer = 0.0f;
-
-            //MOVE ACROSS ANIMATION CLIP FRAME BY FRAME
-            while (currentFrameTimePointer <= ((animClip.length * animClip.frameRate) - frameStep) / animClip.frameRate) {
-
-                float[] motionPoseKeyframes = ExtractKeyframe(animClip, currentFrameTimePointer, totalUniquePaths);
-
-                //*******
-                motionPoses.Add(new MotionPose(animClip, currentFrameTimePointer, motionPoseKeyframes));
-
-                currentFrameTimePointer += frameStep * sampleStepSize;
-
-                
-                if (EditorUtility.DisplayCancelableProgressBar("Creating Motion Poses", "", currentFrameTimePointer / animClip.length)) {
-                    EditorUtility.ClearProgressBar();
-                    return motionPoses.ToArray();
-                }
-
-            }
-
-            EditorUtility.ClearProgressBar();
-            motionPoses = DetermineKeyframeComponentVelocities(motionPoses.ToArray<MotionPose>(), velCalculationMode).ToList<MotionPose>();
-
-            //Debug.LogFormat("Frame Count: {0} | Aggregate: {1}", frameCount, currentFramePointer);
-            //Debug.LogFormat("Aggregate: {0} | Clip Length: {1}", currentFramePointer / animClip.frameRate, animClip.length);
-
-            return motionPoses.ToArray();
-
-        }
-        
-        
-
         public static MotionPose[] GenerateMotionPoses(AnimationClip animClip, MotionFieldComponent modelRef, int sampleStepSize = 100, VelocityCalculationMode velCalculationMode = VelocityCalculationMode.DropLastTwoFrames) {
             List<MotionPose> motionPoses = new List<MotionPose>();
 
@@ -397,7 +230,7 @@ namespace AnimationMotionFields {
             return motionPoses.ToArray();
         }
 
-        public static List<AnimClipInfo> GenerateMotionField(List<AnimClipInfo> animClipInfos, MotionFieldComponent modelRef, int samplingRate, string[] totalUniquePaths) {
+        public static List<AnimClipInfo> GenerateMotionField(List<AnimClipInfo> animClipInfos, MotionFieldComponent modelRef, int samplingRate) {
 
 
             foreach (AnimClipInfo clipInfo in animClipInfos) {
@@ -407,7 +240,6 @@ namespace AnimationMotionFields {
                 else {
                     //clipInfo.GenerateMotionPoses(samplingRate, uniquePaths);
                     clipInfo.motionPoses = MotionFieldUtility.GenerateMotionPoses(clipInfo.animClip,
-                                                                                  //totalUniquePaths,
                                                                                   modelRef,
                                                                                   samplingRate,
                                                                                   clipInfo.velocityCalculationMode);
@@ -419,7 +251,16 @@ namespace AnimationMotionFields {
 
         public static void GenerateMotionField(ref MotionFieldController mfController, MotionFieldComponent modelRef, int samplingRate) {
             string[] uniquePaths = MotionFieldUtility.GetUniquePaths(mfController.animClipInfoList.Select(x => x.animClip).ToArray());
+            
+            //recenter model b/c we might be recording world coordinates
+            Vector3 originalModelPos = modelRef.transform.position;
+            Quaternion originalModelRot = modelRef.transform.rotation;
+            Vector3 originalModelScale = modelRef.transform.localScale;
 
+            modelRef.transform.position = Vector3.zero;
+            modelRef.transform.rotation = Quaternion.identity;
+            modelRef.transform.localScale = Vector3.one;
+            
             Animator modelRefAnimator = modelRef.gameObject.GetComponent<Animator>();
             bool addedAnimator = false;
             bool addedRuntimeController = false;
@@ -433,7 +274,7 @@ namespace AnimationMotionFields {
                 addedRuntimeController = true;
             }
 
-			mfController.animClipInfoList = MotionFieldUtility.GenerateMotionField(mfController.animClipInfoList, modelRef, samplingRate, uniquePaths);
+			mfController.animClipInfoList = MotionFieldUtility.GenerateMotionField(mfController.animClipInfoList, modelRef, samplingRate);
 
             if (addedRuntimeController) {
                 MonoBehaviour.DestroyImmediate(modelRefAnimator.runtimeAnimatorController, true);
@@ -442,13 +283,53 @@ namespace AnimationMotionFields {
             if (addedAnimator) {
                 MonoBehaviour.DestroyImmediate(modelRefAnimator);
             }
+            
+            modelRef.transform.position = originalModelPos;
+            modelRef.transform.rotation = originalModelRot;
+            modelRef.transform.localScale = originalModelScale;
+
 
             //*****************UNCOMMENT TO GENERATE KD TREE*********************
             //MotionFieldUtility.GenerateKDTree(ref mfController, uniquePaths, mfController.rootComponents);
+            MotionFieldUtility.GenerateKDTree(ref mfController, modelRef);
         }
 
+        public static void GenerateKDTree(ref MotionFieldController mfController, MotionFieldComponent modelRef) {
+            MotionFieldUtility.GenerateKDTree(ref mfController.kd, mfController.animClipInfoList, modelRef);
+        }
 
-		public static void GenerateKDTree(ref KDTreeDLL.KDTree kdTree, List<AnimClipInfo> animClipInfoList, string[] uniquePaths, MotionFieldController.RootComponents rootComponents, int numDimensions) {
+        public static void GenerateKDTree(ref MotionFieldController mfController, string[] uniquePaths, MotionFieldController.RootComponents rootComponents) {
+            MotionFieldUtility.GenerateKDTree(ref mfController.kd, mfController.animClipInfoList, uniquePaths, rootComponents, uniquePaths.Length * 2);
+        }
+
+        public static void GenerateKDTree(ref KDTreeDLL.KDTree kdTree, List<AnimClipInfo> animClipInfoList, MotionFieldComponent modelRef) {
+
+
+            //make KD Tree w/ number of dimension equal to total number of bone poses * (position * velocity) <- 20
+            kdTree = new KDTreeDLL.KDTree(animClipInfoList[0].motionPoses[0].bonePoses.Length * 20);
+
+            foreach (AnimClipInfo clipInfo in animClipInfoList) {
+                foreach (MotionPose mPose in clipInfo.motionPoses) {
+                    foreach (BonePose bone in mPose.bonePoses) {
+
+                        double[] boneValues = System.Array.ConvertAll<float, double>(bone.value.flattenedPosition, x => (double)x).Concat<double>(
+                                              System.Array.ConvertAll<float, double>(bone.value.flattenedRotation, x => (double)x).Concat<double>(
+                                              System.Array.ConvertAll<float, double>(bone.value.flattenedScale,    x => (double)x))).ToArray<double>();
+
+                        double[] boneVelocities = System.Array.ConvertAll<float, double>(bone.velocity.flattenedPosition, x => (double)x).Concat<double>(
+                                                  System.Array.ConvertAll<float, double>(bone.velocity.flattenedRotation, x => (double)x).Concat<double>(
+                                                  System.Array.ConvertAll<float, double>(bone.velocity.flattenedScale,    x => (double)x))).ToArray<double>();
+                        /*
+                        double[] boneVelocityNexts = System.Array.ConvertAll<float, double>(bone.velocityNext.flattenedPosition, x => (double)x).Concat<double>(
+                                                     System.Array.ConvertAll<float, double>(bone.velocityNext.flattenedRotation, x => (double)x).Concat<double>(
+                                                     System.Array.ConvertAll<float, double>(bone.velocityNext.flattenedScale,    x => (double)x))).ToArray<double>();
+                        */
+                    }
+                }
+            }
+        }
+
+        public static void GenerateKDTree(ref KDTreeDLL.KDTree kdTree, List<AnimClipInfo> animClipInfoList, string[] uniquePaths, MotionFieldController.RootComponents rootComponents, int numDimensions) {
 
             kdTree = new KDTreeDLL.KDTree(numDimensions);
 
@@ -503,8 +384,6 @@ namespace AnimationMotionFields {
             Debug.Log("tree generated");
         }
 
-		public static void GenerateKDTree(ref MotionFieldController mfController, string[] uniquePaths, MotionFieldController.RootComponents rootComponents ) {
-			MotionFieldUtility.GenerateKDTree(ref mfController.kd, mfController.animClipInfoList, uniquePaths, rootComponents, uniquePaths.Length * 2);
-        }
+		
     }
 }
