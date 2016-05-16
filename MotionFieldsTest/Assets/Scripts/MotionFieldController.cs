@@ -202,10 +202,6 @@ public class MotionFieldController : ScriptableObject {
 
 	public TaskArrayInfo TArrayInfo;
 
-	private MotionPose currentPose;
-
-	private float[] currentTaskArray;
-
 	private Dictionary<vfKey, float> precomputedRewards;
 
 	//using an ArrayList because Unity is dumb and doesn't have tuples.
@@ -214,36 +210,8 @@ public class MotionFieldController : ScriptableObject {
 	[HideInInspector]
 	public List<ArrayList> precomputedRewards_Initializer;
 
-	public float[] poseToPosVelArray(MotionPose pose){
-		//from MP, create float array with only position+velocity information
-		//in order [p1,v1,p2,v2,p3,v3,ect...]
-		float[] poseArray = new float[pose.bonePoses.Length * 20]; //20 because each bonePose has 10 pos vals and 10 vel vals
-		for (int i = 0; i < pose.bonePoses.Length; i++) {
-			poseArray[i*20] = pose.bonePoses[i].position.posX;
-			poseArray[i * 20 + 1] = pose.bonePoses [i].velocity.posX;
-			poseArray[i * 20 + 2] = pose.bonePoses[i].position.posY;
-			poseArray[i * 20 + 3] = pose.bonePoses [i].velocity.posY;
-			poseArray[i * 20 + 4] = pose.bonePoses[i].position.posZ;
-			poseArray[i * 20 + 5] = pose.bonePoses [i].velocity.posZ;
-			poseArray[i * 20 + 6] = pose.bonePoses[i].position.rotX;
-			poseArray[i * 20 + 7] = pose.bonePoses [i].velocity.rotX;
-			poseArray[i * 20 + 8] = pose.bonePoses[i].position.rotY;
-			poseArray[i * 20 + 9] = pose.bonePoses [i].velocity.rotY;
-			poseArray[i * 20 + 10] = pose.bonePoses[i].position.rotZ;
-			poseArray[i * 20 + 11] = pose.bonePoses [i].velocity.rotZ;
-			poseArray[i * 20 + 12] = pose.bonePoses[i].position.rotW;
-			poseArray[i * 20 + 13] = pose.bonePoses [i].velocity.rotW;
-			poseArray[i * 20 + 14] = pose.bonePoses[i].position.sclX;
-			poseArray[i * 20 + 15] = pose.bonePoses [i].velocity.sclX;
-			poseArray[i * 20 + 16] = pose.bonePoses[i].position.sclY;
-			poseArray[i * 20 + 17] = pose.bonePoses [i].velocity.sclY;
-			poseArray[i * 20 + 18] = pose.bonePoses[i].position.sclZ;
-			poseArray[i * 20 + 19] = pose.bonePoses [i].velocity.sclZ;
-		}
-		return poseArray;
-	}
 
-	public void moveOneTick(int numActions = 1){
+	public float moveOneTick(ref MotionPose currentPose, ref float[] currentTaskArray, int numActions = 1){
 		float[] currentPoseArr = poseToPosVelArray (currentPose);
 
 		List<MotionPose> neighbors = NearestNeighbor (currentPoseArr, numActions);
@@ -263,7 +231,7 @@ public class MotionFieldController : ScriptableObject {
 		float[] bestTaskArray = new float[TArrayInfo.TaskArray.Count()];
 		for (int i=0; i < candidateActions.Count(); i++){
 			float[] newTaskArray = GetTaskArray (candidateActions [i]);
-			float reward = ComputeReward(candidateActions[i], newTaskArray, numActions);
+			float reward = ComputeReward(candidateActions[i], currentTaskArray, newTaskArray, numActions);
 			if (reward > bestReward){
 				bestReward = reward;
 				bestTaskArray = newTaskArray;
@@ -276,7 +244,7 @@ public class MotionFieldController : ScriptableObject {
 		currentPose = candidateActions [chosenAction];
 		currentTaskArray = bestTaskArray;
 
-		ApplyPose ();
+        return bestReward;
 	}
 
 	public List<MotionPose> NearestNeighbor(float[] pose, int num_neighbors = 1){
@@ -339,11 +307,6 @@ public class MotionFieldController : ScriptableObject {
 		return neighbors[0];
     }
 
-	public void ApplyPose(){
-		//placeholder func. send currentPose to skeleton to update model
-
-	}
-
 	public List<List<float>> CartesianProduct( List<List<float>> sequences){
 		// base case: 
 		List<List<float>> product = new List<List<float>>(); 
@@ -363,7 +326,38 @@ public class MotionFieldController : ScriptableObject {
 		return product; 
 	}
 
-	public float[] GetTaskArray(MotionPose pose){
+    public float[] poseToPosVelArray(MotionPose pose)
+    {
+        //from MP, create float array with only position+velocity information
+        //in order [p1,v1,p2,v2,p3,v3,ect...]
+        float[] poseArray = new float[pose.bonePoses.Length * 20]; //20 because each bonePose has 10 pos vals and 10 vel vals
+        for (int i = 0; i < pose.bonePoses.Length; i++)
+        {
+            poseArray[i * 20] = pose.bonePoses[i].position.posX;
+            poseArray[i * 20 + 1] = pose.bonePoses[i].velocity.posX;
+            poseArray[i * 20 + 2] = pose.bonePoses[i].position.posY;
+            poseArray[i * 20 + 3] = pose.bonePoses[i].velocity.posY;
+            poseArray[i * 20 + 4] = pose.bonePoses[i].position.posZ;
+            poseArray[i * 20 + 5] = pose.bonePoses[i].velocity.posZ;
+            poseArray[i * 20 + 6] = pose.bonePoses[i].position.rotX;
+            poseArray[i * 20 + 7] = pose.bonePoses[i].velocity.rotX;
+            poseArray[i * 20 + 8] = pose.bonePoses[i].position.rotY;
+            poseArray[i * 20 + 9] = pose.bonePoses[i].velocity.rotY;
+            poseArray[i * 20 + 10] = pose.bonePoses[i].position.rotZ;
+            poseArray[i * 20 + 11] = pose.bonePoses[i].velocity.rotZ;
+            poseArray[i * 20 + 12] = pose.bonePoses[i].position.rotW;
+            poseArray[i * 20 + 13] = pose.bonePoses[i].velocity.rotW;
+            poseArray[i * 20 + 14] = pose.bonePoses[i].position.sclX;
+            poseArray[i * 20 + 15] = pose.bonePoses[i].velocity.sclX;
+            poseArray[i * 20 + 16] = pose.bonePoses[i].position.sclY;
+            poseArray[i * 20 + 17] = pose.bonePoses[i].velocity.sclY;
+            poseArray[i * 20 + 18] = pose.bonePoses[i].position.sclZ;
+            poseArray[i * 20 + 19] = pose.bonePoses[i].velocity.sclZ;
+        }
+        return poseArray;
+    }
+
+    public float[] GetTaskArray(MotionPose pose){
 		int tasklength = TArrayInfo.TaskArray.Count ();
 		float[] taskArr = new float[TArrayInfo.TaskArray.Count()];
 		for(int i = 0; i < tasklength; i++){
@@ -372,7 +366,7 @@ public class MotionFieldController : ScriptableObject {
 		return taskArr;
 	}
 
-	public float ComputeReward(MotionPose pose, float[] taskArr, int numActions = 1){
+	public float ComputeReward(MotionPose pose, float[] currentTaskArray, float[] newTaskArr, int numActions = 1){
 		//Calculates the reward for a specific motionstate
 
 		//frst, get the current task array for the motionstate
@@ -380,11 +374,11 @@ public class MotionFieldController : ScriptableObject {
 		int tasklength = TArrayInfo.TaskArray.Count();
 		float immediateReward = 0.0f;
 		for(int i = 0; i < tasklength; i++){
-			immediateReward += TArrayInfo.TaskArray[i].CheckReward (currentTaskArray[i], taskArr [i]);
+			immediateReward += TArrayInfo.TaskArray[i].CheckReward (currentTaskArray[i], newTaskArr [i]);
 		}
 
 		//calculate continuousReward
-		float continuousReward = RewardLookup(pose, taskArr, numActions);
+		float continuousReward = RewardLookup(pose, newTaskArr, numActions);
 
 		return immediateReward + continuousReward;
 	}

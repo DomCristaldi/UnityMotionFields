@@ -109,6 +109,10 @@ namespace AnimationMotionFields {
         public CosmeticSkeleton cosmeticSkel;
 
         public MotionSkeleton skeleton;
+
+        private MotionPose currentPos;
+
+        private float[] currentTaskArray;
         //public MotionSkeletonBonePlayable testRoot;
         //MotionSkeletonBonePlayable testPlayable;
 
