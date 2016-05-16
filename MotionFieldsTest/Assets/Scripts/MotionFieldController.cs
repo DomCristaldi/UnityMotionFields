@@ -210,6 +210,10 @@ public class MotionFieldController : ScriptableObject {
 	[HideInInspector]
 	public List<ArrayList> precomputedRewards_Initializer;
 
+    //how much to prefer the immediate reward vs future reward. 
+    //reward = r(firstframe) + rWeight*r(secondframe) + rWeight^2*r(thirdframe) + ... ect
+    //close to 0 has higher preference on early reward. closer to 1 has higher preference on later reward
+    public float rWeight = 0.5f; 
 
 	public float moveOneTick(ref MotionPose currentPose, ref float[] currentTaskArray, int numActions = 1){
 		float[] currentPoseArr = poseToPosVelArray (currentPose);
@@ -380,7 +384,7 @@ public class MotionFieldController : ScriptableObject {
 		//calculate continuousReward
 		float continuousReward = RewardLookup(pose, newTaskArr, numActions);
 
-		return immediateReward + continuousReward;
+		return immediateReward + rWeight*continuousReward;
 	}
 
 	public float RewardLookup(MotionPose pose, float[] Tasks, int numActions = 1){
