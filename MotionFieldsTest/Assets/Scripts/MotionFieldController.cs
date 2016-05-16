@@ -205,17 +205,19 @@ public class MotionFieldController : ScriptableObject {
 	private Dictionary<vfKey, float> precomputedRewards;
 
 	//using an ArrayList because Unity is dumb and doesn't have tuples.
-	//each arralist should holds a vfkey in [0], and a float in [1]
+	//each arralist should holds a MotionPose in [0] a float[] in [1], and a float in [2]
 	//since ArrayList stores everything as object, must cast it when taking out data
 	[HideInInspector]
 	public List<ArrayList> precomputedRewards_Initializer;
 
     //how much to prefer the immediate reward vs future reward. 
-    //reward = r(firstframe) + rWeight*r(secondframe) + rWeight^2*r(thirdframe) + ... ect
+    //reward = r(firstframe) + scale*r(secondframe) + scale^2*r(thirdframe) + ... ect
     //close to 0 has higher preference on early reward. closer to 1 has higher preference on later reward
-    public float rWeight = 0.5f; 
+    //closer to 1 also asymptotically increases time to generate precomputed rewards, so its recommended you dont set it too high. 
+    public float scale = 0.5f; 
 
 	public float moveOneTick(ref MotionPose currentPose, ref float[] currentTaskArray, int numActions = 1){
+        //generate candidate states to move to by finding closest poses in kdtree
 		float[] currentPoseArr = poseToPosVelArray (currentPose);
 
 		List<MotionPose> neighbors = NearestNeighbor (currentPoseArr, numActions);
@@ -225,11 +227,12 @@ public class MotionFieldController : ScriptableObject {
 
 		float[][] actionWeights = GenerateActions(weights, numActions);
 
-		List<MotionPose> candidateActions = new List<MotionPose>(); //not actuallu MotionPose. datatyoe is type of dome new skeleton heirarchy.
+		List<MotionPose> candidateActions = new List<MotionPose>();
 		foreach (float[] action in actionWeights){
-			candidateActions.Add(GeneratePose(neighbors, action)); //GeneratePose does the weighted blending, will be written by Dom later.
+			candidateActions.Add(GeneratePose(neighbors, action));
 		}
 
+        //now 
 		int chosenAction = -1;
 		float bestReward = 0;
 		float[] bestTaskArray = new float[TArrayInfo.TaskArray.Count()];
@@ -239,7 +242,6 @@ public class MotionFieldController : ScriptableObject {
 			if (reward > bestReward){
 				bestReward = reward;
 				bestTaskArray = newTaskArray;
-				//TODO: need not only the chosen MotionPose, but also the chosen Task Array
 				chosenAction = i;
 			}
 		}
@@ -371,20 +373,16 @@ public class MotionFieldController : ScriptableObject {
 	}
 
 	public float ComputeReward(MotionPose pose, float[] currentTaskArray, float[] newTaskArr, int numActions = 1){
-		//Calculates the reward for a specific motionstate
-
-		//frst, get the current task array for the motionstate
-		//simultaneously calculate immediate reward
-		int tasklength = TArrayInfo.TaskArray.Count();
+        //first calculate immediate reward
 		float immediateReward = 0.0f;
-		for(int i = 0; i < tasklength; i++){
+		for(int i = 0; i < currentTaskArray.Length; i++){
 			immediateReward += TArrayInfo.TaskArray[i].CheckReward (currentTaskArray[i], newTaskArr [i]);
 		}
 
 		//calculate continuousReward
 		float continuousReward = RewardLookup(pose, newTaskArr, numActions);
 
-		return immediateReward + rWeight*continuousReward;
+		return immediateReward + scale*continuousReward;
 	}
 
 	public float RewardLookup(MotionPose pose, float[] Tasks, int numActions = 1){
@@ -432,6 +430,17 @@ public class MotionFieldController : ScriptableObject {
 
 		return continuousReward;
 	}
+
+    public void makeDictfromList(List<ArrayList> lst)
+    {
+        precomputedRewards.Clear();
+        foreach (ArrayList arrLst in lst)
+        {
+            MotionPose mp = arrLst[0] as MotionPose;
+            float[] taskarr = arrLst[1] as float[];
+            precomputedRewards.Add(new vfKey(mp.animClipRef.name, mp.timestamp, taskarr), System.Convert.ToSingle(arrLst[2]));
+        }
+    }
 }
 
 //NodeData to be removed, MotionPose will be the data field of the kd tree
