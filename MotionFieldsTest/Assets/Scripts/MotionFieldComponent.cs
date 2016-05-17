@@ -1,7 +1,7 @@
 ﻿using UnityEngine;
-using UnityEngine.Experimental.Director;
+//using UnityEngine.Experimental.Director;
 using System.Collections.Generic;
-using System.Linq;
+//using System.Linq;
 
 #if UNITY_EDITOR
 using UnityEditor;
@@ -21,14 +21,42 @@ namespace AnimationMotionFields {
 
         public string boneLabel;
         public Transform boneTf;
+
     }
 
     [System.Serializable]
     public class CosmeticSkeleton {
         public List<CosmeticSkeletonBone> cosmeticBones;
+
+        public void ApplyPose(MotionPose pose) {
+
+        }
     }
 
 #if UNITY_EDITOR
+    /*
+    [CustomPropertyDrawer(typeof(CosmeticSkeletonBone))]
+    public class CosmeticSkeletonBone_PropertyDrawer : PropertyDrawer {
+
+        public override void OnGUI(Rect position, SerializedProperty property, GUIContent label) {
+            //base.OnGUI(position, property, label);
+
+            EditorGUI.BeginProperty(position, label, property);
+
+            EditorGUI.PropertyField(position, property, new GUIContent("bone"), true);
+
+            EditorGUI.EndProperty();
+        }
+
+        public override float GetPropertyHeight(SerializedProperty property, GUIContent label) {
+            //return base.GetPropertyHeight(property, label);
+
+            return 200.0f;
+        }
+
+    }
+    */
+
     [CustomPropertyDrawer(typeof(CosmeticSkeleton))]
     public class CosmeticSkeleton_PropertyDrawer : PropertyDrawer {
 
@@ -53,7 +81,6 @@ namespace AnimationMotionFields {
                 };
 
                 reorderList.drawHeaderCallback = (Rect rect) => {
-
                     EditorGUI.LabelField(rect, "Bone Lookup Table", EditorStyles.boldLabel);
                 };
 
@@ -98,75 +125,44 @@ namespace AnimationMotionFields {
     //[RequireComponent(typeof(Animator))]
     public class MotionFieldComponent : MonoBehaviour {
 
-        //private Animator _animatorComponent;
-
-        //public MotionFieldController assignedMotionFieldController;
-
-        //public int numFramesToBlend = 1;
-
-        //private MotionFieldMixerRoot motionFieldMixer;
+        public MotionFieldController controller;
 
         public CosmeticSkeleton cosmeticSkel;
 
-        public MotionSkeleton skeleton;
-        //public MotionSkeletonBonePlayable testRoot;
-        //MotionSkeletonBonePlayable testPlayable;
+        //public MotionSkeleton skeleton;
+
+        private CosmeticSkeleton curPose;
+        private CosmeticSkeleton nextPose;
+
+        public GameObject startPos;
+        public GameObject endPos;
+
+        float lerpVal = 0.0f;
+        public float lerpDelta = 0.2f;
 
         void Awake() {
-            //skeleton.Init();
 
-
-            //testPlayable = new MotionSkeletonBonePlayable();
-
-            //if (testRoot != null) { testRoot.Dispose(); }
-            //testRoot = skeleton.GenerateSkeleton();
-            //testRoot = new MotionSkeletonBonePlayable();
-
-            //_animatorComponent = GetComponent<Animator>();
-
-            //testRoot = new MotionSkeletonBonePlayable();
-            /*
-            motionFieldMixer = new MotionFieldMixerRoot(assignedMotionFieldController.animClipInfoList
-                                                                                        .Where(x => x.useClip)
-                                                                                        .Select(x => x.animClip).ToArray(),
-                                                        numFramesToBlend
-                                                        );
-            */
-
-            //motionFieldMixer.SetClipWeight(assignedMotionFieldController.animClipInfoList[0].animClip.name, 0.3f);
-            //motionFieldMixer.SetClipWeight(assignedMotionFieldController.animClipInfoList[0].animClip.name, 0.1f);
-
-            //motionFieldMixer.SetClipWeight(assignedMotionFieldController.animClipInfoList[0].animClip.name, 0.6f);
-
-
-            //_animatorComponent.Play(motionFieldMixer);
-
-            //motionFieldMixer.state = PlayState.Paused;
         }
 
         // Use this for initialization
         void Start () {
-
+            //transform.LerpTransform(transform, transform, 0.0f, Transform_ExtensionMethods.LerpType.Position | Transform_ExtensionMethods.LerpType.Rotation | Transform_ExtensionMethods.LerpType.Scale);
         }
 
         // Update is called once per frame
         void Update () {
-            //GraphVisualizerClient.Show(animMixer, gameObject.name);
-            //GraphVisualizerClient.Show(motionFieldMixer, gameObject.name);
 
-            
-            if (skeleton != null) {
-                if (skeleton.rootBonePlayable != null) {
-                    GraphVisualizerClient.Show(skeleton.rootBonePlayable, gameObject.name);
-                }
-            }
-            
+
+            transform.LerpTransform(startPos.transform, endPos.transform, lerpVal);
+
+            //lerpVal += lerpDelta * Time.deltaTime;
+
 	    }
 
-        void OnDestroy() {
-            //CURRENTLY CRASHES EDITOR WHEN STOP PLAYING
-            //motionFieldMixer.Dispose();//dump all resources that were allocated to the mixer
-        }
+        //public 
+
     }
+
+
 
 }

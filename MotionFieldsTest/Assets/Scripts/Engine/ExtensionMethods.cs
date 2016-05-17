@@ -2,6 +2,37 @@
 
 public static class Transform_ExtensionMethods {
 
+    [System.Flags]
+    public enum LerpType {
+        Position = 0x01,
+        Rotation = 0x02,
+        Scale = 0x04,
+    }
+
+    public static Transform LerpTransform(this Transform thisTf, Transform tfFrom, Transform tfTo, float delta, LerpType type = LerpType.Position) {
+
+
+        /*
+        if (type == (LerpType.Position & type)) {
+            Debug.Log("pos");
+        }
+
+        if () {
+            Debug.Log("rot");
+        }
+
+        if (type == (LerpType.Scale & type)) {
+            Debug.Log("scl");
+        }
+        */
+
+        thisTf.localPosition = Vector3.Lerp(tfFrom.localPosition, tfTo.localPosition, delta);
+        thisTf.localRotation = Quaternion.Slerp(tfFrom.localRotation, tfTo.localRotation, delta);
+        thisTf.localScale = Vector3.Lerp(tfFrom.localScale, tfTo.localScale, delta);
+
+        return thisTf;
+    }
+
 }
 
 public static class Matrix4x4_ExtensionMethods {
