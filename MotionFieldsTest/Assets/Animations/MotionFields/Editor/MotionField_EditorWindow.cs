@@ -3,6 +3,7 @@ using UnityEngine.Experimental.Director;
 using UnityEditor;
 using UnityEditorInternal;
 using System.Collections.Generic;
+using System.Collections;
 using System.Linq;
 
 namespace AnimationMotionFields {
@@ -331,7 +332,65 @@ namespace AnimationMotionFields {
 			EditorGUILayout.EndHorizontal ();
 
             //skinnedMesh = (ModelImporterClipAnimation) EditorGUILayout.ObjectField("skinMesh: ", skinnedMesh, typeof(ModelImporterClipAnimation), false);
+			if (GUILayout.Button("Generate Rewards Table")) {
+                //create precomputed table of reward lookups at (every pose in kdtree)*(range of potential task values)
 
+                //get list of task arrays to sample reward at
+				int taskSize = selectedMotionFieldController.TArrayInfo.TaskArray.Count();
+				List<List<float>> taskArr_samples = new List<List<float>> ();
+				for(int i=0; i < taskSize; i++){
+					List<float> tasksamples = new List<float> ();
+					float min = selectedMotionFieldController.TArrayInfo.TaskArray [i].min;
+					float max = selectedMotionFieldController.TArrayInfo.TaskArray [i].max;
+					int numSamples = selectedMotionFieldController.TArrayInfo.TaskArray [i].numSamples;
+
+					float interval = (max - min) / numSamples;
+					for(int j = 0; j < numSamples; j++){
+						tasksamples.Add (min + (interval * j));
+					}
+					taskArr_samples.Add (tasksamples);
+				}
+				taskArr_samples = selectedMotionFieldController.CartesianProduct(taskArr_samples);
+
+                //create initial rewardTable as List<ArrayList>
+                //each arralist has MotionPose in [0], float[] for Tarray in [1] and float for reward in [2]
+                List<ArrayList> rewardTable = new List<ArrayList>(); 
+				foreach(AnimClipInfo animclip in selectedMotionFieldController.animClipInfoList ){
+					foreach(MotionPose pose in animclip.motionPoses){
+						foreach(List<float> taskArr in taskArr_samples){
+							ArrayList arr = new ArrayList();
+							arr.Add (pose);
+                            arr.Add(taskArr);
+							arr.Add (0.0f);
+                            rewardTable.Add (arr);
+						}
+					}
+				}
+
+                //now recursively update fitness values to get the future reward
+                //to guarantee future reward is within r*(immediateReward) of future reward after infinite generations, 
+                //with a scaling of s, number of gens to run is
+                //ceil (log(-r log(S)) / log(S))
+                float s = selectedMotionFieldController.scale;
+                float r = 0.1f;
+                int generations = System.Convert.ToInt32(Mathf.Ceil((Mathf.Log(-r * Mathf.Log(s)))/Mathf.Log(s)));
+
+                for(int i = 0; i < generations; i++)
+                {
+                    selectedMotionFieldController.makeDictfromList(rewardTable);
+
+                    foreach(ArrayList point in rewardTable)
+                    {
+                        MotionPose pose = point[0] as MotionPose;
+                        float[] taskarr = point[1] as float[];
+                        point[2] = selectedMotionFieldController.moveOneTick(ref pose, ref taskarr, numActions);
+                    }
+                }
+
+                //finally, set to the initializer in selectedMotionFieldController.
+                //at runtime, this is converted to a dictionary
+                selectedMotionFieldController.precomputedRewards_Initializer = rewardTable;
+            }
 
             EditorGUILayout.EndVertical();
 

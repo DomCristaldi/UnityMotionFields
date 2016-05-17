@@ -139,6 +139,13 @@ namespace AnimationMotionFields {
 
         float lerpVal = 0.0f;
         public float lerpDelta = 0.2f;
+        public MotionSkeleton skeleton;
+
+        private MotionPose currentPos;
+
+        private float[] currentTaskArray;
+        //public MotionSkeletonBonePlayable testRoot;
+        //MotionSkeletonBonePlayable testPlayable;
 
         void Awake() {
 

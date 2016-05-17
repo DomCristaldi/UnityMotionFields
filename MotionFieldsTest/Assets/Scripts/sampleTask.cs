@@ -14,7 +14,7 @@ public class Task_AngularDev : ATask {
 		return (Mathf.Abs (valBefore) - Mathf.Abs (valAfter))/Mathf.PI;
 	}
 
-	override public float DetermineTaskValue (float[] currentPos){
+	override public float DetermineTaskValue (MotionPose pose){
 		//placeholder
 		return 0.0f;
 	}

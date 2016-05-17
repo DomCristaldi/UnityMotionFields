@@ -233,47 +233,22 @@ public class MotionFieldController : ScriptableObject {
 
 	public TaskArrayInfo TArrayInfo;
 
-	private MotionPose currentPose;
-
-	private float[] currentTaskArray;
-
 	private Dictionary<vfKey, float> precomputedRewards;
 
 	//using an ArrayList because Unity is dumb and doesn't have tuples.
-	//each arralist should holds a vfkey in [0], and a float in [1]
+	//each arralist should holds a MotionPose in [0] a float[] in [1], and a float in [2]
 	//since ArrayList stores everything as object, must cast it when taking out data
-	private List<ArrayList> precomputedRewards_Initializer;
+	[HideInInspector]
+	public List<ArrayList> precomputedRewards_Initializer;
 
-	public float[] poseToPosVelArray(MotionPose pose){
-		//from MP, create float array with only position+velocity information
-		//in order [p1,v1,p2,v2,p3,v3,ect...]
-		float[] poseArray = new float[pose.bonePoses.Length * 20]; //20 because each bonePose has 10 pos vals and 10 vel vals
-		for (int i = 0; i < pose.bonePoses.Length; i++) {
-			poseArray[i*20] = pose.bonePoses[i].value.posX;
-			poseArray[i * 20 + 1] = pose.bonePoses [i].velocity.posX;
-			poseArray[i * 20 + 2] = pose.bonePoses[i].value.posY;
-			poseArray[i * 20 + 3] = pose.bonePoses [i].velocity.posY;
-			poseArray[i * 20 + 4] = pose.bonePoses[i].value.posZ;
-			poseArray[i * 20 + 5] = pose.bonePoses [i].velocity.posZ;
-			poseArray[i * 20 + 6] = pose.bonePoses[i].value.rotX;
-			poseArray[i * 20 + 7] = pose.bonePoses [i].velocity.rotX;
-			poseArray[i * 20 + 8] = pose.bonePoses[i].value.rotY;
-			poseArray[i * 20 + 9] = pose.bonePoses [i].velocity.rotY;
-			poseArray[i * 20 + 10] = pose.bonePoses[i].value.rotZ;
-			poseArray[i * 20 + 11] = pose.bonePoses [i].velocity.rotZ;
-			poseArray[i * 20 + 12] = pose.bonePoses[i].value.rotW;
-			poseArray[i * 20 + 13] = pose.bonePoses [i].velocity.rotW;
-			poseArray[i * 20 + 14] = pose.bonePoses[i].value.sclX;
-			poseArray[i * 20 + 15] = pose.bonePoses [i].velocity.sclX;
-			poseArray[i * 20 + 16] = pose.bonePoses[i].value.sclY;
-			poseArray[i * 20 + 17] = pose.bonePoses [i].velocity.sclY;
-			poseArray[i * 20 + 18] = pose.bonePoses[i].value.sclZ;
-			poseArray[i * 20 + 19] = pose.bonePoses [i].velocity.sclZ;
-		}
-		return poseArray;
-	}
+    //how much to prefer the immediate reward vs future reward. 
+    //reward = r(firstframe) + scale*r(secondframe) + scale^2*r(thirdframe) + ... ect
+    //close to 0 has higher preference on early reward. closer to 1 has higher preference on later reward
+    //closer to 1 also asymptotically increases time to generate precomputed rewards, so its recommended you dont set it too high. 
+    public float scale = 0.5f; 
 
-	public void moveOneTick(int numActions = 1){
+	public float moveOneTick(ref MotionPose currentPose, ref float[] currentTaskArray, int numActions = 1){
+        //generate candidate states to move to by finding closest poses in kdtree
 		float[] currentPoseArr = poseToPosVelArray (currentPose);
 
 		List<MotionPose> neighbors = NearestNeighbor (currentPoseArr, numActions);
@@ -283,24 +258,30 @@ public class MotionFieldController : ScriptableObject {
 
 		float[][] actionWeights = GenerateActions(weights, numActions);
 
-		List<MotionPose> candidateActions = new List<MotionPose>(); //not actuallu MotionPose. datatyoe is type of dome new skeleton heirarchy.
+		List<MotionPose> candidateActions = new List<MotionPose>();
 		foreach (float[] action in actionWeights){
-			candidateActions.Add(GeneratePose(neighbors, action)); //GeneratePose does the weighted blending, will be written by Dom later.
+			candidateActions.Add(GeneratePose(neighbors, action));
 		}
 
+        //now 
 		int chosenAction = -1;
 		float bestReward = 0;
+		float[] bestTaskArray = new float[TArrayInfo.TaskArray.Count()];
 		for (int i=0; i < candidateActions.Count(); i++){
-			float reward = ComputeReward(candidateActions[i], numActions);
+			float[] newTaskArray = GetTaskArray (candidateActions [i]);
+			float reward = ComputeReward(candidateActions[i], currentTaskArray, newTaskArray, numActions);
 			if (reward > bestReward){
 				bestReward = reward;
-				//TODO: need not only the chosen MotionPose, but also the chosen Task Array
+				bestTaskArray = newTaskArray;
 				chosenAction = i;
 			}
 		}
 
-		//action for player to move through known! it is candidateActions[chosenAction]. 
-		//TODO: apply it to the character, then using this new current state, find next state for him to move to.
+		Debug.Log ("best fitness is " + bestReward + " from Action " + chosenAction + "\n");
+		currentPose = candidateActions [chosenAction];
+		currentTaskArray = bestTaskArray;
+
+        return bestReward;
 	}
 
 	public List<MotionPose> NearestNeighbor(float[] pose, int num_neighbors = 1){
@@ -363,7 +344,7 @@ public class MotionFieldController : ScriptableObject {
 		return neighbors[0];
     }
 
-	public static List<List<float>> CartesianProduct( List<List<float>> sequences){
+	public List<List<float>> CartesianProduct( List<List<float>> sequences){
 		// base case: 
 		List<List<float>> product = new List<List<float>>(); 
 		product.Add (new List<float> ());
@@ -382,37 +363,70 @@ public class MotionFieldController : ScriptableObject {
 		return product; 
 	}
 
-	public float ComputeReward(MotionPose candidatePos, int numActions = 1){
-		//Calculates the reward for a specific motionstate
+    public float[] poseToPosVelArray(MotionPose pose)
+    {
+        //from MP, create float array with only position+velocity information
+        //in order [p1,v1,p2,v2,p3,v3,ect...]
+        float[] poseArray = new float[pose.bonePoses.Length * 20]; //20 because each bonePose has 10 pos vals and 10 vel vals
+        for (int i = 0; i < pose.bonePoses.Length; i++)
+        {
+            poseArray[i * 20] = pose.bonePoses[i].position.posX;
+            poseArray[i * 20 + 1] = pose.bonePoses[i].velocity.posX;
+            poseArray[i * 20 + 2] = pose.bonePoses[i].position.posY;
+            poseArray[i * 20 + 3] = pose.bonePoses[i].velocity.posY;
+            poseArray[i * 20 + 4] = pose.bonePoses[i].position.posZ;
+            poseArray[i * 20 + 5] = pose.bonePoses[i].velocity.posZ;
+            poseArray[i * 20 + 6] = pose.bonePoses[i].position.rotX;
+            poseArray[i * 20 + 7] = pose.bonePoses[i].velocity.rotX;
+            poseArray[i * 20 + 8] = pose.bonePoses[i].position.rotY;
+            poseArray[i * 20 + 9] = pose.bonePoses[i].velocity.rotY;
+            poseArray[i * 20 + 10] = pose.bonePoses[i].position.rotZ;
+            poseArray[i * 20 + 11] = pose.bonePoses[i].velocity.rotZ;
+            poseArray[i * 20 + 12] = pose.bonePoses[i].position.rotW;
+            poseArray[i * 20 + 13] = pose.bonePoses[i].velocity.rotW;
+            poseArray[i * 20 + 14] = pose.bonePoses[i].position.sclX;
+            poseArray[i * 20 + 15] = pose.bonePoses[i].velocity.sclX;
+            poseArray[i * 20 + 16] = pose.bonePoses[i].position.sclY;
+            poseArray[i * 20 + 17] = pose.bonePoses[i].velocity.sclY;
+            poseArray[i * 20 + 18] = pose.bonePoses[i].position.sclZ;
+            poseArray[i * 20 + 19] = pose.bonePoses[i].velocity.sclZ;
+        }
+        return poseArray;
+    }
 
-		//frst, get the current task array for the motionstate
-		//simultaneously calculate immediate reward
-		float[] candidatePosArr = poseToPosVelArray (candidatePos);
-		int tasklength = TArrayInfo.TaskArray.Count();
-		float immediateReward = 0.0f;
-		float[] newtasks = new float[tasklength];
+    public float[] GetTaskArray(MotionPose pose){
+		int tasklength = TArrayInfo.TaskArray.Count ();
+		float[] taskArr = new float[TArrayInfo.TaskArray.Count()];
 		for(int i = 0; i < tasklength; i++){
-			newtasks[i] = TArrayInfo.TaskArray[i].DetermineTaskValue(candidatePosArr);
-			immediateReward += TArrayInfo.TaskArray[i].CheckReward (currentTaskArray[i], newtasks [i]);
+			taskArr[i] = TArrayInfo.TaskArray[i].DetermineTaskValue(pose);
+		}
+		return taskArr;
+	}
+
+	public float ComputeReward(MotionPose pose, float[] currentTaskArray, float[] newTaskArr, int numActions = 1){
+        //first calculate immediate reward
+		float immediateReward = 0.0f;
+		for(int i = 0; i < currentTaskArray.Length; i++){
+			immediateReward += TArrayInfo.TaskArray[i].CheckReward (currentTaskArray[i], newTaskArr [i]);
 		}
 
 		//calculate continuousReward
-		float continuousReward = RewardLookup(candidatePosArr, newtasks, numActions);
+		float continuousReward = RewardLookup(pose, newTaskArr, numActions);
 
-		return immediateReward + continuousReward;
+		return immediateReward + scale*continuousReward;
 	}
 
-	public float RewardLookup(float[] pose, float[] Tasks, int numActions = 1){
+	public float RewardLookup(MotionPose pose, float[] Tasks, int numActions = 1){
 		//get continuous reward from valuefunc lookup table.
 		//reward is weighted blend of closest values in lookup table.
 		//get closest poses from kdtree, and closest tasks from cartesian product
 		//then get weighted rewards from lookup table for each pose+task combo
 
 		//get closest poses.
-		List<MotionPose> neighbors = NearestNeighbor (pose, numActions);
+		float[] poseArr = poseToPosVelArray(pose);
+		List<MotionPose> neighbors = NearestNeighbor (poseArr, numActions);
 		float[][] neighborsArr = neighbors.Select (x => poseToPosVelArray (x)).ToArray ();
-
-		float[] neighbors_weights = GenerateWeights(pose, neighborsArr);
+		float[] neighbors_weights = GenerateWeights(poseArr, neighborsArr);
 
 		//get closest tasks.
 		List<List<float>> nearest_vals = new List<List<float>> ();
@@ -425,30 +439,39 @@ public class MotionFieldController : ScriptableObject {
 			nearest_vals.Add (nearest_val);
 		}
 		//turn the above/below vals for each task into 2^Tasks.Length() task arrays, each of which exists in precalculated dataset
-		List<List<float>> taskMatrixCurrent = CartesianProduct(nearest_vals);
-		List<float> taskMatrixCurrent_weights = new List<float> (); //TODO: make helper func to get these weights
-																				//first normalize each element such that min-max is 0-1. so that each elem has equal weight.
+		List<List<float>> nearestTasks = CartesianProduct(nearest_vals);
+		float[][] nearestTasksArr = nearestTasks.Select(a => a.ToArray()).ToArray();
+		float[] nearestTasks_weights = GenerateWeights(Tasks, nearestTasksArr);
 
 		//get matrix of neighbors x tasks. The corresponding weight matrix should sum to 1.
-		List<List<float>> taskNeighbors = new List<List<float>> ();
-		List<float> taskNeighbors_weights = new List<float> ();
-		for (int i = 0; i < neighborsArr.Length; i++){
-			List<float> pos = neighborsArr [i].ToList();
-			for (int j = 0; j < taskMatrixCurrent.Count(); j++){
-				taskNeighbors.Add (pos.Concat (taskMatrixCurrent [j]).ToList ());
-				taskNeighbors_weights.Add ((float)neighbors_weights [i] * taskMatrixCurrent_weights [j]);
+		List<vfKey> dictKeys = new List<vfKey> ();
+		List<float> dictKeys_weights = new List<float> ();
+		for (int i = 0; i < neighbors.Count(); i++){
+			for (int j = 0; j < nearestTasksArr.Length; j++){
+				dictKeys.Add (new vfKey(neighbors[i].animClipRef.name, neighbors[i].timestamp, nearestTasksArr[j]));
+				dictKeys_weights.Add (neighbors_weights [i] * nearestTasks_weights [j]);
 			}
 		}
 
 		//do lookups in precomputed table, get weighted sum
 		float continuousReward = 0.0f;
-		for(int i = 0; i < taskNeighbors.Count(); i++){
-			//TODO: must first define precomputed table!
-			//continuousReward += precomputedTable(taskNeighbors[i])*taskNeighbors_weights[i];
+		for(int i = 0; i < dictKeys.Count(); i++){
+			continuousReward += precomputedRewards[dictKeys[i]]*dictKeys_weights[i];
 		}
 
 		return continuousReward;
 	}
+
+    public void makeDictfromList(List<ArrayList> lst)
+    {
+        precomputedRewards.Clear();
+        foreach (ArrayList arrLst in lst)
+        {
+            MotionPose mp = arrLst[0] as MotionPose;
+            float[] taskarr = arrLst[1] as float[];
+            precomputedRewards.Add(new vfKey(mp.animClipRef.name, mp.timestamp, taskarr), System.Convert.ToSingle(arrLst[2]));
+        }
+    }
 }
 
 //NodeData to be removed, MotionPose will be the data field of the kd tree
