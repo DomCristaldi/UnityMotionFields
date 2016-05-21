@@ -298,9 +298,9 @@ namespace AnimationMotionFields {
             MotionFieldUtility.GenerateKDTree(ref mfController.kd, mfController.animClipInfoList, modelRef);
         }
 
-        public static void GenerateKDTree(ref MotionFieldController mfController, string[] uniquePaths, MotionFieldController.RootComponents rootComponents) {
+        /*public static void GenerateKDTree(ref MotionFieldController mfController, string[] uniquePaths, MotionFieldController.RootComponents rootComponents) {
             MotionFieldUtility.GenerateKDTree(ref mfController.kd, mfController.animClipInfoList, uniquePaths, rootComponents, uniquePaths.Length * 2);
-        }
+        }*/
 
         public static void GenerateKDTree(ref KDTreeDLL.KDTree kdTree, List<AnimClipInfo> animClipInfoList, MotionFieldComponent modelRef) {
 
@@ -329,7 +329,7 @@ namespace AnimationMotionFields {
             }
         }
 
-        public static void GenerateKDTree(ref KDTreeDLL.KDTree kdTree, List<AnimClipInfo> animClipInfoList, string[] uniquePaths, MotionFieldController.RootComponents rootComponents, int numDimensions) {
+        /*public static void GenerateKDTree(ref KDTreeDLL.KDTree kdTree, List<AnimClipInfo> animClipInfoList, string[] uniquePaths, MotionFieldController.RootComponents rootComponents, int numDimensions) {
 
             kdTree = new KDTreeDLL.KDTree(numDimensions);
 
@@ -368,7 +368,7 @@ namespace AnimationMotionFields {
             }
 
             Debug.Log("tree generated");
-        }
+        }*/
 
 		
     }

@@ -16,7 +16,7 @@ using UnityEditorInternal;
 
 //namespace AnimationMotionFields {
 
-[System.Serializable]
+/*[System.Serializable]
 public class KeyframeData {
     public float value;
     public float velocity;
@@ -27,7 +27,7 @@ public class KeyframeData {
         this.velocity = velocity;
 		this.velocityNext = velocityNext;
     }
-}
+}*/
 
 
 [System.Serializable]
@@ -195,7 +195,7 @@ public class MotionPose {
     public float timestamp;
 
     //public float[] keyframeData;
-    public KeyframeData[] keyframeData;
+    //public KeyframeData[] keyframeData;
 
     public int frameSampleRate;//sampel rate that was used to create these poses
 
