@@ -254,7 +254,7 @@ namespace AnimationMotionFields {
         }
 
         public static void GenerateMotionField(ref MotionFieldController mfController, MotionFieldComponent modelRef, int samplingRate) {
-            string[] uniquePaths = MotionFieldUtility.GetUniquePaths(mfController.animClipInfoList.Select(x => x.animClip).ToArray());
+            //string[] uniquePaths = MotionFieldUtility.GetUniquePaths(mfController.animClipInfoList.Select(x => x.animClip).ToArray());
             
             //recenter model b/c we might be recording world coordinates
             Vector3 originalModelPos = modelRef.transform.position;
@@ -295,39 +295,36 @@ namespace AnimationMotionFields {
 
             //*****************UNCOMMENT TO GENERATE KD TREE*********************
             //MotionFieldUtility.GenerateKDTree(ref mfController, uniquePaths, mfController.rootComponents);
-            MotionFieldUtility.GenerateKDTree(ref mfController, modelRef);
+            MotionFieldUtility.GenerateKDTree(ref mfController);
         }
 
-        public static void GenerateKDTree(ref MotionFieldController mfController, MotionFieldComponent modelRef) {
-            MotionFieldUtility.GenerateKDTree(ref mfController.kd, mfController.animClipInfoList, modelRef);
+        public static void GenerateKDTree(ref MotionFieldController mfController) {
+            MotionFieldUtility.GenerateKDTree(ref mfController.kd, mfController.animClipInfoList);
         }
 
         /*public static void GenerateKDTree(ref MotionFieldController mfController, string[] uniquePaths, MotionFieldController.RootComponents rootComponents) {
             MotionFieldUtility.GenerateKDTree(ref mfController.kd, mfController.animClipInfoList, uniquePaths, rootComponents, uniquePaths.Length * 2);
         }*/
 
-        public static void GenerateKDTree(ref KDTreeDLL.KDTree kdTree, List<AnimClipInfo> animClipInfoList, MotionFieldComponent modelRef) {
-
+        public static void GenerateKDTree(ref KDTreeDLL.KDTree kdTree, List<AnimClipInfo> animClipInfoList) {
 
             //make KD Tree w/ number of dimension equal to total number of bone poses * (position * velocity) <- 20
             kdTree = new KDTreeDLL.KDTree(animClipInfoList[0].motionPoses[0].bonePoses.Length * 20);
 
             foreach (AnimClipInfo clipInfo in animClipInfoList) {
-                foreach (MotionPose mPose in clipInfo.motionPoses) {
-                    foreach (BonePose bone in mPose.bonePoses) {
+                foreach (MotionPose pose in clipInfo.motionPoses) {
+                    
+                    double[] position_velocity_pairings = pose.flattenedMotionPose.Select(x => System.Convert.ToDouble(x)).ToArray();
 
-                        double[] boneValues = System.Array.ConvertAll<float, double>(bone.value.flattenedPosition, x => (double)x).Concat<double>(
-                                              System.Array.ConvertAll<float, double>(bone.value.flattenedRotation, x => (double)x).Concat<double>(
-                                              System.Array.ConvertAll<float, double>(bone.value.flattenedScale,    x => (double)x))).ToArray<double>();
+                    string stuff = "Inserting id:" + pose.animClipRef.name + " , time: " + pose.timestamp + "  position_velocity_pairing:(";
+                    foreach (double p in position_velocity_pairings) { stuff += p.ToString() + ", "; }
+                    Debug.Log(stuff + ")");
 
-                        double[] boneVelocities = System.Array.ConvertAll<float, double>(bone.positionNext.flattenedPosition, x => (double)x).Concat<double>(
-                                                  System.Array.ConvertAll<float, double>(bone.positionNext.flattenedRotation, x => (double)x).Concat<double>(
-                                                  System.Array.ConvertAll<float, double>(bone.positionNext.flattenedScale,    x => (double)x))).ToArray<double>();
-                        /*
-                        double[] boneVelocityNexts = System.Array.ConvertAll<float, double>(bone.velocityNext.flattenedPosition, x => (double)x).Concat<double>(
-                                                     System.Array.ConvertAll<float, double>(bone.velocityNext.flattenedRotation, x => (double)x).Concat<double>(
-                                                     System.Array.ConvertAll<float, double>(bone.velocityNext.flattenedScale,    x => (double)x))).ToArray<double>();
-                        */
+                    try {
+                        kdTree.insert(position_velocity_pairings, pose);
+                    }
+                    catch (KDTreeDLL.KeyDuplicateException e) {
+                        Debug.Log("Duplicate position_velocity_pairing! skip inserting pt.");
                     }
                 }
             }
