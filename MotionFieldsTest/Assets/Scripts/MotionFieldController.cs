@@ -210,7 +210,7 @@ public class MotionPose {
 
     //CONSTRUCTOR FOR CREATING A MOTION POSE OUT OF BLENED POSES
     public MotionPose(MotionPose[] posesToBlend, float[] weights) {
-        //break out if there's no data to work with for either poses or weights
+        //Break out if there's no data to work with for either poses or weights
         if (posesToBlend.Length == 0) { Debug.LogError("Supplied Poses Array is of length 0"); return; }
         if (weights.Length == 0) { Debug.LogError("Supplied Weights Array is of length 0"); return; }
 
@@ -227,7 +227,6 @@ public class MotionPose {
         //represents the amount we've blended in so far
         float curBoneWeight = weights[0];
 
-        //Vector3 pos = posesToBlend[0]
         for (int i = 1; i < posesToBlend.Length; ++i) {
 
             //create normalized weights for tiered blending
@@ -236,16 +235,22 @@ public class MotionPose {
 
             for (int j = 0; j < posesToBlend[i].bonePoses.Length; ++j) {
                 //do the blending
-                bonePoses[j].value = BoneTransform.BlendTransform(bonePoses[j].value, posesToBlend[i].bonePoses[j].value, bpwNormalized);
-                bonePoses[j].velocity = BoneTransform.BlendTransform(bonePoses[j].velocity, posesToBlend[i].bonePoses[j].value, bpwNormalized);
-                bonePoses[j].velocityNext = BoneTransform.BlendTransform(bonePoses[j].velocityNext, posesToBlend[i].bonePoses[j].velocityNext, bpwNormalized);
+                bonePoses[j].value = BoneTransform.BlendTransform(bonePoses[j].value,
+                                                                  posesToBlend[i].bonePoses[j].value, 
+                                                                  bpwNormalized);
+
+                bonePoses[j].velocity = BoneTransform.BlendTransform(bonePoses[j].velocity,
+                                                                     posesToBlend[i].bonePoses[j].velocity,
+                                                                     bpwNormalized);
+
+                bonePoses[j].velocityNext = BoneTransform.BlendTransform(bonePoses[j].velocityNext,
+                                                                         posesToBlend[i].bonePoses[j].velocityNext,
+                                                                         bpwNormalized);
             }
 
             //add to the weight we iterated so far
             curBoneWeight += weights[i];
         }
-
-
     }
 
     public float[] flattenedMotionPose {
