@@ -424,20 +424,61 @@ public class MotionFieldController : ScriptableObject {
 	}
 
 	public MotionPose GeneratePose(MotionPose currentPose, MotionPose[] neighbors, float[] action){
+        //note: forgive me programming gods, for I have sinned by creating this ugly function.
+
+        /*
+        addition/subtraction logic:
+        new_position = currentPose.position + blendedNeighbors.positionNext - blendedNeighbors.position
+        new_positionNext = currentPose.position + blendedNeighbors.position + blendedNeighbors.positionNextNext - 2(blendedNeighbors.positionNext)
+        new_positionNextNext = not needed 
+        */
+
         MotionPose blendedNeighbors = new MotionPose(neighbors, action);
 
-        //todo: addition/subtraction stuff
-        //new_position = currentPose.position + blendedNeighbors.positionNext - blendedNeighbors.position
-        //new_positionNext = currentPose.position + blendedNeighbors.position + blendedNeighbors.positionNextNext - 2(blendedNeighbors.positionNext)
-        //new_positionNextNext = fuck you we dont need that shit
-        /*MotionPose newPose;
+        MotionPose newPose = currentPose;
+        BonePose currBonePose;
+        BonePose blendBonePose;
         int numBones = currentPose.bonePoses.Length;
         for(int i = 0; i < numBones; i++)
         {
-            
-        }*/
+            currBonePose = currentPose.bonePoses[i];
+            blendBonePose = blendedNeighbors.bonePoses[i];
+            newPose.bonePoses[i].value.posX = currBonePose.value.posX + blendBonePose.positionNext.posX - blendBonePose.value.posX;
+            newPose.bonePoses[i].value.posY = currBonePose.value.posY + blendBonePose.positionNext.posY - blendBonePose.value.posY;
+            newPose.bonePoses[i].value.posZ = currBonePose.value.posZ + blendBonePose.positionNext.posZ - blendBonePose.value.posZ;
 
-		return blendedNeighbors;
+            newPose.bonePoses[i].positionNext.posX = currBonePose.value.posX + blendBonePose.value.posX + blendBonePose.positionNextNext.posX - 2 * blendBonePose.positionNext.posX;
+            newPose.bonePoses[i].positionNext.posY = currBonePose.value.posY + blendBonePose.value.posY + blendBonePose.positionNextNext.posY - 2 * blendBonePose.positionNext.posY;
+            newPose.bonePoses[i].positionNext.posZ = currBonePose.value.posZ + blendBonePose.value.posZ + blendBonePose.positionNextNext.posZ - 2 * blendBonePose.positionNext.posZ;
+
+            Quaternion Q_currPosition = new Quaternion(currBonePose.value.rotX, currBonePose.value.rotY, currBonePose.value.rotZ, currBonePose.value.rotW);
+            Quaternion Q_blendPosition = new Quaternion(blendBonePose.value.rotX, blendBonePose.value.rotY, blendBonePose.value.rotZ, blendBonePose.value.rotW);
+            Quaternion Q_blendPositionNext = new Quaternion(blendBonePose.positionNext.rotX, blendBonePose.positionNext.rotY, blendBonePose.positionNext.rotZ, blendBonePose.positionNext.rotW);
+            Quaternion Q_blendPositionNextNext = new Quaternion(blendBonePose.positionNextNext.rotX, blendBonePose.positionNextNext.rotY, blendBonePose.positionNextNext.rotZ, blendBonePose.positionNextNext.rotW);
+
+            Quaternion Q_newPostion = (Q_currPosition * Q_blendPositionNext) * Quaternion.Inverse(Q_blendPosition);
+            Quaternion Q_newPostionNext = (((Q_currPosition * Q_blendPosition) * Q_blendPositionNextNext) * Quaternion.Inverse(Q_blendPositionNext)) * Quaternion.Inverse(Q_blendPositionNext);
+
+            newPose.bonePoses[i].value.rotX = Q_newPostion.x;
+            newPose.bonePoses[i].value.rotY = Q_newPostion.y;
+            newPose.bonePoses[i].value.rotZ = Q_newPostion.z;
+            newPose.bonePoses[i].value.rotW = Q_newPostion.w;
+
+            newPose.bonePoses[i].positionNext.rotX = Q_newPostionNext.x;
+            newPose.bonePoses[i].positionNext.rotY = Q_newPostionNext.y;
+            newPose.bonePoses[i].positionNext.rotZ = Q_newPostionNext.z;
+            newPose.bonePoses[i].positionNext.rotW = Q_newPostionNext.w;
+
+            newPose.bonePoses[i].value.sclX = currBonePose.value.sclX + blendBonePose.positionNext.sclX - blendBonePose.value.sclX;
+            newPose.bonePoses[i].value.sclY = currBonePose.value.sclY + blendBonePose.positionNext.sclY - blendBonePose.value.sclY;
+            newPose.bonePoses[i].value.sclZ = currBonePose.value.sclZ + blendBonePose.positionNext.sclZ - blendBonePose.value.sclZ;
+
+            newPose.bonePoses[i].positionNext.sclX = currBonePose.value.sclX + blendBonePose.value.sclX + blendBonePose.positionNextNext.sclX - 2 * blendBonePose.positionNext.sclX;
+            newPose.bonePoses[i].positionNext.sclY = currBonePose.value.sclY + blendBonePose.value.sclY + blendBonePose.positionNextNext.sclY - 2 * blendBonePose.positionNext.sclY;
+            newPose.bonePoses[i].positionNext.sclZ = currBonePose.value.sclZ + blendBonePose.value.sclZ + blendBonePose.positionNextNext.sclZ - 2 * blendBonePose.positionNext.sclZ;
+        }
+
+		return newPose;
     }
 
 	public List<List<float>> CartesianProduct( List<List<float>> sequences){
@@ -520,7 +561,7 @@ public class MotionFieldController : ScriptableObject {
 
 		//get closest poses.
 		float[] poseArr = pose.flattenedMotionPose;
-		List<MotionPose> neighbors = NearestNeighbor (poseArr, numActions);
+		MotionPose[] neighbors = NearestNeighbor (poseArr, numActions);
 		float[][] neighborsArr = neighbors.Select (x => x.flattenedMotionPose).ToArray ();
 		float[] neighbors_weights = GenerateWeights(poseArr, neighborsArr);
 
