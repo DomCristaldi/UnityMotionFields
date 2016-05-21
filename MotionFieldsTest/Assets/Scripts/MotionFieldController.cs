@@ -370,25 +370,25 @@ public class MotionFieldController : ScriptableObject {
         float[] poseArray = new float[pose.bonePoses.Length * 20]; //20 because each bonePose has 10 pos vals and 10 vel vals
         for (int i = 0; i < pose.bonePoses.Length; i++)
         {
-            poseArray[i * 20] = pose.bonePoses[i].position.posX;
+            poseArray[i * 20] = pose.bonePoses[i].value.posX;
             poseArray[i * 20 + 1] = pose.bonePoses[i].velocity.posX;
-            poseArray[i * 20 + 2] = pose.bonePoses[i].position.posY;
+            poseArray[i * 20 + 2] = pose.bonePoses[i].value.posY;
             poseArray[i * 20 + 3] = pose.bonePoses[i].velocity.posY;
-            poseArray[i * 20 + 4] = pose.bonePoses[i].position.posZ;
+            poseArray[i * 20 + 4] = pose.bonePoses[i].value.posZ;
             poseArray[i * 20 + 5] = pose.bonePoses[i].velocity.posZ;
-            poseArray[i * 20 + 6] = pose.bonePoses[i].position.rotX;
+            poseArray[i * 20 + 6] = pose.bonePoses[i].value.rotX;
             poseArray[i * 20 + 7] = pose.bonePoses[i].velocity.rotX;
-            poseArray[i * 20 + 8] = pose.bonePoses[i].position.rotY;
+            poseArray[i * 20 + 8] = pose.bonePoses[i].value.rotY;
             poseArray[i * 20 + 9] = pose.bonePoses[i].velocity.rotY;
-            poseArray[i * 20 + 10] = pose.bonePoses[i].position.rotZ;
+            poseArray[i * 20 + 10] = pose.bonePoses[i].value.rotZ;
             poseArray[i * 20 + 11] = pose.bonePoses[i].velocity.rotZ;
-            poseArray[i * 20 + 12] = pose.bonePoses[i].position.rotW;
+            poseArray[i * 20 + 12] = pose.bonePoses[i].value.rotW;
             poseArray[i * 20 + 13] = pose.bonePoses[i].velocity.rotW;
-            poseArray[i * 20 + 14] = pose.bonePoses[i].position.sclX;
+            poseArray[i * 20 + 14] = pose.bonePoses[i].value.sclX;
             poseArray[i * 20 + 15] = pose.bonePoses[i].velocity.sclX;
-            poseArray[i * 20 + 16] = pose.bonePoses[i].position.sclY;
+            poseArray[i * 20 + 16] = pose.bonePoses[i].value.sclY;
             poseArray[i * 20 + 17] = pose.bonePoses[i].velocity.sclY;
-            poseArray[i * 20 + 18] = pose.bonePoses[i].position.sclZ;
+            poseArray[i * 20 + 18] = pose.bonePoses[i].value.sclZ;
             poseArray[i * 20 + 19] = pose.bonePoses[i].velocity.sclZ;
         }
         return poseArray;
