@@ -336,7 +336,7 @@ public class MotionFieldController : ScriptableObject {
         //generate candidate states to move to by finding closest poses in kdtree
         float[] currentPoseArr = currentPose.flattenedMotionPose;
 
-		List<MotionPose> neighbors = NearestNeighbor (currentPoseArr, numActions);
+		MotionPose[] neighbors = NearestNeighbor (currentPoseArr, numActions);
 		float[][] neighborsArr = neighbors.Select (x => x.flattenedMotionPose).ToArray ();
 
 		float[] weights = GenerateWeights (currentPoseArr, neighborsArr);
@@ -345,7 +345,7 @@ public class MotionFieldController : ScriptableObject {
 
 		List<MotionPose> candidateActions = new List<MotionPose>();
 		foreach (float[] action in actionWeights){
-			candidateActions.Add(GeneratePose(neighbors, action));
+			candidateActions.Add(GeneratePose(currentPose, neighbors, action));
 		}
 
         //now 
@@ -369,7 +369,7 @@ public class MotionFieldController : ScriptableObject {
         return bestReward;
 	}
 
-	public List<MotionPose> NearestNeighbor(float[] pose, int num_neighbors = 1){
+	public MotionPose[] NearestNeighbor(float[] pose, int num_neighbors = 1){
 		
 		double[] dbl_pose = pose.Select (x => System.Convert.ToDouble (x)).ToArray ();
 		object[] nn_data = kd.nearest (dbl_pose, num_neighbors);
@@ -378,7 +378,7 @@ public class MotionFieldController : ScriptableObject {
 		foreach(object obj in nn_data){
 			data.Add((MotionPose) obj);
 		}
-		return data;
+		return data.ToArray();
 	}
 
 	public float[][] GenerateActions(float[] weights, int numActions = 1){
@@ -423,10 +423,21 @@ public class MotionFieldController : ScriptableObject {
 		return weights;
 	}
 
-	public MotionPose GeneratePose(List<MotionPose> neighbors, float[] action){
-		//placeholder func. takes in current motionstate, neighbor states, and weights of neighbor states.
-		//does weighted blending, returns blended state
-		return neighbors[0];
+	public MotionPose GeneratePose(MotionPose currentPose, MotionPose[] neighbors, float[] action){
+        MotionPose blendedNeighbors = new MotionPose(neighbors, action);
+
+        //todo: addition/subtraction stuff
+        //new_position = currentPose.position + blendedNeighbors.positionNext - blendedNeighbors.position
+        //new_positionNext = currentPose.position + blendedNeighbors.position + blendedNeighbors.positionNextNext - 2(blendedNeighbors.positionNext)
+        //new_positionNextNext = fuck you we dont need that shit
+        /*MotionPose newPose;
+        int numBones = currentPose.bonePoses.Length;
+        for(int i = 0; i < numBones; i++)
+        {
+            
+        }*/
+
+		return blendedNeighbors;
     }
 
 	public List<List<float>> CartesianProduct( List<List<float>> sequences){
