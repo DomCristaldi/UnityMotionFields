@@ -183,25 +183,6 @@ public class MotionPose {
         this.animClipRef = animClipRef;
         this.timestamp = timestamp;
     }
-    /*
-    //OLD
-    public MotionPose(AnimationClip animClipRef, float timestamp, KeyframeData[] keyframeData) {
-        this.animClipRef = animClipRef;
-        this.timestamp = timestamp;
-        this.keyframeData = keyframeData;
-    }
-    //OLD
-    public MotionPose(AnimationClip animClipRef, float timestamp, float[] keyframeValueData) {
-        this.animClipRef = animClipRef;
-        this.timestamp = timestamp;
-        this.keyframeData = new KeyframeData[keyframeValueData.Length];//initialize array length
-
-        for (int i = 0; i < keyframeData.Length; ++i) {
-            //must create object so it exists in the array
-            keyframeData[i] = new KeyframeData(value: keyframeValueData[i]);
-        }
-    }
-    */
 
     public float[] flattenedMotionPose {
         get {

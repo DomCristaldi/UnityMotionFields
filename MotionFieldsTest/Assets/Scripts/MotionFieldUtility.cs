@@ -351,15 +351,16 @@ namespace AnimationMotionFields {
             foreach (AnimClipInfo clipinfo in animClipInfoList) {
 
                 foreach (MotionPose pose in clipinfo.motionPoses) {
-
+                    
                     //extract all the values from the Motion Field Controller's Keyframe Datas and convert them to a list of doubles
                     double[] position = pose.keyframeData.Select(x => System.Convert.ToDouble(x.value)).ToArray();//hot damn LINQ
                     double[] velocity = pose.keyframeData.Select(x => System.Convert.ToDouble(x.velocity)).ToArray();//hot damn LINQ
                     double[] velocityNext = pose.keyframeData.Select(x => System.Convert.ToDouble(x.velocityNext)).ToArray();//hot damn LINQ
-
+                    /*
 					NodeData data = new NodeData(pose.animClipRef.name, pose.timestamp, position, velocity, velocityNext, 
 												rootComponent_tx, rootComponent_ty, rootComponent_tz, 
 												rootComponent_qx, rootComponent_qy, rootComponent_qz, rootComponent_qw);
+                    */
 
                     double[] position_velocity_pairings = new double[numDimensions];
                     //Debug.Log(position.Length);
@@ -368,12 +369,12 @@ namespace AnimationMotionFields {
                         position_velocity_pairings[i * 2 + 1] = velocity[i];
                     }
 
-                    string stuff = "Inserting id:" + data.clipId + " , time: " + data.timeStamp.ToString() + "  position_velocity_pairing:(";
+                    string stuff = "Inserting id:" + pose.animClipRef.name + " , time: " + pose.timestamp + "  position_velocity_pairing:(";
                     foreach (double p in position_velocity_pairings) { stuff += p.ToString() + ", "; }
                     Debug.Log(stuff + ")");
 
                     try {
-                        kdTree.insert(position_velocity_pairings, data);
+                        kdTree.insert(position_velocity_pairings, pose);
                     }
                     catch (KDTreeDLL.KeyDuplicateException e) {
                         Debug.Log("Duplicate position_velocity_pairing! skip inserting pt.");
