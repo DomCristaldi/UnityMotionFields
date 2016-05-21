@@ -352,22 +352,7 @@ namespace AnimationMotionFields {
 
                 foreach (MotionPose pose in clipinfo.motionPoses) {
                     
-                    //extract all the values from the Motion Field Controller's Keyframe Datas and convert them to a list of doubles
-                    double[] position = pose.keyframeData.Select(x => System.Convert.ToDouble(x.value)).ToArray();//hot damn LINQ
-                    double[] velocity = pose.keyframeData.Select(x => System.Convert.ToDouble(x.velocity)).ToArray();//hot damn LINQ
-                    double[] velocityNext = pose.keyframeData.Select(x => System.Convert.ToDouble(x.velocityNext)).ToArray();//hot damn LINQ
-                    /*
-					NodeData data = new NodeData(pose.animClipRef.name, pose.timestamp, position, velocity, velocityNext, 
-												rootComponent_tx, rootComponent_ty, rootComponent_tz, 
-												rootComponent_qx, rootComponent_qy, rootComponent_qz, rootComponent_qw);
-                    */
-
-                    double[] position_velocity_pairings = new double[numDimensions];
-                    //Debug.Log(position.Length);
-                    for (int i = 0; i < position.Length; i++) {
-                        position_velocity_pairings[i * 2] = position[i];
-                        position_velocity_pairings[i * 2 + 1] = velocity[i];
-                    }
+                    double[] position_velocity_pairings = pose.flattenedMotionPose.Select(x => System.Convert.ToDouble(x)).ToArray();
 
                     string stuff = "Inserting id:" + pose.animClipRef.name + " , time: " + pose.timestamp + "  position_velocity_pairing:(";
                     foreach (double p in position_velocity_pairings) { stuff += p.ToString() + ", "; }
