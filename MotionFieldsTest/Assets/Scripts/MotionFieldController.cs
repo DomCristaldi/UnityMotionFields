@@ -165,8 +165,8 @@ public class BonePose {
     public string boneLabel;
 
     public BoneTransform value;
-    public BoneTransform velocity;
-    public BoneTransform velocityNext;
+    public BoneTransform positionNext;
+    public BoneTransform positionNextNext;
 
     public BonePose(string boneLabel) {
         this.boneLabel = boneLabel;
@@ -180,7 +180,7 @@ public class BonePose {
 
     public float[] flattenedVelocity {
         get {
-            return velocity.flattenedTransform;
+            return positionNext.flattenedTransform;
         }
     }
 }
@@ -239,12 +239,12 @@ public class MotionPose {
                                                                   posesToBlend[i].bonePoses[j].value, 
                                                                   bpwNormalized);
 
-                bonePoses[j].velocity = BoneTransform.BlendTransform(bonePoses[j].velocity,
-                                                                     posesToBlend[i].bonePoses[j].velocity,
+                bonePoses[j].positionNext = BoneTransform.BlendTransform(bonePoses[j].positionNext,
+                                                                     posesToBlend[i].bonePoses[j].positionNext,
                                                                      bpwNormalized);
 
-                bonePoses[j].velocityNext = BoneTransform.BlendTransform(bonePoses[j].velocityNext,
-                                                                         posesToBlend[i].bonePoses[j].velocityNext,
+                bonePoses[j].positionNextNext = BoneTransform.BlendTransform(bonePoses[j].positionNextNext,
+                                                                         posesToBlend[i].bonePoses[j].positionNextNext,
                                                                          bpwNormalized);
             }
 
