@@ -126,6 +126,15 @@ public class BoneTransform {
     public float[] flattenedScale {
         get { return new float[] { sclX, sclY, sclZ }; }
     }
+
+    public float[] flattenedTransform {
+        get {
+            return flattenedPosition
+                   .Concat<float>(flattenedRotation)
+                   .Concat<float>(flattenedScale)
+                   .ToArray<float>();
+        }
+    }
 }
 
 [System.Serializable]
@@ -138,6 +147,18 @@ public class BonePose {
 
     public BonePose(string boneLabel) {
         this.boneLabel = boneLabel;
+    }
+
+    public float[] flattenedValue {
+        get {
+            return value.flattenedTransform;
+        }
+    }
+
+    public float[] flattenedVelocity {
+        get {
+            return velocity.flattenedTransform;
+        }
     }
 }
 
@@ -181,6 +202,20 @@ public class MotionPose {
         }
     }
     */
+
+    public float[] flattenedMotionPose {
+        get {
+            float[] retArray = new float[] { };
+
+            foreach (BonePose pose in bonePoses) {
+                retArray.Concat<float>(pose.flattenedValue).Concat<float>(pose.flattenedVelocity);
+            }
+
+            //return retArray.ToArray<float>();
+            return retArray;
+        }
+    }
+
 }
 
 [System.Serializable]
