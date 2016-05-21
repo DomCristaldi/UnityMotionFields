@@ -135,6 +135,29 @@ public class BoneTransform {
                    .ToArray<float>();
         }
     }
+
+    public static BoneTransform BlendTransform(BoneTransform tf1, BoneTransform tf2, float alpha) {
+        BoneTransform retBoneTf = new BoneTransform();
+
+        retBoneTf.posX = Mathf.Lerp(tf1.posX, tf2.posX, alpha);
+        retBoneTf.posY = Mathf.Lerp(tf1.posY, tf2.posY, alpha);
+        retBoneTf.posZ = Mathf.Lerp(tf1.posZ, tf2.posZ, alpha);
+
+        Quaternion slerpedRot = Quaternion.Slerp(new Quaternion(tf1.rotX, tf1.rotY, tf1.rotZ, tf1.rotW),
+                                                 new Quaternion(tf2.rotX, tf2.rotY, tf2.rotZ, tf2.rotW),
+                                                 alpha);
+        retBoneTf.rotW = slerpedRot.w;
+        retBoneTf.rotX = slerpedRot.x;
+        retBoneTf.rotY = slerpedRot.y;
+        retBoneTf.rotZ = slerpedRot.z;
+
+        retBoneTf.sclX = Mathf.Lerp(tf1.sclX, tf2.sclX, alpha);
+        retBoneTf.sclY = Mathf.Lerp(tf1.sclY, tf2.sclY, alpha);
+        retBoneTf.sclZ = Mathf.Lerp(tf1.sclZ, tf2.sclZ, alpha);
+
+        return retBoneTf;
+    }
+
 }
 
 [System.Serializable]
@@ -182,6 +205,47 @@ public class MotionPose {
 
         this.animClipRef = animClipRef;
         this.timestamp = timestamp;
+    }
+
+
+    //CONSTRUCTOR FOR CREATING A MOTION POSE OUT OF BLENED POSES
+    public MotionPose(MotionPose[] posesToBlend, float[] weights) {
+        //break out if there's no data to work with for either poses or weights
+        if (posesToBlend.Length == 0) { Debug.LogError("Supplied Poses Array is of length 0"); return; }
+        if (weights.Length == 0) { Debug.LogError("Supplied Weights Array is of length 0"); return; }
+
+        //notify user that they have bad data and should take a look at it
+        if (posesToBlend.Length != weights.Length) {
+            Debug.LogError("Unequal number of Poses to Weights. Data may be unreliable. Please ensure the supplied arrays are mappedj properly");
+        }
+
+        bonePoses = posesToBlend[0].bonePoses.Clone() as BonePose[];
+
+        //Break out early b/c there's only one Motion Pose to blend with
+        if (posesToBlend.Length == 1) { return; }
+
+        //represents the amount we've blended in so far
+        float curBoneWeight = weights[0];
+
+        //Vector3 pos = posesToBlend[0]
+        for (int i = 1; i < posesToBlend.Length; ++i) {
+
+            //create normalized weights for tiered blending
+            float bpwNormalized = curBoneWeight / (curBoneWeight + weights[i]);
+            //float wiNormalized = weights[i] / (curBoneWeight + weights[i]);
+
+            for (int j = 0; j < posesToBlend[i].bonePoses.Length; ++j) {
+                //do the blending
+                bonePoses[j].value = BoneTransform.BlendTransform(bonePoses[j].value, posesToBlend[i].bonePoses[j].value, bpwNormalized);
+                bonePoses[j].velocity = BoneTransform.BlendTransform(bonePoses[j].velocity, posesToBlend[i].bonePoses[j].value, bpwNormalized);
+                bonePoses[j].velocityNext = BoneTransform.BlendTransform(bonePoses[j].velocityNext, posesToBlend[i].bonePoses[j].velocityNext, bpwNormalized);
+            }
+
+            //add to the weight we iterated so far
+            curBoneWeight += weights[i];
+        }
+
+
     }
 
     public float[] flattenedMotionPose {
