@@ -265,10 +265,10 @@ public class MotionFieldController : ScriptableObject {
 
 	public float moveOneTick(ref MotionPose currentPose, ref float[] currentTaskArray, int numActions = 1){
         //generate candidate states to move to by finding closest poses in kdtree
-		float[] currentPoseArr = poseToPosVelArray (currentPose);
+        float[] currentPoseArr = currentPose.flattenedMotionPose;
 
 		List<MotionPose> neighbors = NearestNeighbor (currentPoseArr, numActions);
-		float[][] neighborsArr = neighbors.Select (x => poseToPosVelArray (x)).ToArray ();
+		float[][] neighborsArr = neighbors.Select (x => x.flattenedMotionPose).ToArray ();
 
 		float[] weights = GenerateWeights (currentPoseArr, neighborsArr);
 
@@ -379,7 +379,7 @@ public class MotionFieldController : ScriptableObject {
 		return product; 
 	}
 
-    public float[] poseToPosVelArray(MotionPose pose)
+    /*public float[] poseToPosVelArray(MotionPose pose)
     {
         //from MP, create float array with only position+velocity information
         //in order [p1,v1,p2,v2,p3,v3,ect...]
@@ -408,7 +408,7 @@ public class MotionFieldController : ScriptableObject {
             poseArray[i * 20 + 19] = pose.bonePoses[i].velocity.sclZ;
         }
         return poseArray;
-    }
+    }*/
 
     public float[] GetTaskArray(MotionPose pose){
 		int tasklength = TArrayInfo.TaskArray.Count ();
@@ -439,9 +439,9 @@ public class MotionFieldController : ScriptableObject {
 		//then get weighted rewards from lookup table for each pose+task combo
 
 		//get closest poses.
-		float[] poseArr = poseToPosVelArray(pose);
+		float[] poseArr = pose.flattenedMotionPose;
 		List<MotionPose> neighbors = NearestNeighbor (poseArr, numActions);
-		float[][] neighborsArr = neighbors.Select (x => poseToPosVelArray (x)).ToArray ();
+		float[][] neighborsArr = neighbors.Select (x => x.flattenedMotionPose).ToArray ();
 		float[] neighbors_weights = GenerateWeights(poseArr, neighborsArr);
 
 		//get closest tasks.
@@ -491,7 +491,7 @@ public class MotionFieldController : ScriptableObject {
 }
 
 //NodeData to be removed, MotionPose will be the data field of the kd tree
-public class NodeData{
+/*public class NodeData{
 	public string clipId;
 	public float timeStamp;
 	public double[] position;
@@ -527,7 +527,7 @@ public class NodeData{
     public string PrintNode() {
         return string.Format("Clip ID: {0}, Timestamp: {1}", clipId, timeStamp);
     }
-}
+}*/
 
 public class vfKey{
 	public string clipId;
