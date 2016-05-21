@@ -88,8 +88,12 @@ namespace AnimationMotionFields {
                 for (int j = 0; j < motionPoses[i].bonePoses.Length; ++j) {//move across all the BonePoses within the current Motion Pose
 
                     //Calculate the velocity by subtracting the current value from the next value
-                    motionPoses[i].bonePoses[j].velocity = new BoneTransform(motionPoses[i + 1].bonePoses[j].value, motionPoses[i].bonePoses[j].value);
-                    motionPoses[i].bonePoses[j].velocityNext = new BoneTransform(motionPoses[i + 2].bonePoses[j].value, motionPoses[i + 1].bonePoses[j].value);
+                    //motionPoses[i].bonePoses[j].velocity = new BoneTransform(motionPoses[i + 1].bonePoses[j].value, motionPoses[i].bonePoses[j].value);
+                    motionPoses[i].bonePoses[j].positionNext = motionPoses[i + 1].bonePoses[j].value;
+
+                    //motionPoses[i].bonePoses[j].velocityNext = new BoneTransform(motionPoses[i + 2].bonePoses[j].value, motionPoses[i + 1].bonePoses[j].value);
+                    motionPoses[i].bonePoses[j].positionNextNext = motionPoses[i + 2].bonePoses[j].value;
+
                 }
             }
 
@@ -106,15 +110,15 @@ namespace AnimationMotionFields {
 
                     //SPECIAL CASE
                     if (i == motionPoses.Length - 1) {//do the velocity calculation using the first frame as the next frame for the math
-                        motionPoses[i].bonePoses[j].velocity = new BoneTransform(motionPoses[0].bonePoses[j].value, motionPoses[i].bonePoses[j].value);
-                        motionPoses[i].bonePoses[j].velocityNext = new BoneTransform(motionPoses[1].bonePoses[j].value, motionPoses[0].bonePoses[j].value);
+                        motionPoses[i].bonePoses[j].positionNext = new BoneTransform(motionPoses[0].bonePoses[j].value, motionPoses[i].bonePoses[j].value);
+                        motionPoses[i].bonePoses[j].positionNextNext = new BoneTransform(motionPoses[1].bonePoses[j].value, motionPoses[0].bonePoses[j].value);
                     }
                     //BUSINESS AS USUAL
                     else {//Calculate the velocity by subtracting the current value from the next value
-                        motionPoses[i].bonePoses[j].velocity = new BoneTransform(motionPoses[i + 1].bonePoses[j].value, motionPoses[i].bonePoses[j].value);
+                        motionPoses[i].bonePoses[j].positionNext = new BoneTransform(motionPoses[i + 1].bonePoses[j].value, motionPoses[i].bonePoses[j].value);
 
                         if (i == motionPoses.Length - 2) {
-                            motionPoses[i].bonePoses[j].velocityNext = new BoneTransform(motionPoses[0].bonePoses[j].value, motionPoses[i + 1].bonePoses[j].value);
+                            motionPoses[i].bonePoses[j].positionNextNext = new BoneTransform(motionPoses[0].bonePoses[j].value, motionPoses[i + 1].bonePoses[j].value);
                         }
                     }
 
@@ -130,18 +134,18 @@ namespace AnimationMotionFields {
 
                     //SPECIAL CASE
                     if (i == motionPoses.Length - 1) {//we're at the end of the array, use the value from the frame before it
-                        motionPoses[i].bonePoses[j].velocity = new BoneTransform(motionPoses[i - 1].bonePoses[j].velocity);
+                        motionPoses[i].bonePoses[j].positionNext = new BoneTransform(motionPoses[i - 1].bonePoses[j].positionNext);
 
                         //we can't calculate any further next velocities, use the last calculateable velocity
-                        motionPoses[i].bonePoses[j].velocityNext = new BoneTransform(motionPoses[i - 1].bonePoses[j].velocity);
+                        motionPoses[i].bonePoses[j].positionNextNext = new BoneTransform(motionPoses[i - 1].bonePoses[j].positionNext);
                     }
                     //BUSINESS AS USUAL
                     else {//Calculate the velocity by subtracting the current value from the next value
-                        motionPoses[i].bonePoses[j].velocity = new BoneTransform(motionPoses[i + 1].bonePoses[j].value, motionPoses[i].bonePoses[j].value);
+                        motionPoses[i].bonePoses[j].positionNext = new BoneTransform(motionPoses[i + 1].bonePoses[j].value, motionPoses[i].bonePoses[j].value);
                         
                         //we can't calculate any further next velocities, use the last calculateable velocity
                         if (i == motionPoses.Length - 2) {
-                            motionPoses[i].bonePoses[j].velocityNext = new BoneTransform(motionPoses[i + 1].bonePoses[j].value, motionPoses[i].bonePoses[j].value);
+                            motionPoses[i].bonePoses[j].positionNextNext = new BoneTransform(motionPoses[i + 1].bonePoses[j].value, motionPoses[i].bonePoses[j].value);
                         }
                     }
                 }
@@ -316,9 +320,9 @@ namespace AnimationMotionFields {
                                               System.Array.ConvertAll<float, double>(bone.value.flattenedRotation, x => (double)x).Concat<double>(
                                               System.Array.ConvertAll<float, double>(bone.value.flattenedScale,    x => (double)x))).ToArray<double>();
 
-                        double[] boneVelocities = System.Array.ConvertAll<float, double>(bone.velocity.flattenedPosition, x => (double)x).Concat<double>(
-                                                  System.Array.ConvertAll<float, double>(bone.velocity.flattenedRotation, x => (double)x).Concat<double>(
-                                                  System.Array.ConvertAll<float, double>(bone.velocity.flattenedScale,    x => (double)x))).ToArray<double>();
+                        double[] boneVelocities = System.Array.ConvertAll<float, double>(bone.positionNext.flattenedPosition, x => (double)x).Concat<double>(
+                                                  System.Array.ConvertAll<float, double>(bone.positionNext.flattenedRotation, x => (double)x).Concat<double>(
+                                                  System.Array.ConvertAll<float, double>(bone.positionNext.flattenedScale,    x => (double)x))).ToArray<double>();
                         /*
                         double[] boneVelocityNexts = System.Array.ConvertAll<float, double>(bone.velocityNext.flattenedPosition, x => (double)x).Concat<double>(
                                                      System.Array.ConvertAll<float, double>(bone.velocityNext.flattenedRotation, x => (double)x).Concat<double>(
