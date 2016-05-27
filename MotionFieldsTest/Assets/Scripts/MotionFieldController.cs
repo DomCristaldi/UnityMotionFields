@@ -348,7 +348,7 @@ public class MotionFieldController : ScriptableObject {
 			candidateActions.Add(GeneratePose(currentPose, neighbors, action));
 		}
 
-        //now 
+        //now choose the state with the highest reward
 		int chosenAction = -1;
 		float bestReward = 0;
 		float[] bestTaskArray = new float[TArrayInfo.TaskArray.Count()];

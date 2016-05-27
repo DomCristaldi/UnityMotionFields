@@ -9,8 +9,6 @@ public class ATask : ScriptableObject{
 		
 	}
 
-	public string name;
-
 	public float max;
 
 	public float min;
@@ -18,23 +16,13 @@ public class ATask : ScriptableObject{
 	public int numSamples;
 		
 	virtual public float CheckReward (float valBefore, float valAfter){
-		try{
-			throw new UnityException();
-		}
-		catch (UnityException ex){
-			Debug.LogError ("Define dis function yo!");
-		}
+		//get the immediate reward based on how task has changed (high if value changed favorably, low otherwise)
 		return -1f;
 	}
 
-	//determine task value takes in a motion state (position + velocity) and decides the value of this task at this state. It is NOT calculating reward/value func
 	virtual public float DetermineTaskValue (MotionPose pose){
-		try{
-			throw new UnityException();
-		}
-		catch (UnityException ex){
-			Debug.LogError ("Define dis function yo!");
-		}
+		//decides the value of this task element for the given pose. 
+        //certain tasks will potentially need to look at things from the world (i.e. is the player near a ledge? Was he just damaged? Is the crouch button held?)
 		return -1f;
 	}
 		
