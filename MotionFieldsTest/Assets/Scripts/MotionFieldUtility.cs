@@ -324,7 +324,7 @@ namespace AnimationMotionFields {
                         kdTree.insert(position_velocity_pairings, pose);
                     }
                     catch (KDTreeDLL.KeyDuplicateException e) {
-                        Debug.Log("Duplicate position_velocity_pairing! skip inserting pt.");
+                        Debug.Log(e.ToString() + "\nDuplicates in the kdtree are redundant. Skip inserting pt.");
                     }
                 }
             }

@@ -38,7 +38,7 @@ namespace AnimationMotionFields {
         //[SerializeField]
         //public List<AnimationClip> animClips;
 
-        private ReorderableList reorderableAnimClips;
+        //private ReorderableList reorderableAnimClips;
 
         [SerializeField]
         private int _frameResolution = 1;
@@ -76,7 +76,7 @@ namespace AnimationMotionFields {
         void OnEnable() {
             //animClips = new List<AnimationClip>();
 
-            reorderableAnimClips = new ReorderableList(new List<AnimationClip>(), typeof(AnimationClip), true, true, true, true);
+            //reorderableAnimClips = new ReorderableList(new List<AnimationClip>(), typeof(AnimationClip), true, true, true, true);
 
         }
 
@@ -314,12 +314,12 @@ namespace AnimationMotionFields {
 
 
             if (GUILayout.Button("test point 0")) {
-                float[] queryPoint = new float[MotionFieldUtility.GetUniquePaths(selectedMotionFieldController).Length * 2];
+                float[] queryPoint = new float[selectedMotionFieldController.animClipInfoList[0].motionPoses[0].flattenedMotionPose.Length];
                 for (int i = 0; i < queryPoint.Length; ++i) {
                     queryPoint[i] = 0.0f;
                 }
 
-				foreach (MotionPose pose in selectedMotionFieldController.NearestNeighbor(queryPoint)) {
+				foreach (MotionPose pose in selectedMotionFieldController.NearestNeighbor(queryPoint, numActions)) {
 					Debug.Log("AnimName: " + pose.animClipRef.name + ", Timestamp: " + pose.timestamp + "\n");
                 }
 

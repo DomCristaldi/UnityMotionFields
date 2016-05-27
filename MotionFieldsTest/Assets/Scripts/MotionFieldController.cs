@@ -369,7 +369,7 @@ public class MotionFieldController : ScriptableObject {
         return bestReward;
 	}
 
-	public MotionPose[] NearestNeighbor(float[] pose, int num_neighbors = 1){
+	public MotionPose[] NearestNeighbor(float[] pose, int num_neighbors){
 		
 		double[] dbl_pose = pose.Select (x => System.Convert.ToDouble (x)).ToArray ();
 		object[] nn_data = kd.nearest (dbl_pose, num_neighbors);
@@ -601,7 +601,7 @@ public class MotionFieldController : ScriptableObject {
 
     public void makeDictfromList(List<ArrayList> lst)
     {
-        precomputedRewards.Clear();
+        precomputedRewards = new Dictionary<vfKey, float>();
         foreach (ArrayList arrLst in lst)
         {
             MotionPose mp = arrLst[0] as MotionPose;
