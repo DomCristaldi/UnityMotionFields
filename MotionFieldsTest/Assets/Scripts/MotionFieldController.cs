@@ -258,7 +258,7 @@ public class MotionPose {
             float[] retArray = new float[] { };
 
             foreach (BonePose pose in bonePoses) {
-                retArray.Concat<float>(pose.flattenedValue).Concat<float>(pose.flattenedVelocity);
+                retArray = retArray.Concat<float>(pose.flattenedValue).ToArray().Concat<float>(pose.flattenedVelocity).ToArray();
             }
 
             //return retArray.ToArray<float>();
