@@ -15,14 +15,14 @@ public class ATask : ScriptableObject{
 
 	public int numSamples;
 		
-	virtual public float CheckReward (float valBefore, float valAfter){
-		//get the immediate reward based on how task has changed (high if value changed favorably, low otherwise)
+	virtual public float CheckReward (MotionPose oldPose, MotionPose newPose, float taskval){
+		//get the immediate reward based on how beneficial the change in pose is for the taskval
 		return -1f;
 	}
 
-	virtual public float DetermineTaskValue (MotionPose pose){
-		//decides the value of this task element for the given pose. 
-        //certain tasks will potentially need to look at things from the world (i.e. is the player near a ledge? Was he just damaged? Is the crouch button held?)
+	virtual public float DetermineTaskValue (){
+		//decides the value of this task element. 
+        //task values determined by parameters in the world.
 		return -1f;
 	}
 		

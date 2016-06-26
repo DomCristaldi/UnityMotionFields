@@ -332,44 +332,63 @@ public class MotionFieldController : ScriptableObject {
     //closer to 1 also asymptotically increases time to generate precomputed rewards, so its recommended you dont set it too high. 
     public float scale = 0.5f; 
 
-	public float moveOneTick(ref MotionPose currentPose, ref float[] currentTaskArray, int numActions = 1){
+	public float OneTick(MotionPose currentPose, int numActions = 1){
+
+        float[] taskArr = GetTaskArray();
+
+        float reward = 0.0f;
+        currentPose = MoveOneFrame(currentPose, taskArr, numActions, ref reward);
+
+        //TODO: currentPose needs to be applied to the model! note: 95% sure code was written for this. is it just not called, or done elsewhere?
+
+        return reward;
+	}
+
+    public MotionPose MoveOneFrame(MotionPose currentPose, float[] taskArr, int numActions, ref float reward)
+    {
+        List<MotionPose> candidateActions = GenerateCandidateActions(currentPose, numActions);
+
+        int chosenAction = PickCandidate(currentPose, candidateActions, taskArr, numActions, ref reward);
+
+        Debug.Log("best fitness is " + reward + " from Action " + chosenAction + "\n");
+
+        return candidateActions[chosenAction];
+    }
+
+    public List<MotionPose> GenerateCandidateActions(MotionPose currentPose, int numActions)
+    {
         //generate candidate states to move to by finding closest poses in kdtree
         float[] currentPoseArr = currentPose.flattenedMotionPose;
 
-		MotionPose[] neighbors = NearestNeighbor (currentPoseArr, numActions);
-		float[][] neighborsArr = neighbors.Select (x => x.flattenedMotionPose).ToArray ();
+        MotionPose[] neighbors = NearestNeighbor(currentPoseArr, numActions);
+        float[][] neighborsArr = neighbors.Select(x => x.flattenedMotionPose).ToArray();
 
-		float[] weights = GenerateWeights (currentPoseArr, neighborsArr);
+        float[] weights = GenerateWeights(currentPoseArr, neighborsArr);
 
-		float[][] actionWeights = GenerateActions(weights, numActions);
+        float[][] actionWeights = GenerateActionWeights(weights, numActions);
 
-		List<MotionPose> candidateActions = new List<MotionPose>();
-		foreach (float[] action in actionWeights){
-			candidateActions.Add(GeneratePose(currentPose, neighbors, action));
-		}
+        List<MotionPose> candidateActions = new List<MotionPose>();
+        foreach (float[] action in actionWeights)
+        {
+            candidateActions.Add(GeneratePose(currentPose, neighbors, action));
+        }
+        return candidateActions;
+    }
 
-        //now choose the state with the highest reward
-		int chosenAction = -1;
-		float bestReward = 0;
-		float[] bestTaskArray = new float[TArrayInfo.TaskArray.Count()];
-		for (int i=0; i < candidateActions.Count(); i++){
-			float[] newTaskArray = GetTaskArray (candidateActions [i]);
-			float reward = ComputeReward(candidateActions[i], currentTaskArray, newTaskArray, numActions);
-			if (reward > bestReward){
-				bestReward = reward;
-				bestTaskArray = newTaskArray;
-				chosenAction = i;
-			}
-		}
+    public int PickCandidate(MotionPose currentPose, List<MotionPose> candidateActions, float[] taskArr, int numActions, ref float bestReward) {
+        //choose the action with the highest reward
+        int chosenAction = -1;
+        for (int i = 0; i < candidateActions.Count(); i++) {
+            float reward = ComputeReward(currentPose, candidateActions[i], taskArr, numActions);
+            if (reward > bestReward) {
+                bestReward = reward;
+                chosenAction = i;
+            }
+        }
+        return chosenAction;
+    }
 
-		Debug.Log ("best fitness is " + bestReward + " from Action " + chosenAction + "\n");
-		currentPose = candidateActions [chosenAction];
-		currentTaskArray = bestTaskArray;
-
-        return bestReward;
-	}
-
-	public MotionPose[] NearestNeighbor(float[] pose, int num_neighbors){
+    public MotionPose[] NearestNeighbor(float[] pose, int num_neighbors){
 		
 		double[] dbl_pose = pose.Select (x => System.Convert.ToDouble (x)).ToArray ();
 		object[] nn_data = kd.nearest (dbl_pose, num_neighbors);
@@ -381,7 +400,7 @@ public class MotionFieldController : ScriptableObject {
 		return data.ToArray();
 	}
 
-	public float[][] GenerateActions(float[] weights, int numActions = 1){
+	public float[][] GenerateActionWeights(float[] weights, int numActions = 1){
 
 		float[][] actions = new float[numActions] [];
 		for(int i = 0; i < numActions; i++){
@@ -531,24 +550,25 @@ public class MotionFieldController : ScriptableObject {
         return poseArray;
     }*/
 
-    public float[] GetTaskArray(MotionPose pose){
+    public float[] GetTaskArray(){
+        //current value of task array determined by world params
 		int tasklength = TArrayInfo.TaskArray.Count ();
-		float[] taskArr = new float[TArrayInfo.TaskArray.Count()];
+		float[] taskArr = new float[tasklength];
 		for(int i = 0; i < tasklength; i++){
-			taskArr[i] = TArrayInfo.TaskArray[i].DetermineTaskValue(pose);
+			taskArr[i] = TArrayInfo.TaskArray[i].DetermineTaskValue();
 		}
 		return taskArr;
 	}
 
-	public float ComputeReward(MotionPose pose, float[] currentTaskArray, float[] newTaskArr, int numActions = 1){
+	public float ComputeReward(MotionPose pose, MotionPose newPose, float[] taskArr, int numActions = 1){
         //first calculate immediate reward
 		float immediateReward = 0.0f;
-		for(int i = 0; i < currentTaskArray.Length; i++){
-			immediateReward += TArrayInfo.TaskArray[i].CheckReward (currentTaskArray[i], newTaskArr [i]);
+		for(int i = 0; i < taskArr.Length; i++){
+			immediateReward += TArrayInfo.TaskArray[i].CheckReward (pose, newPose, taskArr[i]);
 		}
 
 		//calculate continuousReward
-		float continuousReward = RewardLookup(pose, newTaskArr, numActions);
+		float continuousReward = RewardLookup(newPose, taskArr, numActions);
 
 		return immediateReward + scale*continuousReward;
 	}
@@ -568,7 +588,7 @@ public class MotionFieldController : ScriptableObject {
 		//get closest tasks.
 		List<List<float>> nearest_vals = new List<List<float>> ();
 		for(int i=0; i < Tasks.Length; i++){
-			//TODO: if Tasks[i] is the min or max, values added could e out of range. add a check
+			//TODO: if Tasks[i] is the min or max, i think values added could e out of range. add a check
 			List<float> nearest_val = new List<float> ();
 			float interval = (TArrayInfo.TaskArray [i].max - TArrayInfo.TaskArray [i].min) / TArrayInfo.TaskArray [i].numSamples;
 			nearest_val.Add (Mathf.Floor ((Tasks [i] - TArrayInfo.TaskArray [i].min) / interval) * interval + TArrayInfo.TaskArray [i].min);

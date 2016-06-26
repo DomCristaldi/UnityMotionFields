@@ -389,7 +389,9 @@ namespace AnimationMotionFields {
                         //dont know how negatively this would effect accuracy, but if negligible could provide large speed boost.
                         MotionPose pose = point[0] as MotionPose;
                         float[] taskarr = point[1] as float[];
-                        point[2] = selectedMotionFieldController.moveOneTick(ref pose, ref taskarr, numActions);
+                        float reward = 0.0f;
+                        selectedMotionFieldController.MoveOneFrame(pose, taskarr, numActions, ref reward);
+                        point[2] = reward;
                     }
                 }
 
