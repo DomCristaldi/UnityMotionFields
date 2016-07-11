@@ -1,6 +1,7 @@
 ﻿using UnityEngine;
 using System.Collections;
 
+[CreateAssetMenu]
 public class Task_AngularDev : ATask
 {
 
@@ -28,4 +29,3 @@ public class Task_AngularDev : ATask
         return dirGoal_placeholder - dirCurrent_paceholder;
     }
 }
-
