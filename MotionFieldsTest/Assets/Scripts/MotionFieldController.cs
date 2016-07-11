@@ -685,16 +685,65 @@ public class MotionFieldController : ScriptableObject {
     }
 }*/
 
-public class vfKey{
-	public string clipId;
-	public float timeStamp;
-	public float[] tasks;
+public struct vfKey{
+	private readonly string _clipId;
+	private readonly float _timeStamp;
+	private readonly float[] _tasks;
+
+    public string clipId
+    {
+        get { return _clipId; }
+    }
+    public float timeStamp
+    {
+        get { return _timeStamp; }
+    }
+    public float[] tasks
+    {
+        get { return _tasks; }
+    }
 
 	public vfKey(string id, float time, float[] tasks){
-		this.clipId = id;
-		this.timeStamp = time;
-		this.tasks = tasks;
+		this._clipId = id;
+		this._timeStamp = time;
+		this._tasks = tasks;
 	}
+
+    public static bool operator ==(vfKey vfKey1, vfKey vfKey2)
+    {
+        return vfKey1.Equals(vfKey2);
+    }
+
+    public static bool operator !=(vfKey vfKey1, vfKey vfKey2)
+    {
+        return !vfKey1.Equals(vfKey2);
+    }
+
+    public override bool Equals(object obj)
+    {
+        return (obj is vfKey)
+            && this._clipId.Equals(((vfKey)obj).clipId)
+            && this._timeStamp.Equals(((vfKey)obj).timeStamp)
+            && this._tasks.SequenceEqual(((vfKey)obj).tasks);
+    }
+
+    public override int GetHashCode()
+    {
+        //hashcode implentation from 'Effective Java' by Josh Bloch
+        unchecked
+        {
+            var hash = 17;
+ 
+            hash = (31 * hash) + this._clipId.GetHashCode();
+            hash = (31 * hash) + this._timeStamp.GetHashCode();
+            for(int i = 0; i < _tasks.Length; i++)
+            {
+                hash = (31 * hash) + this._tasks[i].GetHashCode();
+            }
+            
+            return hash;
+        }
+    }
 }
 
 
