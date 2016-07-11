@@ -418,28 +418,43 @@ public class MotionFieldController : ScriptableObject {
 	}
 
 	public float[] GenerateWeights(float[] pose, float[][] neighbors){
+        float infCount = 0.0f;
 		float[] weights = new float[neighbors.Length];
 
 		//weights[i] = 1/distance(neighbors[i] , floatpos) ^2 
 		for(int i = 0; i < neighbors.Length; i++){
-			weights [i] = 0;
+			weights [i] = 0.0f;
 			for(int j = 0; j < pose.Length; j++){
-				weights [i] += Mathf.Pow (pose [j] - neighbors [i][j], 2);
 				weights [i] += Mathf.Pow (pose [j] - neighbors [i][j], 2);
 			}
 			weights [i] = 1.0f / weights [i];
-		}
+            if (float.IsInfinity(weights[i]))
+            {
+                infCount += 1;
+            }
+        }
 
-		//now normalize weights so that they sum to 1
-		float weightsSum = weights.Sum();
-		string printW = "weights: ";
-		for(int i = 0; i < weights.Length; i++){
-			weights [i] = weights [i] / weightsSum;
-			printW += weights[i] + "  ";
-		}
-		Debug.Log (printW);
+        //now normalize weights so that they sum to 1
+        if (infCount == 0.0f) {
+            float weightsSum = weights.Sum();
+            for (int i = 0; i < weights.Length; i++) {
+                weights[i] = weights[i] / weightsSum;
+            }
+        }
+        else { // at least one neighbor is identical to pose
+            for (int i = 0; i < weights.Length; i++) {
+                if (float.IsInfinity(weights[i])) {
+                    weights[i] = 1.0f / infCount;
+                }
+                else {
+                    weights[i] = 0.0f;
+                }
+            }
+        }
 
-		return weights;
+        Debug.Log("weights: " + string.Join(" ", weights.Select(w => w.ToString()).ToArray()));
+
+        return weights;
 	}
 
 	public MotionPose GeneratePose(MotionPose currentPose, MotionPose[] neighbors, float[] action){
