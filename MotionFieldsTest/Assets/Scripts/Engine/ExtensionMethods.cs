@@ -1,4 +1,5 @@
 ﻿using UnityEngine;
+using System.Linq;
 
 public static class Transform_ExtensionMethods {
 
@@ -83,6 +84,52 @@ public static class Matrix4x4_ExtensionMethods {
                                           endMatrix.ExtractScale(),
                                           delta)
                              );
+    }
+
+}
+
+public static class BoneTransform_ExtensionMethods {
+
+
+    //OPTIMIZE (this is bad use of Linq, come back and do it right
+    public static BoneTransform AvgPoseValue(this BoneTransform[] thisBoneTransformArray) {
+
+        BoneTransform avgBoneTf = new BoneTransform();
+
+
+        avgBoneTf.posX = (from tf in thisBoneTransformArray
+                          select tf.posX).Average();
+
+        avgBoneTf.posY = (from tf in thisBoneTransformArray
+                          select tf.posY).Average();
+
+        avgBoneTf.posZ = (from tf in thisBoneTransformArray
+                          select tf.posZ).Average();
+
+
+        avgBoneTf.rotW = (from tf in thisBoneTransformArray
+                          select tf.rotW).Average();
+
+        avgBoneTf.rotX = (from tf in thisBoneTransformArray
+                          select tf.rotX).Average();
+
+        avgBoneTf.rotY = (from tf in thisBoneTransformArray
+                          select tf.rotY).Average();
+
+        avgBoneTf.rotZ = (from tf in thisBoneTransformArray
+                          select tf.rotZ).Average();
+
+
+        avgBoneTf.sclX = (from tf in thisBoneTransformArray
+                          select tf.sclX).Average();
+
+        avgBoneTf.sclY = (from tf in thisBoneTransformArray
+                          select tf.sclY).Average();
+
+        avgBoneTf.sclZ = (from tf in thisBoneTransformArray
+                          select tf.sclZ).Average();
+
+        return avgBoneTf;
     }
 
 }

@@ -45,9 +45,9 @@ public class BoneTransform {
     //Initialize everything to the same constant value (useful for setting velocity to 0)
     public BoneTransform(float constant) {
         posX = posY = posZ
-            = rotW = rotX = rotY = rotZ
-            = sclX = sclY = sclZ
-            = constant;
+      = rotW = rotX = rotY = rotZ
+      = sclX = sclY = sclZ
+      = constant;
     }
 
     //Initialize with positional information (WARNING: Lossy Scale must be used for world scale)
@@ -68,14 +68,27 @@ public class BoneTransform {
             sclZ = tf.localScale.z;
         }
         else {//ASSUME WORLD
+            //Debug.Log("world");
+
             posX = tf.position.x;
             posY = tf.position.y;
             posZ = tf.position.z;
 
+            Quaternion quat = new Quaternion(tf.rotation.x, tf.rotation.y, tf.rotation.z, tf.rotation.w);
+            Vector3 forVec = quat * Vector3.forward;
+            quat = Quaternion.LookRotation(Vector3.ProjectOnPlane(forVec, Vector3.up));
+
+            rotW = quat.w;
+            rotX = quat.x;
+            rotY = quat.y;
+            rotZ = quat.z;
+
+            /*
             rotW = tf.rotation.w;
             rotX = tf.rotation.x;
             rotY = tf.rotation.y;
             rotZ = tf.rotation.z;
+            */
 
             sclX = tf.lossyScale.x;
             sclY = tf.lossyScale.y;
@@ -189,6 +202,8 @@ public class BonePose {
 public class MotionPose {
 
     public BonePose[] bonePoses;
+
+    public BonePose rootMotionInfo;
 
     //public AnimationClip[] poses;
     public AnimationClip animClipRef;
