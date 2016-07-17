@@ -9,32 +9,20 @@ public class ATask : ScriptableObject{
 		
 	}
 
-	public string name;
-
 	public float max;
 
 	public float min;
 
 	public int numSamples;
 		
-	virtual public float CheckReward (float valBefore, float valAfter){
-		try{
-			throw new UnityException();
-		}
-		catch (UnityException ex){
-			Debug.LogError ("Define dis function yo!");
-		}
+	virtual public float CheckReward (MotionPose oldPose, MotionPose newPose, float taskval){
+		//get the immediate reward based on how beneficial the change in pose is for the taskval
 		return -1f;
 	}
 
-	//determine task value takes in a motion state (position + velocity) and decides the value of this task at this state. It is NOT calculating reward/value func
-	virtual public float DetermineTaskValue (MotionPose pose){
-		try{
-			throw new UnityException();
-		}
-		catch (UnityException ex){
-			Debug.LogError ("Define dis function yo!");
-		}
+	virtual public float DetermineTaskValue (){
+		//decides the value of this task element. 
+        //task values determined by parameters in the world.
 		return -1f;
 	}
 		

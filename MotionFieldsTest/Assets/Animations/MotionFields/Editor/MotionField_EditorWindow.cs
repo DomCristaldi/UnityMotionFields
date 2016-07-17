@@ -38,7 +38,7 @@ namespace AnimationMotionFields {
         //[SerializeField]
         //public List<AnimationClip> animClips;
 
-        private ReorderableList reorderableAnimClips;
+        //private ReorderableList reorderableAnimClips;
 
         [SerializeField]
         private int _frameResolution = 1;
@@ -76,7 +76,7 @@ namespace AnimationMotionFields {
         void OnEnable() {
             //animClips = new List<AnimationClip>();
 
-            reorderableAnimClips = new ReorderableList(new List<AnimationClip>(), typeof(AnimationClip), true, true, true, true);
+            //reorderableAnimClips = new ReorderableList(new List<AnimationClip>(), typeof(AnimationClip), true, true, true, true);
 
         }
 
@@ -314,12 +314,12 @@ namespace AnimationMotionFields {
 
 
             if (GUILayout.Button("test point 0")) {
-                float[] queryPoint = new float[MotionFieldUtility.GetUniquePaths(selectedMotionFieldController).Length * 2];
+                float[] queryPoint = new float[selectedMotionFieldController.animClipInfoList[0].motionPoses[0].flattenedMotionPose.Length];
                 for (int i = 0; i < queryPoint.Length; ++i) {
                     queryPoint[i] = 0.0f;
                 }
 
-				foreach (MotionPose pose in selectedMotionFieldController.NearestNeighbor(queryPoint)) {
+				foreach (MotionPose pose in selectedMotionFieldController.NearestNeighbor(queryPoint, numActions)) {
 					Debug.Log("AnimName: " + pose.animClipRef.name + ", Timestamp: " + pose.timestamp + "\n");
                 }
 
@@ -345,15 +345,15 @@ namespace AnimationMotionFields {
 					int numSamples = selectedMotionFieldController.TArrayInfo.TaskArray [i].numSamples;
 
 					float interval = (max - min) / numSamples;
-					for(int j = 0; j < numSamples; j++){
-						tasksamples.Add (min + (interval * j));
+					for(float sample = min; sample <= max; sample+=interval){
+						tasksamples.Add (sample);
 					}
 					taskArr_samples.Add (tasksamples);
 				}
 				taskArr_samples = selectedMotionFieldController.CartesianProduct(taskArr_samples);
 
                 //create initial rewardTable as List<ArrayList>
-                //each arralist has MotionPose in [0], float[] for Tarray in [1] and float for reward in [2]
+                //each arraylist has MotionPose in [0], float[] of tasks in [1] and float for reward in [2]
                 List<ArrayList> rewardTable = new List<ArrayList>(); 
 				foreach(AnimClipInfo animclip in selectedMotionFieldController.animClipInfoList ){
 					foreach(MotionPose pose in animclip.motionPoses){
@@ -368,12 +368,12 @@ namespace AnimationMotionFields {
 				}
 
                 //now recursively update fitness values to get the future reward
-                //to guarantee future reward is within r*(immediateReward) of future reward after infinite generations, 
+                //to guarantee future reward is within p*(immediateReward) of future reward after infinite generations, 
                 //with a scaling of s, number of gens to run is
-                //ceil (log(-r log(S)) / log(S))
+                //ceil (log(-p log(S)) / log(S))
                 float s = selectedMotionFieldController.scale;
-                float r = 0.1f;
-                int generations = System.Convert.ToInt32(Mathf.Ceil((Mathf.Log(-r * Mathf.Log(s)))/Mathf.Log(s)));
+                float p = 0.1f;
+                int generations = System.Convert.ToInt32(Mathf.Ceil((Mathf.Log(-p * Mathf.Log(s)))/Mathf.Log(s)));
 
                 for(int i = 0; i < generations; i++)
                 {
@@ -381,9 +381,17 @@ namespace AnimationMotionFields {
 
                     foreach(ArrayList point in rewardTable)
                     {
+                        //TODO: note that the precomputedRewards table is only updated between generations.
+                        //therefore, the order points are run to find there rewards does not matter, making this section easy to parallelize.
+                        //could be very beneficial, as generating the rewards table is likely to be rather slow.
+
+                        //also, if in need of more performance, could perhaps only calucate reward for every 'x' points, and other nearby points are extrapolated.
+                        //dont know how negatively this would effect accuracy, but if negligible could provide large speed boost.
                         MotionPose pose = point[0] as MotionPose;
                         float[] taskarr = point[1] as float[];
-                        point[2] = selectedMotionFieldController.moveOneTick(ref pose, ref taskarr, numActions);
+                        float reward = 0.0f;
+                        selectedMotionFieldController.MoveOneFrame(pose, taskarr, numActions, ref reward);
+                        point[2] = reward;
                     }
                 }
 

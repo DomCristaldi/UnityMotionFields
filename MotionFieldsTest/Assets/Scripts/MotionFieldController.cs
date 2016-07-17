@@ -273,7 +273,7 @@ public class MotionPose {
             float[] retArray = new float[] { };
 
             foreach (BonePose pose in bonePoses) {
-                retArray.Concat<float>(pose.flattenedValue).Concat<float>(pose.flattenedVelocity);
+                retArray = retArray.Concat<float>(pose.flattenedValue).ToArray().Concat<float>(pose.flattenedVelocity).ToArray();
             }
 
             //return retArray.ToArray<float>();
@@ -347,44 +347,63 @@ public class MotionFieldController : ScriptableObject {
     //closer to 1 also asymptotically increases time to generate precomputed rewards, so its recommended you dont set it too high. 
     public float scale = 0.5f; 
 
-	public float moveOneTick(ref MotionPose currentPose, ref float[] currentTaskArray, int numActions = 1){
+	public float OneTick(MotionPose currentPose, int numActions = 1){
+
+        float[] taskArr = GetTaskArray();
+
+        float reward = 0.0f;
+        currentPose = MoveOneFrame(currentPose, taskArr, numActions, ref reward);
+
+        //TODO: currentPose needs to be applied to the model! note: 95% sure code was written for this. is it just not called, or done elsewhere?
+
+        return reward;
+	}
+
+    public MotionPose MoveOneFrame(MotionPose currentPose, float[] taskArr, int numActions, ref float reward)
+    {
+        List<MotionPose> candidateActions = GenerateCandidateActions(currentPose, numActions);
+
+        int chosenAction = PickCandidate(currentPose, candidateActions, taskArr, numActions, ref reward);
+
+        Debug.Log("best fitness is " + reward + " from Action " + chosenAction + "\n");
+
+        return candidateActions[chosenAction];
+    }
+
+    public List<MotionPose> GenerateCandidateActions(MotionPose currentPose, int numActions)
+    {
         //generate candidate states to move to by finding closest poses in kdtree
         float[] currentPoseArr = currentPose.flattenedMotionPose;
 
-		List<MotionPose> neighbors = NearestNeighbor (currentPoseArr, numActions);
-		float[][] neighborsArr = neighbors.Select (x => x.flattenedMotionPose).ToArray ();
+        MotionPose[] neighbors = NearestNeighbor(currentPoseArr, numActions);
+        float[][] neighborsArr = neighbors.Select(x => x.flattenedMotionPose).ToArray();
 
-		float[] weights = GenerateWeights (currentPoseArr, neighborsArr);
+        float[] weights = GenerateWeights(currentPoseArr, neighborsArr);
 
-		float[][] actionWeights = GenerateActions(weights, numActions);
+        float[][] actionWeights = GenerateActionWeights(weights, numActions);
 
-		List<MotionPose> candidateActions = new List<MotionPose>();
-		foreach (float[] action in actionWeights){
-			candidateActions.Add(GeneratePose(neighbors, action));
-		}
+        List<MotionPose> candidateActions = new List<MotionPose>();
+        foreach (float[] action in actionWeights)
+        {
+            candidateActions.Add(GeneratePose(currentPose, neighbors, action));
+        }
+        return candidateActions;
+    }
 
-        //now 
-		int chosenAction = -1;
-		float bestReward = 0;
-		float[] bestTaskArray = new float[TArrayInfo.TaskArray.Count()];
-		for (int i=0; i < candidateActions.Count(); i++){
-			float[] newTaskArray = GetTaskArray (candidateActions [i]);
-			float reward = ComputeReward(candidateActions[i], currentTaskArray, newTaskArray, numActions);
-			if (reward > bestReward){
-				bestReward = reward;
-				bestTaskArray = newTaskArray;
-				chosenAction = i;
-			}
-		}
+    public int PickCandidate(MotionPose currentPose, List<MotionPose> candidateActions, float[] taskArr, int numActions, ref float bestReward) {
+        //choose the action with the highest reward
+        int chosenAction = -1;
+        for (int i = 0; i < candidateActions.Count(); i++) {
+            float reward = ComputeReward(currentPose, candidateActions[i], taskArr, numActions);
+            if (reward > bestReward) {
+                bestReward = reward;
+                chosenAction = i;
+            }
+        }
+        return chosenAction;
+    }
 
-		Debug.Log ("best fitness is " + bestReward + " from Action " + chosenAction + "\n");
-		currentPose = candidateActions [chosenAction];
-		currentTaskArray = bestTaskArray;
-
-        return bestReward;
-	}
-
-	public List<MotionPose> NearestNeighbor(float[] pose, int num_neighbors = 1){
+    public MotionPose[] NearestNeighbor(float[] pose, int num_neighbors){
 		
 		double[] dbl_pose = pose.Select (x => System.Convert.ToDouble (x)).ToArray ();
 		object[] nn_data = kd.nearest (dbl_pose, num_neighbors);
@@ -393,10 +412,10 @@ public class MotionFieldController : ScriptableObject {
 		foreach(object obj in nn_data){
 			data.Add((MotionPose) obj);
 		}
-		return data;
+		return data.ToArray();
 	}
 
-	public float[][] GenerateActions(float[] weights, int numActions = 1){
+	public float[][] GenerateActionWeights(float[] weights, int numActions = 1){
 
 		float[][] actions = new float[numActions] [];
 		for(int i = 0; i < numActions; i++){
@@ -414,34 +433,101 @@ public class MotionFieldController : ScriptableObject {
 	}
 
 	public float[] GenerateWeights(float[] pose, float[][] neighbors){
+        float infCount = 0.0f;
 		float[] weights = new float[neighbors.Length];
 
 		//weights[i] = 1/distance(neighbors[i] , floatpos) ^2 
 		for(int i = 0; i < neighbors.Length; i++){
-			weights [i] = 0;
+			weights [i] = 0.0f;
 			for(int j = 0; j < pose.Length; j++){
-				weights [i] += Mathf.Pow (pose [j] - neighbors [i][j], 2);
 				weights [i] += Mathf.Pow (pose [j] - neighbors [i][j], 2);
 			}
 			weights [i] = 1.0f / weights [i];
-		}
+            if (float.IsInfinity(weights[i]))
+            {
+                infCount += 1;
+            }
+        }
 
-		//now normalize weights so that they sum to 1
-		float weightsSum = weights.Sum();
-		string printW = "weights: ";
-		for(int i = 0; i < weights.Length; i++){
-			weights [i] = weights [i] / weightsSum;
-			printW += weights[i] + "  ";
-		}
-		Debug.Log (printW);
+        //now normalize weights so that they sum to 1
+        if (infCount == 0.0f) {
+            float weightsSum = weights.Sum();
+            for (int i = 0; i < weights.Length; i++) {
+                weights[i] = weights[i] / weightsSum;
+            }
+        }
+        else { // at least one neighbor is identical to pose
+            for (int i = 0; i < weights.Length; i++) {
+                if (float.IsInfinity(weights[i])) {
+                    weights[i] = 1.0f / infCount;
+                }
+                else {
+                    weights[i] = 0.0f;
+                }
+            }
+        }
 
-		return weights;
+        Debug.Log("weights: " + string.Join(" ", weights.Select(w => w.ToString()).ToArray()));
+
+        return weights;
 	}
 
-	public MotionPose GeneratePose(List<MotionPose> neighbors, float[] action){
-		//placeholder func. takes in current motionstate, neighbor states, and weights of neighbor states.
-		//does weighted blending, returns blended state
-		return neighbors[0];
+	public MotionPose GeneratePose(MotionPose currentPose, MotionPose[] neighbors, float[] action){
+        //note: forgive me programming gods, for I have sinned by creating this ugly function.
+
+        /*
+        addition/subtraction logic:
+        new_position = currentPose.position + blendedNeighbors.positionNext - blendedNeighbors.position
+        new_positionNext = currentPose.position + blendedNeighbors.position + blendedNeighbors.positionNextNext - 2(blendedNeighbors.positionNext)
+        new_positionNextNext = not needed 
+        */
+
+        MotionPose blendedNeighbors = new MotionPose(neighbors, action);
+
+        MotionPose newPose = currentPose;
+        BonePose currBonePose;
+        BonePose blendBonePose;
+        int numBones = currentPose.bonePoses.Length;
+        for(int i = 0; i < numBones; i++)
+        {
+            currBonePose = currentPose.bonePoses[i];
+            blendBonePose = blendedNeighbors.bonePoses[i];
+            newPose.bonePoses[i].value.posX = currBonePose.value.posX + blendBonePose.positionNext.posX - blendBonePose.value.posX;
+            newPose.bonePoses[i].value.posY = currBonePose.value.posY + blendBonePose.positionNext.posY - blendBonePose.value.posY;
+            newPose.bonePoses[i].value.posZ = currBonePose.value.posZ + blendBonePose.positionNext.posZ - blendBonePose.value.posZ;
+
+            newPose.bonePoses[i].positionNext.posX = currBonePose.value.posX + blendBonePose.value.posX + blendBonePose.positionNextNext.posX - 2 * blendBonePose.positionNext.posX;
+            newPose.bonePoses[i].positionNext.posY = currBonePose.value.posY + blendBonePose.value.posY + blendBonePose.positionNextNext.posY - 2 * blendBonePose.positionNext.posY;
+            newPose.bonePoses[i].positionNext.posZ = currBonePose.value.posZ + blendBonePose.value.posZ + blendBonePose.positionNextNext.posZ - 2 * blendBonePose.positionNext.posZ;
+
+            Quaternion Q_currPosition = new Quaternion(currBonePose.value.rotX, currBonePose.value.rotY, currBonePose.value.rotZ, currBonePose.value.rotW);
+            Quaternion Q_blendPosition = new Quaternion(blendBonePose.value.rotX, blendBonePose.value.rotY, blendBonePose.value.rotZ, blendBonePose.value.rotW);
+            Quaternion Q_blendPositionNext = new Quaternion(blendBonePose.positionNext.rotX, blendBonePose.positionNext.rotY, blendBonePose.positionNext.rotZ, blendBonePose.positionNext.rotW);
+            Quaternion Q_blendPositionNextNext = new Quaternion(blendBonePose.positionNextNext.rotX, blendBonePose.positionNextNext.rotY, blendBonePose.positionNextNext.rotZ, blendBonePose.positionNextNext.rotW);
+
+            Quaternion Q_newPostion = (Q_currPosition * Q_blendPositionNext) * Quaternion.Inverse(Q_blendPosition);
+            Quaternion Q_newPostionNext = (((Q_currPosition * Q_blendPosition) * Q_blendPositionNextNext) * Quaternion.Inverse(Q_blendPositionNext)) * Quaternion.Inverse(Q_blendPositionNext);
+
+            newPose.bonePoses[i].value.rotX = Q_newPostion.x;
+            newPose.bonePoses[i].value.rotY = Q_newPostion.y;
+            newPose.bonePoses[i].value.rotZ = Q_newPostion.z;
+            newPose.bonePoses[i].value.rotW = Q_newPostion.w;
+
+            newPose.bonePoses[i].positionNext.rotX = Q_newPostionNext.x;
+            newPose.bonePoses[i].positionNext.rotY = Q_newPostionNext.y;
+            newPose.bonePoses[i].positionNext.rotZ = Q_newPostionNext.z;
+            newPose.bonePoses[i].positionNext.rotW = Q_newPostionNext.w;
+
+            newPose.bonePoses[i].value.sclX = currBonePose.value.sclX + blendBonePose.positionNext.sclX - blendBonePose.value.sclX;
+            newPose.bonePoses[i].value.sclY = currBonePose.value.sclY + blendBonePose.positionNext.sclY - blendBonePose.value.sclY;
+            newPose.bonePoses[i].value.sclZ = currBonePose.value.sclZ + blendBonePose.positionNext.sclZ - blendBonePose.value.sclZ;
+
+            newPose.bonePoses[i].positionNext.sclX = currBonePose.value.sclX + blendBonePose.value.sclX + blendBonePose.positionNextNext.sclX - 2 * blendBonePose.positionNext.sclX;
+            newPose.bonePoses[i].positionNext.sclY = currBonePose.value.sclY + blendBonePose.value.sclY + blendBonePose.positionNextNext.sclY - 2 * blendBonePose.positionNext.sclY;
+            newPose.bonePoses[i].positionNext.sclZ = currBonePose.value.sclZ + blendBonePose.value.sclZ + blendBonePose.positionNextNext.sclZ - 2 * blendBonePose.positionNext.sclZ;
+        }
+
+		return newPose;
     }
 
 	public List<List<float>> CartesianProduct( List<List<float>> sequences){
@@ -494,24 +580,25 @@ public class MotionFieldController : ScriptableObject {
         return poseArray;
     }*/
 
-    public float[] GetTaskArray(MotionPose pose){
+    public float[] GetTaskArray(){
+        //current value of task array determined by world params
 		int tasklength = TArrayInfo.TaskArray.Count ();
-		float[] taskArr = new float[TArrayInfo.TaskArray.Count()];
+		float[] taskArr = new float[tasklength];
 		for(int i = 0; i < tasklength; i++){
-			taskArr[i] = TArrayInfo.TaskArray[i].DetermineTaskValue(pose);
+			taskArr[i] = TArrayInfo.TaskArray[i].DetermineTaskValue();
 		}
 		return taskArr;
 	}
 
-	public float ComputeReward(MotionPose pose, float[] currentTaskArray, float[] newTaskArr, int numActions = 1){
+	public float ComputeReward(MotionPose pose, MotionPose newPose, float[] taskArr, int numActions = 1){
         //first calculate immediate reward
 		float immediateReward = 0.0f;
-		for(int i = 0; i < currentTaskArray.Length; i++){
-			immediateReward += TArrayInfo.TaskArray[i].CheckReward (currentTaskArray[i], newTaskArr [i]);
+		for(int i = 0; i < taskArr.Length; i++){
+			immediateReward += TArrayInfo.TaskArray[i].CheckReward (pose, newPose, taskArr[i]);
 		}
 
 		//calculate continuousReward
-		float continuousReward = RewardLookup(pose, newTaskArr, numActions);
+		float continuousReward = RewardLookup(newPose, taskArr, numActions);
 
 		return immediateReward + scale*continuousReward;
 	}
@@ -524,14 +611,14 @@ public class MotionFieldController : ScriptableObject {
 
 		//get closest poses.
 		float[] poseArr = pose.flattenedMotionPose;
-		List<MotionPose> neighbors = NearestNeighbor (poseArr, numActions);
+		MotionPose[] neighbors = NearestNeighbor (poseArr, numActions);
 		float[][] neighborsArr = neighbors.Select (x => x.flattenedMotionPose).ToArray ();
 		float[] neighbors_weights = GenerateWeights(poseArr, neighborsArr);
 
 		//get closest tasks.
 		List<List<float>> nearest_vals = new List<List<float>> ();
 		for(int i=0; i < Tasks.Length; i++){
-			//TODO: if Tasks[i] is the min or max, values added could e out of range. add a check
+			//TODO: if Tasks[i] is the min or max, i think values added could e out of range. add a check
 			List<float> nearest_val = new List<float> ();
 			float interval = (TArrayInfo.TaskArray [i].max - TArrayInfo.TaskArray [i].min) / TArrayInfo.TaskArray [i].numSamples;
 			nearest_val.Add (Mathf.Floor ((Tasks [i] - TArrayInfo.TaskArray [i].min) / interval) * interval + TArrayInfo.TaskArray [i].min);
@@ -564,7 +651,7 @@ public class MotionFieldController : ScriptableObject {
 
     public void makeDictfromList(List<ArrayList> lst)
     {
-        precomputedRewards.Clear();
+        precomputedRewards = new Dictionary<vfKey, float>();
         foreach (ArrayList arrLst in lst)
         {
             MotionPose mp = arrLst[0] as MotionPose;
@@ -613,16 +700,65 @@ public class MotionFieldController : ScriptableObject {
     }
 }*/
 
-public class vfKey{
-	public string clipId;
-	public float timeStamp;
-	public float[] tasks;
+public struct vfKey{
+	private readonly string _clipId;
+	private readonly float _timeStamp;
+	private readonly float[] _tasks;
+
+    public string clipId
+    {
+        get { return _clipId; }
+    }
+    public float timeStamp
+    {
+        get { return _timeStamp; }
+    }
+    public float[] tasks
+    {
+        get { return _tasks; }
+    }
 
 	public vfKey(string id, float time, float[] tasks){
-		this.clipId = id;
-		this.timeStamp = time;
-		this.tasks = tasks;
+		this._clipId = id;
+		this._timeStamp = time;
+		this._tasks = tasks;
 	}
+
+    public static bool operator ==(vfKey vfKey1, vfKey vfKey2)
+    {
+        return vfKey1.Equals(vfKey2);
+    }
+
+    public static bool operator !=(vfKey vfKey1, vfKey vfKey2)
+    {
+        return !vfKey1.Equals(vfKey2);
+    }
+
+    public override bool Equals(object obj)
+    {
+        return (obj is vfKey)
+            && this._clipId.Equals(((vfKey)obj).clipId)
+            && this._timeStamp.Equals(((vfKey)obj).timeStamp)
+            && this._tasks.SequenceEqual(((vfKey)obj).tasks);
+    }
+
+    public override int GetHashCode()
+    {
+        //hashcode implentation from 'Effective Java' by Josh Bloch
+        unchecked
+        {
+            var hash = 17;
+ 
+            hash = (31 * hash) + this._clipId.GetHashCode();
+            hash = (31 * hash) + this._timeStamp.GetHashCode();
+            for(int i = 0; i < _tasks.Length; i++)
+            {
+                hash = (31 * hash) + this._tasks[i].GetHashCode();
+            }
+            
+            return hash;
+        }
+    }
 }
 
 
