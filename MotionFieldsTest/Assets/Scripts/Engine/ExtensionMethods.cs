@@ -34,6 +34,41 @@ public static class Transform_ExtensionMethods {
         return thisTf;
     }
 
+
+    //TEST ME!!!!!!!!!!!!!!!!!!!!!1
+    public static Vector3 AveragePosition_Recursive(this Transform thisTf) {
+
+        //TODO: come back and do this with Linq so it's easier to understand (if optimizations not needed)
+
+        Transform[] aggregateTransforms = thisTf.GetComponentsInChildren<Transform>();
+
+        Vector3[] aggregatePositions = (Vector3[])(from tf in aggregateTransforms
+                                                   select tf.position);
+
+        Vector3 avgPos;
+        avgPos.x = (float)(from pos in aggregatePositions
+                           select pos.x).Average();
+
+        avgPos.y = (float)(from pos in aggregatePositions
+                           select pos.y).Average();
+
+        avgPos.z = (float)(from pos in aggregatePositions
+                           select pos.z).Average();
+
+        return avgPos;
+        //Transform[] childrenTF = thisTf.GetComponentsInChildren<Transform>();
+
+        //Vector3 avgVec = thisTf.position; //new Vector3(0.0f, 0.0f, 0.0f);
+
+        //Vector3[] aggregatePositions = from ()
+        /*
+        foreach(Transform tf in thisTf) {
+            avgVec += tf.AveragePosition_Recursive();
+        }
+
+        return avgVec;
+        */
+    }
 }
 
 public static class Matrix4x4_ExtensionMethods {
@@ -91,6 +126,7 @@ public static class Matrix4x4_ExtensionMethods {
 public static class BoneTransform_ExtensionMethods {
 
 
+    //TEST ME!!!!!!!!!!!!!!!!!!!!!!!!!!
     //OPTIMIZE (this is bad use of Linq, come back and do it right
     public static BoneTransform AvgPoseValue(this BoneTransform[] thisBoneTransformArray) {
 

@@ -5,13 +5,6 @@ using System.Linq;
 
 namespace AnimationMotionFields {
 
-    public enum VelocityCalculationMode {
-        DropLastTwoFrames = 0,
-        LoopToFirstFrame = 1,
-        UseVelocityFromSecondToLastFrame = 2,
-        SetLastFrameToZero = 3,
-    }
-
 
     public static class MotionFieldUtility {
 
@@ -79,6 +72,9 @@ namespace AnimationMotionFields {
             return bonePoses;
         }
 
+
+//BONE POSE VELOCITY EXTRACTION
+        //TODO: make the Motion Pose array pass by ref
         public static MotionPose[] DetermineBonePoseComponentVelocities(MotionPose[] motionPoses, VelocityCalculationMode calculationMode = VelocityCalculationMode.DropLastTwoFrames) {
             //Debug.LogError("IMPLEMENT ME!!!");
             //return new MotionPose[] { };
@@ -195,6 +191,35 @@ namespace AnimationMotionFields {
         }
         */
 
+
+//ROOT MOTION EXTRACTION
+        //TODO: restructure so looping is more intelligently implemented (maybe use deleagate functions? or more clever case checking? log position (center of mass / reference point) in hte umbrella function and pass that throught?)
+        public static void ExtractRootMotion(ref MotionPose[] motionPoses, CosmeticSkeleton skel, RootMotionCalculationMode calculationMode = RootMotionCalculationMode.ReferencePoint, bool looping = false) {
+
+            switch (calculationMode) {
+                case RootMotionCalculationMode.ReferencePoint:
+                    ExtractRootMotion_CenterOfMass(ref motionPoses, skel, looping);
+                    break;
+
+                case RootMotionCalculationMode.CenterOfMass:
+                    ExtractRootMotion_CenterOfMass(ref motionPoses, skel, looping);
+                    break;
+
+                default:
+                    goto case RootMotionCalculationMode.ReferencePoint;
+                    
+            }
+
+
+        }
+
+        private static void ExtractRootMotion_ReferencePoint(ref MotionPose[] motionPoses, CosmeticSkeleton skel, bool looping = false) {
+            
+        }
+
+        public static void ExtractRootMotion_CenterOfMass(ref MotionPose[] motionPoses, CosmeticSkeleton skel, bool looping = false) {
+
+        }
 
         //GET EVERY UNIQUE PATH FROM THE SUPPLIED ANIM CLIPS
         public static string[] GetUniquePaths(AnimationClip[] animClips) {

@@ -27,6 +27,10 @@ namespace AnimationMotionFields {
     //TODO: SERIALIZE TO DICTIONARY AT RUNTIME
     [System.Serializable]
     public class CosmeticSkeleton {
+
+        public Transform skeletonRoot;
+        public Transform rootMotionReferencePoint;
+
         public List<CosmeticSkeletonBone> cosmeticBones;
 
         public void ApplyPose(MotionPose pose) {
@@ -117,21 +121,57 @@ namespace AnimationMotionFields {
 
         public override float GetPropertyHeight(SerializedProperty property, GUIContent label) {
 
-            if (_reorderList == null) { _reorderList = GetReorderList(property.FindPropertyRelative("cosmeticBones")); }
+            float propHeight = 0.0f;
 
-            return _reorderList.GetHeight(); //GetReorderList(property.FindPropertyRelative("cosmeticBones")).GetHeight();
+            if (_reorderList == null) { _reorderList = GetReorderList(property.FindPropertyRelative("cosmeticBones")); }
+            propHeight += _reorderList.GetHeight();
+
+
+
+            return EditorGUI.GetPropertyHeight(property);
+       
+            //return propHeight; //GetReorderList(property.FindPropertyRelative("cosmeticBones")).GetHeight();
+
         }
 
         public override void OnGUI(Rect position, SerializedProperty property, GUIContent label) {
-            //base.OnGUI(position, property, label);
+
+            float yVal = position.y;
+
+            SerializedProperty skelRootProp = property.FindPropertyRelative("skeletonRoot");
+            SerializedProperty rootMotionRefPointProp = property.FindPropertyRelative("rootMotionReferencePoint");
+
+
+            EditorGUI.BeginProperty(position, label, property);
+
 
             if (_reorderList == null) { _reorderList = GetReorderList(property.FindPropertyRelative("cosmeticBones")); }
 
             property.serializedObject.Update();
 
-            _reorderList.DoList(position);
+            //DRAW SKELETON ROOT PROPERTY FIELD
+            EditorGUI.PropertyField(new Rect(position.x, yVal,
+                                             position.width, EditorGUI.GetPropertyHeight(skelRootProp)),
+                                    skelRootProp);
+
+            yVal += EditorGUI.GetPropertyHeight(skelRootProp);
+
+
+            //DRAW ROOT MOTION REFERENCE POINT PROPERTY FIELD
+            EditorGUI.PropertyField(new Rect(position.x, yVal,
+                                             position.width, EditorGUI.GetPropertyHeight(rootMotionRefPointProp)),
+                                    rootMotionRefPointProp);
+
+            yVal += EditorGUI.GetPropertyHeight(rootMotionRefPointProp);
+
+
+            //_reorderList.DoList(position);
+            _reorderList.DoList(new Rect(position.x, yVal,
+                                         position.width, EditorGUI.GetPropertyHeight(_reorderList.serializedProperty)));
 
             property.serializedObject.ApplyModifiedProperties();
+
+            EditorGUI.EndProperty();
         }
 
     }
@@ -205,6 +245,43 @@ namespace AnimationMotionFields {
             cosmeticSkel.ApplyPose(pose);
 
         }
+
+#if UNITY_EDITOR
+
+        [SerializeField]
+        private bool g_showSkeleton;
+
+        [SerializeField]
+        private Color g_skeletonBoneColor;
+        [SerializeField]
+        private Color g_skeletonJointColor;
+        [SerializeField]
+        private float g_skeletonJointRadius = 0.05f;
+
+        [SerializeField]
+        private Transform g_skeletonRoot;
+
+        void OnDrawGizmos() {
+            Color originalGizmoColor = Gizmos.color;
+            
+            if (g_showSkeleton) { Gizmo_DrawSkeletonHierarchy(g_skeletonRoot); }
+
+            Gizmos.color = originalGizmoColor;
+        }
+
+        private void Gizmo_DrawSkeletonHierarchy(Transform root) {
+
+            foreach (Transform tf in root) {
+                Gizmo_DrawSkeletonHierarchy(tf);
+            }
+
+            Gizmos.color = g_skeletonBoneColor;
+            Gizmos.DrawLine(root.position, root.parent.position);
+
+            Gizmos.color = g_skeletonJointColor;
+            Gizmos.DrawSphere(root.position, g_skeletonJointRadius);
+        }
+#endif
 
     }
 

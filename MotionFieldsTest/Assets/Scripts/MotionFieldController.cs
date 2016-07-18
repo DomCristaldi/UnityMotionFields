@@ -12,7 +12,17 @@ using UnityEditorInternal;
 
 
 
+public enum VelocityCalculationMode {
+    DropLastTwoFrames = 0,
+    LoopToFirstFrame = 1,
+    UseVelocityFromSecondToLastFrame = 2,
+    SetLastFrameToZero = 3,
+}
 
+public enum RootMotionCalculationMode {
+    ReferencePoint = 0,
+    CenterOfMass = 1,
+}
 
 //namespace AnimationMotionFields {
 
@@ -214,6 +224,12 @@ public class MotionPose {
 
     public int frameSampleRate;//sampel rate that was used to create these poses
 
+
+    public MotionPose(BonePose[] bonePoses) {
+        this.bonePoses = bonePoses;
+    }
+
+
     //NEW
     public MotionPose(BonePose[] bonePoses, AnimationClip animClipRef, float timestamp) {
         this.bonePoses = bonePoses;
@@ -287,11 +303,13 @@ public class MotionPose {
 public class AnimClipInfo {
     public bool useClip = true;
     public VelocityCalculationMode velocityCalculationMode;
+    public RootMotionCalculationMode rootMotionMode;
+    public bool looping = false;
     public AnimationClip animClip;
 
     public MotionPose[] motionPoses;//all the poses generated for this animation clip
 
-    public int frameSampleRate;//sampel rate that was used to create these poses
+    public int frameSampleRate;//sample rate that was used to create these poses
     /*
     public void GenerateMotionPoses(int samplingResolution, string[] totalAnimPaths) {
         motionPoses = MotionFieldUtility.GenerateMotionPoses(animClip,
