@@ -79,6 +79,8 @@ public class SampleClipTool : EditorWindow {
 
         // there is a bug in AnimationMode.SampleAnimationClip which crash unity if there is no valid controller attached
         Animator animator = go.GetComponent<Animator>();
+        //animator.ApplyBuiltinRootMotion();
+        animator.applyRootMotion = true;
         if (animator != null && animator.runtimeAnimatorController == null) {
             Debug.Log("missing something with the Animator");
             return;
@@ -90,6 +92,9 @@ public class SampleClipTool : EditorWindow {
             AnimationMode.BeginSampling();
             AnimationMode.SampleAnimationClip(go, animationClip, time);
             AnimationMode.EndSampling();
+
+            Debug.LogFormat("Body Position: {0}\nBody Rotation: {1}", animator.bodyPosition, animator.bodyRotation);
+            //animator.
 
             SceneView.RepaintAll();
         }

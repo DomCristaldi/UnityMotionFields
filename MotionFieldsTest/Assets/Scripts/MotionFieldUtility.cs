@@ -5,13 +5,6 @@ using System.Linq;
 
 namespace AnimationMotionFields {
 
-    public enum VelocityCalculationMode {
-        DropLastTwoFrames = 0,
-        LoopToFirstFrame = 1,
-        UseVelocityFromSecondToLastFrame = 2,
-        SetLastFrameToZero = 3,
-    }
-
 
     public static class MotionFieldUtility {
 
@@ -42,12 +35,34 @@ namespace AnimationMotionFields {
                 //create bone Pose
                 bonePoses[i] = new BonePose(modelRef.cosmeticSkel.cosmeticBones[i].boneLabel);
 
+                //Debug.Log(modelRef.cosmeticSkel.cosmeticBones[i].boneMovementSpace);
+
                 //assign Position to the bone pose
+                
                 bool isLocalSpace = true;//assume it is local space
                 if (modelRef.cosmeticSkel.cosmeticBones[i].boneMovementSpace == CosmeticSkeletonBone.MovementSpace.World) {
                     isLocalSpace = false;
                 }
                 bonePoses[i].value = new BoneTransform(modelRef.cosmeticSkel.cosmeticBones[i].boneTf, isLocalSpace);
+                
+                /*
+                if (modelRef.cosmeticSkel.cosmeticBones[i].boneMovementSpace == CosmeticSkeletonBone.MovementSpace.Local) {
+                    bonePoses[i].value = new BoneTransform(modelRef.cosmeticSkel.cosmeticBones[i].boneTf, true);
+                }
+                else {
+                    Animator modelRefAnimator = modelRef.GetComponent<Animator>();
+                    bonePoses[i].value = new BoneTransform() {
+                                                              posX = modelRefAnimator.deltaPosition.x,
+                                                              posY = modelRefAnimator.deltaPosition.y,
+                                                              posZ = modelRefAnimator.deltaPosition.z,
+
+                                                              rotW = modelRefAnimator.deltaRotation.w,
+                                                              rotX = modelRefAnimator.deltaRotation.x,
+                                                              rotY = modelRefAnimator.deltaRotation.y,
+                                                              rotZ = modelRefAnimator.deltaRotation.z,
+                                                             };
+                }
+                */
             }
 
             //return model to it's non-animated pose
@@ -57,6 +72,9 @@ namespace AnimationMotionFields {
             return bonePoses;
         }
 
+
+//BONE POSE VELOCITY EXTRACTION
+        //TODO: make the Motion Pose array pass by ref
         public static MotionPose[] DetermineBonePoseComponentVelocities(MotionPose[] motionPoses, VelocityCalculationMode calculationMode = VelocityCalculationMode.DropLastTwoFrames) {
             //Debug.LogError("IMPLEMENT ME!!!");
             //return new MotionPose[] { };
@@ -174,6 +192,35 @@ namespace AnimationMotionFields {
         */
 
 
+//ROOT MOTION EXTRACTION
+        //TODO: restructure so looping is more intelligently implemented (maybe use deleagate functions? or more clever case checking? log position (center of mass / reference point) in hte umbrella function and pass that throught?)
+        public static void ExtractRootMotion(ref MotionPose[] motionPoses, CosmeticSkeleton skel, RootMotionCalculationMode calculationMode = RootMotionCalculationMode.ReferencePoint, bool looping = false) {
+
+            switch (calculationMode) {
+                case RootMotionCalculationMode.ReferencePoint:
+                    ExtractRootMotion_CenterOfMass(ref motionPoses, skel, looping);
+                    break;
+
+                case RootMotionCalculationMode.CenterOfMass:
+                    ExtractRootMotion_CenterOfMass(ref motionPoses, skel, looping);
+                    break;
+
+                default:
+                    goto case RootMotionCalculationMode.ReferencePoint;
+                    
+            }
+
+
+        }
+
+        private static void ExtractRootMotion_ReferencePoint(ref MotionPose[] motionPoses, CosmeticSkeleton skel, bool looping = false) {
+            
+        }
+
+        public static void ExtractRootMotion_CenterOfMass(ref MotionPose[] motionPoses, CosmeticSkeleton skel, bool looping = false) {
+
+        }
+
         //GET EVERY UNIQUE PATH FROM THE SUPPLIED ANIM CLIPS
         public static string[] GetUniquePaths(AnimationClip[] animClips) {
             //List<string> extractedUniquePaths = new List<string>();
@@ -199,6 +246,8 @@ namespace AnimationMotionFields {
         }
 
         public static MotionPose[] GenerateMotionPoses(AnimationClip animClip, MotionFieldComponent modelRef, int sampleStepSize = 100, VelocityCalculationMode velCalculationMode = VelocityCalculationMode.DropLastTwoFrames) {
+            //Animator modelAnimator = modelRef.GetComponent<Animator>();
+
             List<MotionPose> motionPoses = new List<MotionPose>();
 
             float frameStep = 1.0f / animClip.frameRate;//time for one animation frame
@@ -209,9 +258,25 @@ namespace AnimationMotionFields {
 
                 //float[] motionPoseKeyframes = ExtractKeyframe(animClip, currentFrameTimePointer, totalUniquePaths);
                 BonePose[] extractedBonePoses = ExtractBonePoses(animClip, modelRef, currentFrameTimePointer);
+                /*
+                //extract the root motion info
+                BonePose extractedRootMotion = new BonePose("Root Motion Dleta");
+                Vector3 rootDeltaPos = modelAnimator.pivotPosition;//deltaPosition;
+                Quaternion rootDeltaRot = modelAnimator.deltaRotation;
+
+                Debug.Log("Center of Mass: " + modelAnimator.bodyPosition);
+
+                //Debug.Log("bleh");
+
+                extractedRootMotion.value = new BoneTransform() { posX = rootDeltaPos.x, posY = rootDeltaPos.y, posZ = rootDeltaPos.z,
+                                                                  rotW = rootDeltaRot.w, rotX = rootDeltaRot.x, rotY = rootDeltaRot.y, rotZ = rootDeltaRot.z};
+                */
+
+
+
                 //*******
                 //motionPoses.Add(new MotionPose(animClip, currentFrameTimePointer, motionPoseKeyframes));
-                motionPoses.Add(new MotionPose(extractedBonePoses, animClip, currentFrameTimePointer));
+                motionPoses.Add(new MotionPose(extractedBonePoses, animClip, currentFrameTimePointer) );
 
                 currentFrameTimePointer += frameStep * sampleStepSize;
 
@@ -265,13 +330,20 @@ namespace AnimationMotionFields {
             modelRef.transform.rotation = Quaternion.identity;
             modelRef.transform.localScale = Vector3.one;
             
+            //settings to track which fields were added
             Animator modelRefAnimator = modelRef.gameObject.GetComponent<Animator>();
             bool addedAnimator = false;
+            bool turnedOnRootMotion = false;
             bool addedRuntimeController = false;
 
+            //add any necessary fields that may be missing
             if (modelRefAnimator == null) {
                 modelRefAnimator = modelRef.gameObject.AddComponent<Animator>();
                 addedAnimator = true;
+            }
+            if (!modelRefAnimator.applyRootMotion) {
+                modelRefAnimator.applyRootMotion = true;
+                turnedOnRootMotion = true;
             }
             if (modelRefAnimator.runtimeAnimatorController == null) {
                 modelRefAnimator.runtimeAnimatorController = new RuntimeAnimatorController();
@@ -280,10 +352,13 @@ namespace AnimationMotionFields {
 
 			mfController.animClipInfoList = MotionFieldUtility.GenerateMotionField(mfController.animClipInfoList, modelRef, samplingRate);
 
+            //reset any fields that may have been added
             if (addedRuntimeController) {
                 MonoBehaviour.DestroyImmediate(modelRefAnimator.runtimeAnimatorController, true);
             }
-
+            if (turnedOnRootMotion) {
+                modelRefAnimator.applyRootMotion = false;
+            }
             if (addedAnimator) {
                 MonoBehaviour.DestroyImmediate(modelRefAnimator);
             }

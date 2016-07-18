@@ -1,4 +1,5 @@
 ﻿using UnityEngine;
+using System.Linq;
 
 public static class Transform_ExtensionMethods {
 
@@ -33,6 +34,41 @@ public static class Transform_ExtensionMethods {
         return thisTf;
     }
 
+
+    //TEST ME!!!!!!!!!!!!!!!!!!!!!1
+    public static Vector3 AveragePosition_Recursive(this Transform thisTf) {
+
+        //TODO: come back and do this with Linq so it's easier to understand (if optimizations not needed)
+
+        Transform[] aggregateTransforms = thisTf.GetComponentsInChildren<Transform>();
+
+        Vector3[] aggregatePositions = (Vector3[])(from tf in aggregateTransforms
+                                                   select tf.position);
+
+        Vector3 avgPos;
+        avgPos.x = (float)(from pos in aggregatePositions
+                           select pos.x).Average();
+
+        avgPos.y = (float)(from pos in aggregatePositions
+                           select pos.y).Average();
+
+        avgPos.z = (float)(from pos in aggregatePositions
+                           select pos.z).Average();
+
+        return avgPos;
+        //Transform[] childrenTF = thisTf.GetComponentsInChildren<Transform>();
+
+        //Vector3 avgVec = thisTf.position; //new Vector3(0.0f, 0.0f, 0.0f);
+
+        //Vector3[] aggregatePositions = from ()
+        /*
+        foreach(Transform tf in thisTf) {
+            avgVec += tf.AveragePosition_Recursive();
+        }
+
+        return avgVec;
+        */
+    }
 }
 
 public static class Matrix4x4_ExtensionMethods {
@@ -83,6 +119,53 @@ public static class Matrix4x4_ExtensionMethods {
                                           endMatrix.ExtractScale(),
                                           delta)
                              );
+    }
+
+}
+
+public static class BoneTransform_ExtensionMethods {
+
+
+    //TEST ME!!!!!!!!!!!!!!!!!!!!!!!!!!
+    //OPTIMIZE (this is bad use of Linq, come back and do it right
+    public static BoneTransform AvgPoseValue(this BoneTransform[] thisBoneTransformArray) {
+
+        BoneTransform avgBoneTf = new BoneTransform();
+
+
+        avgBoneTf.posX = (from tf in thisBoneTransformArray
+                          select tf.posX).Average();
+
+        avgBoneTf.posY = (from tf in thisBoneTransformArray
+                          select tf.posY).Average();
+
+        avgBoneTf.posZ = (from tf in thisBoneTransformArray
+                          select tf.posZ).Average();
+
+
+        avgBoneTf.rotW = (from tf in thisBoneTransformArray
+                          select tf.rotW).Average();
+
+        avgBoneTf.rotX = (from tf in thisBoneTransformArray
+                          select tf.rotX).Average();
+
+        avgBoneTf.rotY = (from tf in thisBoneTransformArray
+                          select tf.rotY).Average();
+
+        avgBoneTf.rotZ = (from tf in thisBoneTransformArray
+                          select tf.rotZ).Average();
+
+
+        avgBoneTf.sclX = (from tf in thisBoneTransformArray
+                          select tf.sclX).Average();
+
+        avgBoneTf.sclY = (from tf in thisBoneTransformArray
+                          select tf.sclY).Average();
+
+        avgBoneTf.sclZ = (from tf in thisBoneTransformArray
+                          select tf.sclZ).Average();
+
+        return avgBoneTf;
     }
 
 }
