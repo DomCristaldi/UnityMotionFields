@@ -309,7 +309,11 @@ namespace AnimationMotionFields {
         public static void GenerateKDTree(ref KDTreeDLL.KDTree kdTree, List<AnimClipInfo> animClipInfoList) {
 
             //make KD Tree w/ number of dimension equal to total number of bone poses * (position * velocity) <- 20
-            kdTree = new KDTreeDLL.KDTree(animClipInfoList[0].motionPoses[0].bonePoses.Length * 20);
+            int KeyLength = animClipInfoList[0].motionPoses[0].bonePoses.Length * 20;
+            Debug.Log("Length of kdtree key: " + KeyLength);
+            kdTree = new KDTreeDLL.KDTree(KeyLength);
+
+            Debug.Log("KDTREE's HASH CODE IS: " + kdTree.GetHashCode().ToString());
 
             foreach (AnimClipInfo clipInfo in animClipInfoList) {
                 foreach (MotionPose pose in clipInfo.motionPoses) {
@@ -328,6 +332,7 @@ namespace AnimationMotionFields {
                     }
                 }
             }
+            Debug.Log("kdtree:\n" + kdTree.toString());
         }
 
         /*public static void GenerateKDTree(ref KDTreeDLL.KDTree kdTree, List<AnimClipInfo> animClipInfoList, string[] uniquePaths, MotionFieldController.RootComponents rootComponents, int numDimensions) {

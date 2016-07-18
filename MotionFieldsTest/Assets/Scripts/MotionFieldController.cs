@@ -210,16 +210,28 @@ public class MotionPose {
 
     //CONSTRUCTOR FOR CREATING A MOTION POSE OUT OF BLENED POSES
     public MotionPose(MotionPose[] posesToBlend, float[] weights) {
+
         //Break out if there's no data to work with for either poses or weights
         if (posesToBlend.Length == 0) { Debug.LogError("Supplied Poses Array is of length 0"); return; }
         if (weights.Length == 0) { Debug.LogError("Supplied Weights Array is of length 0"); return; }
-
+        if (posesToBlend.Count() != weights.Count()) { Debug.LogError("The number of poses does not match the number of weigts"); return; }
+        
         //notify user that they have bad data and should take a look at it
         if (posesToBlend.Length != weights.Length) {
             Debug.LogError("Unequal number of Poses to Weights. Data may be unreliable. Please ensure the supplied arrays are mappedj properly");
         }
 
-        bonePoses = posesToBlend[0].bonePoses.Clone() as BonePose[];
+        //set initial bone pose array to that of the first pose to blend
+        List<BonePose> newPoseBones = new List<BonePose>();
+        for(int j = 0; j < posesToBlend[0].bonePoses.Length; ++j)
+        {
+            BonePose newBone = new BonePose(posesToBlend[0].bonePoses[j].boneLabel);
+            newBone.value = new BoneTransform(posesToBlend[0].bonePoses[j].value);
+            newBone.positionNext = new BoneTransform(posesToBlend[0].bonePoses[j].positionNext);
+            newBone.positionNextNext = new BoneTransform(posesToBlend[0].bonePoses[j].positionNextNext);
+            newPoseBones.Add(newBone);
+        }
+        bonePoses = newPoseBones.ToArray();
 
         //Break out early b/c there's only one Motion Pose to blend with
         if (posesToBlend.Length == 1) { return; }
@@ -335,6 +347,7 @@ public class MotionFieldController : ScriptableObject {
 	public float OneTick(MotionPose currentPose, int numActions = 1){
 
         float[] taskArr = GetTaskArray();
+        Debug.Log("task Length: " + taskArr.Length.ToString());
 
         float reward = 0.0f;
         currentPose = MoveOneFrame(currentPose, taskArr, numActions, ref reward);
@@ -346,11 +359,18 @@ public class MotionFieldController : ScriptableObject {
 
     public MotionPose MoveOneFrame(MotionPose currentPose, float[] taskArr, int numActions, ref float reward)
     {
+
+        //float[] poseArr = currentPose.flattenedMotionPose;
+        //Debug.Log("Move One Frame pose before GenCandActions: " + string.Join(" ", poseArr.Select(d => d.ToString()).ToArray()));
+
         List<MotionPose> candidateActions = GenerateCandidateActions(currentPose, numActions);
+
+        //poseArr = currentPose.flattenedMotionPose;
+        //Debug.Log("Move One Frame pose after GenCandActions: " + string.Join(" ", poseArr.Select(d => d.ToString()).ToArray()));
 
         int chosenAction = PickCandidate(currentPose, candidateActions, taskArr, numActions, ref reward);
 
-        Debug.Log("best fitness is " + reward + " from Action " + chosenAction + "\n");
+        Debug.Log("Candidate Chosen! best fitness is " + reward + " from Action " + chosenAction + "\n");
 
         return candidateActions[chosenAction];
     }
@@ -361,6 +381,17 @@ public class MotionFieldController : ScriptableObject {
         float[] currentPoseArr = currentPose.flattenedMotionPose;
 
         MotionPose[] neighbors = NearestNeighbor(currentPoseArr, numActions);
+
+        /*
+        string StrNeighbors = "Neighbor Poses: ";
+        for (int i = 0; i < neighbors.Count(); i++)
+        {
+            float[] poseArr = neighbors[i].flattenedMotionPose;
+            StrNeighbors += "\n\n" + string.Join(" ", poseArr.Select(d => d.ToString()).ToArray());
+        }
+        Debug.Log(StrNeighbors);
+        */
+
         float[][] neighborsArr = neighbors.Select(x => x.flattenedMotionPose).ToArray();
 
         float[] weights = GenerateWeights(currentPoseArr, neighborsArr);
@@ -372,14 +403,17 @@ public class MotionFieldController : ScriptableObject {
         {
             candidateActions.Add(GeneratePose(currentPose, neighbors, action));
         }
+
         return candidateActions;
     }
 
     public int PickCandidate(MotionPose currentPose, List<MotionPose> candidateActions, float[] taskArr, int numActions, ref float bestReward) {
         //choose the action with the highest reward
         int chosenAction = -1;
+
         for (int i = 0; i < candidateActions.Count(); i++) {
             float reward = ComputeReward(currentPose, candidateActions[i], taskArr, numActions);
+            //Debug.Log("Reward for action " + i.ToString() + " is " + reward.ToString());
             if (reward > bestReward) {
                 bestReward = reward;
                 chosenAction = i;
@@ -391,7 +425,8 @@ public class MotionFieldController : ScriptableObject {
     public MotionPose[] NearestNeighbor(float[] pose, int num_neighbors){
 		
 		double[] dbl_pose = pose.Select (x => System.Convert.ToDouble (x)).ToArray ();
-		object[] nn_data = kd.nearest (dbl_pose, num_neighbors);
+
+        object[] nn_data = kd.nearest (dbl_pose, num_neighbors);
 
 		List<MotionPose> data = new List<MotionPose>();
 		foreach(object obj in nn_data){
@@ -452,7 +487,7 @@ public class MotionFieldController : ScriptableObject {
             }
         }
 
-        Debug.Log("weights: " + string.Join(" ", weights.Select(w => w.ToString()).ToArray()));
+        //Debug.Log("weights: " + string.Join(" ", weights.Select(w => w.ToString()).ToArray()));
 
         return weights;
 	}
@@ -469,21 +504,19 @@ public class MotionFieldController : ScriptableObject {
 
         MotionPose blendedNeighbors = new MotionPose(neighbors, action);
 
-        MotionPose newPose = currentPose;
+        List<BonePose> newPoseBones = new List<BonePose>();
+
         BonePose currBonePose;
         BonePose blendBonePose;
         int numBones = currentPose.bonePoses.Length;
-        for(int i = 0; i < numBones; i++)
+
+        for (int i = 0; i < numBones; i++)
         {
             currBonePose = currentPose.bonePoses[i];
             blendBonePose = blendedNeighbors.bonePoses[i];
-            newPose.bonePoses[i].value.posX = currBonePose.value.posX + blendBonePose.positionNext.posX - blendBonePose.value.posX;
-            newPose.bonePoses[i].value.posY = currBonePose.value.posY + blendBonePose.positionNext.posY - blendBonePose.value.posY;
-            newPose.bonePoses[i].value.posZ = currBonePose.value.posZ + blendBonePose.positionNext.posZ - blendBonePose.value.posZ;
 
-            newPose.bonePoses[i].positionNext.posX = currBonePose.value.posX + blendBonePose.value.posX + blendBonePose.positionNextNext.posX - 2 * blendBonePose.positionNext.posX;
-            newPose.bonePoses[i].positionNext.posY = currBonePose.value.posY + blendBonePose.value.posY + blendBonePose.positionNextNext.posY - 2 * blendBonePose.positionNext.posY;
-            newPose.bonePoses[i].positionNext.posZ = currBonePose.value.posZ + blendBonePose.value.posZ + blendBonePose.positionNextNext.posZ - 2 * blendBonePose.positionNext.posZ;
+            //currentPoseArr = currentPose.flattenedMotionPose;
+            //Debug.Log("   GenCand LOOP " + i.ToString() + " START pose: " + string.Join(" ", currentPoseArr.Select(d => d.ToString()).ToArray()));
 
             Quaternion Q_currPosition = new Quaternion(currBonePose.value.rotX, currBonePose.value.rotY, currBonePose.value.rotZ, currBonePose.value.rotW);
             Quaternion Q_blendPosition = new Quaternion(blendBonePose.value.rotX, blendBonePose.value.rotY, blendBonePose.value.rotZ, blendBonePose.value.rotW);
@@ -493,26 +526,44 @@ public class MotionFieldController : ScriptableObject {
             Quaternion Q_newPostion = (Q_currPosition * Q_blendPositionNext) * Quaternion.Inverse(Q_blendPosition);
             Quaternion Q_newPostionNext = (((Q_currPosition * Q_blendPosition) * Q_blendPositionNextNext) * Quaternion.Inverse(Q_blendPositionNext)) * Quaternion.Inverse(Q_blendPositionNext);
 
-            newPose.bonePoses[i].value.rotX = Q_newPostion.x;
-            newPose.bonePoses[i].value.rotY = Q_newPostion.y;
-            newPose.bonePoses[i].value.rotZ = Q_newPostion.z;
-            newPose.bonePoses[i].value.rotW = Q_newPostion.w;
+            BonePose newBone = new BonePose(currBonePose.boneLabel);
+            newBone.value = new BoneTransform()
+            {
+                posX = currBonePose.value.posX + blendBonePose.positionNext.posX - blendBonePose.value.posX,
+                posY = currBonePose.value.posY + blendBonePose.positionNext.posY - blendBonePose.value.posY,
+                posZ = currBonePose.value.posZ + blendBonePose.positionNext.posZ - blendBonePose.value.posZ,
 
-            newPose.bonePoses[i].positionNext.rotX = Q_newPostionNext.x;
-            newPose.bonePoses[i].positionNext.rotY = Q_newPostionNext.y;
-            newPose.bonePoses[i].positionNext.rotZ = Q_newPostionNext.z;
-            newPose.bonePoses[i].positionNext.rotW = Q_newPostionNext.w;
+                rotX = Q_newPostion.x,
+                rotY = Q_newPostion.y,
+                rotZ = Q_newPostion.z,
+                rotW = Q_newPostion.w,
 
-            newPose.bonePoses[i].value.sclX = currBonePose.value.sclX + blendBonePose.positionNext.sclX - blendBonePose.value.sclX;
-            newPose.bonePoses[i].value.sclY = currBonePose.value.sclY + blendBonePose.positionNext.sclY - blendBonePose.value.sclY;
-            newPose.bonePoses[i].value.sclZ = currBonePose.value.sclZ + blendBonePose.positionNext.sclZ - blendBonePose.value.sclZ;
+                sclX = currBonePose.value.sclX + blendBonePose.positionNext.sclX - blendBonePose.value.sclX,
+                sclY = currBonePose.value.sclY + blendBonePose.positionNext.sclY - blendBonePose.value.sclY,
+                sclZ = currBonePose.value.sclZ + blendBonePose.positionNext.sclZ - blendBonePose.value.sclZ,
+            };
 
-            newPose.bonePoses[i].positionNext.sclX = currBonePose.value.sclX + blendBonePose.value.sclX + blendBonePose.positionNextNext.sclX - 2 * blendBonePose.positionNext.sclX;
-            newPose.bonePoses[i].positionNext.sclY = currBonePose.value.sclY + blendBonePose.value.sclY + blendBonePose.positionNextNext.sclY - 2 * blendBonePose.positionNext.sclY;
-            newPose.bonePoses[i].positionNext.sclZ = currBonePose.value.sclZ + blendBonePose.value.sclZ + blendBonePose.positionNextNext.sclZ - 2 * blendBonePose.positionNext.sclZ;
+            newBone.positionNext = new BoneTransform()
+            {
+                posX = currBonePose.value.posX + blendBonePose.value.posX + blendBonePose.positionNextNext.posX - 2 * blendBonePose.positionNext.posX,
+                posY = currBonePose.value.posY + blendBonePose.value.posY + blendBonePose.positionNextNext.posY - 2 * blendBonePose.positionNext.posY,
+                posZ = currBonePose.value.posZ + blendBonePose.value.posZ + blendBonePose.positionNextNext.posZ - 2 * blendBonePose.positionNext.posZ,
+
+                rotX = Q_newPostionNext.x,
+                rotY = Q_newPostionNext.y,
+                rotZ = Q_newPostionNext.z,
+                rotW = Q_newPostionNext.w,
+
+                sclX = currBonePose.value.sclX + blendBonePose.value.sclX + blendBonePose.positionNextNext.sclX - 2 * blendBonePose.positionNext.sclX,
+                sclY = currBonePose.value.sclY + blendBonePose.value.sclY + blendBonePose.positionNextNext.sclY - 2 * blendBonePose.positionNext.sclY,
+                sclZ = currBonePose.value.sclZ + blendBonePose.value.sclZ + blendBonePose.positionNextNext.sclZ - 2 * blendBonePose.positionNext.sclZ
+            };
+
+            newPoseBones.Add(newBone);
         }
 
-		return newPose;
+        MotionPose newPose = new MotionPose(newPoseBones.ToArray(), currentPose.animClipRef, currentPose.timestamp);
+        return newPose;
     }
 
 	public List<List<float>> CartesianProduct( List<List<float>> sequences){
@@ -582,38 +633,57 @@ public class MotionFieldController : ScriptableObject {
 			immediateReward += TArrayInfo.TaskArray[i].CheckReward (pose, newPose, taskArr[i]);
 		}
 
-		//calculate continuousReward
-		float continuousReward = RewardLookup(newPose, taskArr, numActions);
+        //calculate continuousReward
+        float continuousReward = ContRewardLookup(newPose, taskArr, numActions);
+
+        //Debug.Log("Continuous Reward is " + continuousReward.ToString());
 
 		return immediateReward + scale*continuousReward;
 	}
 
-	public float RewardLookup(MotionPose pose, float[] Tasks, int numActions = 1){
-		//get continuous reward from valuefunc lookup table.
-		//reward is weighted blend of closest values in lookup table.
-		//get closest poses from kdtree, and closest tasks from cartesian product
-		//then get weighted rewards from lookup table for each pose+task combo
+	public float ContRewardLookup(MotionPose pose, float[] Tasks, int numActions = 1){
+        //get continuous reward from valuefunc lookup table.
+        //reward is weighted blend of closest values in lookup table.
+        //get closest poses from kdtree, and closest tasks from cartesian product
+        //then get weighted rewards from lookup table for each pose+task combo
 
-		//get closest poses.
-		float[] poseArr = pose.flattenedMotionPose;
-		MotionPose[] neighbors = NearestNeighbor (poseArr, numActions);
+        //get closest poses.
+
+        float[] poseArr = pose.flattenedMotionPose;
+
+        MotionPose[] neighbors = NearestNeighbor (poseArr, numActions);
 		float[][] neighborsArr = neighbors.Select (x => x.flattenedMotionPose).ToArray ();
 		float[] neighbors_weights = GenerateWeights(poseArr, neighborsArr);
 
 		//get closest tasks.
 		List<List<float>> nearest_vals = new List<List<float>> ();
 		for(int i=0; i < Tasks.Length; i++){
-			//TODO: if Tasks[i] is the min or max, i think values added could e out of range. add a check
 			List<float> nearest_val = new List<float> ();
-			float interval = (TArrayInfo.TaskArray [i].max - TArrayInfo.TaskArray [i].min) / TArrayInfo.TaskArray [i].numSamples;
-			nearest_val.Add (Mathf.Floor ((Tasks [i] - TArrayInfo.TaskArray [i].min) / interval) * interval + TArrayInfo.TaskArray [i].min);
-			nearest_val.Add (Mathf.Floor((Tasks [i] - TArrayInfo.TaskArray [i].min) / interval) * (interval+1) + TArrayInfo.TaskArray [i].min);
+			float interval = (TArrayInfo.TaskArray [i].max - TArrayInfo.TaskArray [i].min) / (TArrayInfo.TaskArray [i].numSamples - 1);
+            //Debug.Log("interval for " + TArrayInfo.TaskArray[i].min.ToString() + " to " + TArrayInfo.TaskArray[i].max.ToString() + " for " + TArrayInfo.TaskArray[i].numSamples.ToString() + " samples is " + interval.ToString());
+            float lower = Mathf.Floor((Tasks[i] - TArrayInfo.TaskArray[i].min) / interval) * interval + TArrayInfo.TaskArray[i].min;
+            nearest_val.Add (lower);
+            if(lower != TArrayInfo.TaskArray[i].max)
+            {
+                nearest_val.Add(lower + interval);
+            }
 			nearest_vals.Add (nearest_val);
 		}
-		//turn the above/below vals for each task into 2^Tasks.Length() task arrays, each of which exists in precalculated dataset
-		List<List<float>> nearestTasks = CartesianProduct(nearest_vals);
+        
+        //turn the above/below vals for each task into 2^Tasks.Length() task arrays, each of which exists in precalculated dataset
+        List<List<float>> nearestTasks = CartesianProduct(nearest_vals);
 		float[][] nearestTasksArr = nearestTasks.Select(a => a.ToArray()).ToArray();
-		float[] nearestTasks_weights = GenerateWeights(Tasks, nearestTasksArr);
+
+        /*
+        string StrSampleTasks = "nearest sampled tasks to " + string.Join(" ", Tasks.Select(t => t.ToString()).ToArray()) + ":";
+        for (int rr = 0; rr < nearestTasksArr.Count(); rr++)
+        {
+            StrSampleTasks += "\n" + string.Join(" ", nearestTasksArr[rr].Select(t => t.ToString()).ToArray());
+        }
+        Debug.Log(StrSampleTasks);
+        */
+        
+        float[] nearestTasks_weights = GenerateWeights(Tasks, nearestTasksArr);
 
 		//get matrix of neighbors x tasks. The corresponding weight matrix should sum to 1.
 		List<vfKey> dictKeys = new List<vfKey> ();
@@ -628,8 +698,11 @@ public class MotionFieldController : ScriptableObject {
 		//do lookups in precomputed table, get weighted sum
 		float continuousReward = 0.0f;
 		for(int i = 0; i < dictKeys.Count(); i++){
-			continuousReward += precomputedRewards[dictKeys[i]]*dictKeys_weights[i];
+            //Debug.Log("lookup table vfkey:\nclipname: " + dictKeys[i].clipId + "\ntimestamp: " + dictKeys[i].timeStamp.ToString() + "\ntasks: " + string.Join(" ", dictKeys[i].tasks.Select(w => w.ToString()).ToArray()) + "\nhashcode: " + dictKeys[i].GetHashCode() + "\ncomponent hashcodes: " + dictKeys[i].clipId.GetHashCode() + "  " + dictKeys[i].timeStamp.GetHashCode() + "  " + dictKeys[i].tasks.GetHashCode());
+            continuousReward += precomputedRewards[dictKeys[i]]*dictKeys_weights[i];
 		}
+
+        //Debug.Log("Continuous Reward Lookup complete, cont reward is " + continuousReward.ToString());
 
 		return continuousReward;
 	}
@@ -641,7 +714,9 @@ public class MotionFieldController : ScriptableObject {
         {
             MotionPose mp = arrLst[0] as MotionPose;
             float[] taskarr = arrLst[1] as float[];
-            precomputedRewards.Add(new vfKey(mp.animClipRef.name, mp.timestamp, taskarr), System.Convert.ToSingle(arrLst[2]));
+            vfKey newkey = new vfKey(mp.animClipRef.name, mp.timestamp, taskarr);
+            //Debug.Log("VFKEY ADDED:\nclipname: " + mp.animClipRef.name + "\ntimestamp: " + mp.timestamp.ToString() + "\ntasks: " + string.Join(" ", taskarr.Select(w => w.ToString()).ToArray()) + "\nhashcode: " + newkey.GetHashCode() + "\ncomponent hashcodes: " + newkey.clipId.GetHashCode() + "  " + newkey.timeStamp.GetHashCode() + "  " + newkey.tasks.GetHashCode());
+            precomputedRewards.Add(newkey, System.Convert.ToSingle(arrLst[2]));
         }
     }
 }
@@ -747,60 +822,60 @@ public struct vfKey{
 }
 
 
-    /*
-    #if UNITY_EDITOR
-    [CustomEditor(typeof(SO_MotionField))]
-    public class SO_MotionField_Editor : Editor {
+/*
+#if UNITY_EDITOR
+[CustomEditor(typeof(SO_MotionField))]
+public class SO_MotionField_Editor : Editor {
 
-        private ReorderableList reorderAnimList;
-
-
-        void OnEnable() {
-            reorderAnimList = new ReorderableList(serializedObject, serializedObject.FindProperty("animClipInfoList"), true, true, true, true);
-
-            reorderAnimList.drawElementCallback = (Rect rect, int index, bool isActive, bool isFocused) => {
-                var element = reorderAnimList.serializedProperty.GetArrayElementAtIndex(index);
-            
-                EditorGUI.PropertyField(new Rect(rect.x, rect.y, 60, EditorGUIUtility.singleLineHeight),
-                                        element.FindPropertyRelative("useClip"),
-                                        GUIContent.none);
-
-                EditorGUI.PropertyField(new Rect(rect.x + 60, rect.y, rect.width - 60, EditorGUIUtility.singleLineHeight),
-                                        element.FindPropertyRelative("animClip"),
-                                        GUIContent.none);
-
-                
-
-            };
+    private ReorderableList reorderAnimList;
 
 
-            reorderAnimList.elementHeightCallback = (index) => {
-                //return 20;
+    void OnEnable() {
+        reorderAnimList = new ReorderableList(serializedObject, serializedObject.FindProperty("animClipInfoList"), true, true, true, true);
 
-                var element = reorderAnimList.serializedProperty.GetArrayElementAtIndex(index);
-                if (element.FindPropertyRelative("animClip") == null) {
-                    return EditorGUIUtility.singleLineHeight;
-                }
+        reorderAnimList.drawElementCallback = (Rect rect, int index, bool isActive, bool isFocused) => {
+            var element = reorderAnimList.serializedProperty.GetArrayElementAtIndex(index);
 
-                return EditorGUIUtility.singleLineHeight * 3.0f;
-            };
+            EditorGUI.PropertyField(new Rect(rect.x, rect.y, 60, EditorGUIUtility.singleLineHeight),
+                                    element.FindPropertyRelative("useClip"),
+                                    GUIContent.none);
 
-        }
-
-
-        public override void OnInspectorGUI() {
-            //base.OnInspectorGUI();
-
-            serializedObject.Update();
-            reorderAnimList.DoLayoutList();
-            serializedObject.ApplyModifiedProperties();
+            EditorGUI.PropertyField(new Rect(rect.x + 60, rect.y, rect.width - 60, EditorGUIUtility.singleLineHeight),
+                                    element.FindPropertyRelative("animClip"),
+                                    GUIContent.none);
 
 
 
-        }
+        };
+
+
+        reorderAnimList.elementHeightCallback = (index) => {
+            //return 20;
+
+            var element = reorderAnimList.serializedProperty.GetArrayElementAtIndex(index);
+            if (element.FindPropertyRelative("animClip") == null) {
+                return EditorGUIUtility.singleLineHeight;
+            }
+
+            return EditorGUIUtility.singleLineHeight * 3.0f;
+        };
 
     }
-    #endif
-    */
+
+
+    public override void OnInspectorGUI() {
+        //base.OnInspectorGUI();
+
+        serializedObject.Update();
+        reorderAnimList.DoLayoutList();
+        serializedObject.ApplyModifiedProperties();
+
+
+
+    }
+
+}
+#endif
+*/
 
 //}

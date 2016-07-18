@@ -4,6 +4,7 @@ using UnityEditor;
 using UnityEditorInternal;
 using System.Collections.Generic;
 using System.Collections;
+using System.Diagnostics;
 using System.Linq;
 
 namespace AnimationMotionFields {
@@ -320,7 +321,7 @@ namespace AnimationMotionFields {
                 }
 
 				foreach (MotionPose pose in selectedMotionFieldController.NearestNeighbor(queryPoint, numActions)) {
-					Debug.Log("AnimName: " + pose.animClipRef.name + ", Timestamp: " + pose.timestamp + "\n");
+                    UnityEngine.Debug.Log("AnimName: " + pose.animClipRef.name + ", Timestamp: " + pose.timestamp + "\n");
                 }
 
             }
@@ -333,10 +334,22 @@ namespace AnimationMotionFields {
 
             //skinnedMesh = (ModelImporterClipAnimation) EditorGUILayout.ObjectField("skinMesh: ", skinnedMesh, typeof(ModelImporterClipAnimation), false);
 			if (GUILayout.Button("Generate Rewards Table")) {
+                try
+                {
+                    string test = selectedMotionFieldController.kd.toString();
+                }
+                catch(UnityException e)
+                {
+                    UnityEngine.Debug.LogError("Kdtree is uninitialized. Make sure you generate poses before generating the rewards table.");
+                }
+
+                Stopwatch stopWatch = new Stopwatch();
+                stopWatch.Start();
+
                 //create precomputed table of reward lookups at (every pose in kdtree)*(range of potential task values)
 
                 //get list of task arrays to sample reward at
-				int taskSize = selectedMotionFieldController.TArrayInfo.TaskArray.Count();
+                int taskSize = selectedMotionFieldController.TArrayInfo.TaskArray.Count();
 				List<List<float>> taskArr_samples = new List<List<float>> ();
 				for(int i=0; i < taskSize; i++){
 					List<float> tasksamples = new List<float> ();
@@ -344,13 +357,14 @@ namespace AnimationMotionFields {
 					float max = selectedMotionFieldController.TArrayInfo.TaskArray [i].max;
 					int numSamples = selectedMotionFieldController.TArrayInfo.TaskArray [i].numSamples;
 
-					float interval = (max - min) / numSamples;
+					float interval = (max - min) / (numSamples - 1);
 					for(float sample = min; sample <= max; sample+=interval){
 						tasksamples.Add (sample);
 					}
 					taskArr_samples.Add (tasksamples);
 				}
 				taskArr_samples = selectedMotionFieldController.CartesianProduct(taskArr_samples);
+                UnityEngine.Debug.Log("num of task samples: " + taskArr_samples.Count + "\ntask length: " + taskArr_samples[0].Count + "\n task 0 val: " + taskArr_samples[0][0].ToString());
 
                 //create initial rewardTable as List<ArrayList>
                 //each arraylist has MotionPose in [0], float[] of tasks in [1] and float for reward in [2]
@@ -359,8 +373,8 @@ namespace AnimationMotionFields {
 					foreach(MotionPose pose in animclip.motionPoses){
 						foreach(List<float> taskArr in taskArr_samples){
 							ArrayList arr = new ArrayList();
-							arr.Add (pose);
-                            arr.Add(taskArr);
+                            arr.Add (pose);
+                            arr.Add(taskArr.ToArray());
 							arr.Add (0.0f);
                             rewardTable.Add (arr);
 						}
@@ -368,12 +382,16 @@ namespace AnimationMotionFields {
 				}
 
                 //now recursively update fitness values to get the future reward
-                //to guarantee future reward is within p*(immediateReward) of future reward after infinite generations, 
-                //with a scaling of s, number of gens to run is
-                //ceil (log(-p log(S)) / log(S))
+                //to guarantee calculated future reward is within p*(immediateReward) of 'the future reward after infinite generations', 
+                //with a scaling of s (the nth gen has scaled reward of reward*s^(n-1), so with 0<s<1, this will approach a limit) number of gens to run is
+                //ceil (ln(-p ln(S)) / ln(S))
+
                 float s = selectedMotionFieldController.scale;
                 float p = 0.1f;
                 int generations = System.Convert.ToInt32(Mathf.Ceil((Mathf.Log(-p * Mathf.Log(s)))/Mathf.Log(s)));
+
+                UnityEngine.Debug.Log("numActions: " + numActions.ToString());
+                UnityEngine.Debug.Log("running for " + generations.ToString() + " generations");
 
                 for(int i = 0; i < generations; i++)
                 {
@@ -387,9 +405,10 @@ namespace AnimationMotionFields {
 
                         //also, if in need of more performance, could perhaps only calucate reward for every 'x' points, and other nearby points are extrapolated.
                         //dont know how negatively this would effect accuracy, but if negligible could provide large speed boost.
-                        MotionPose pose = point[0] as MotionPose;
-                        float[] taskarr = point[1] as float[];
+                        MotionPose pose = (MotionPose)point[0];
+                        float[] taskarr = (float[])point[1];
                         float reward = 0.0f;
+
                         selectedMotionFieldController.MoveOneFrame(pose, taskarr, numActions, ref reward);
                         point[2] = reward;
                     }
@@ -398,6 +417,14 @@ namespace AnimationMotionFields {
                 //finally, set to the initializer in selectedMotionFieldController.
                 //at runtime, this is converted to a dictionary
                 selectedMotionFieldController.precomputedRewards_Initializer = rewardTable;
+
+                stopWatch.Stop();
+                System.TimeSpan ts = stopWatch.Elapsed;
+                // Format and display the TimeSpan value.
+                string elapsedTime = string.Format("{0:00}:{1:00}:{2:00}.{3:00}",
+                    ts.Hours, ts.Minutes, ts.Seconds,
+                    ts.Milliseconds / 10);
+                UnityEngine.Debug.Log("RunTime " + elapsedTime);
             }
 
             EditorGUILayout.EndVertical();
@@ -408,6 +435,10 @@ namespace AnimationMotionFields {
         private void BuildMotionField() {
             if (selectedMotionFieldController != null) {
                 MotionFieldUtility.GenerateMotionField(ref selectedMotionFieldController, selectedMotionFieldComponent, frameResolution);
+            }
+            else
+            {
+                UnityEngine.Debug.LogError("selectedMFController is null. No kdtree generation occurred.");
             }
         }
 
