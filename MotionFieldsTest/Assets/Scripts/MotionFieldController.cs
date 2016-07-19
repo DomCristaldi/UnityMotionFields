@@ -215,8 +215,7 @@ public class MotionPose {
 
     public BonePose rootMotionInfo;
 
-    //public AnimationClip[] poses;
-    public AnimationClip animClipRef;
+    public string animName;
     public float timestamp;
 
     //public float[] keyframeData;
@@ -231,10 +230,10 @@ public class MotionPose {
 
 
     //NEW
-    public MotionPose(BonePose[] bonePoses, AnimationClip animClipRef, float timestamp) {
+    public MotionPose(BonePose[] bonePoses, string animName, float timestamp) {
         this.bonePoses = bonePoses;
 
-        this.animClipRef = animClipRef;
+        this.animName = animName;
         this.timestamp = timestamp;
     }
 
@@ -403,7 +402,7 @@ public class MotionFieldController : ScriptableObject {
 
         int chosenAction = PickCandidate(currentPose, candidateActions, taskArr, numActions, ref reward);
 
-        Debug.Log("Candidate Chosen! best fitness is " + reward + " from Action " + chosenAction + "\n");
+        //Debug.Log("Candidate Chosen! best fitness is " + reward + " from Action " + chosenAction + "\n");
 
         return candidateActions[chosenAction];
     }
@@ -595,7 +594,7 @@ public class MotionFieldController : ScriptableObject {
             newPoseBones.Add(newBone);
         }
 
-        MotionPose newPose = new MotionPose(newPoseBones.ToArray(), currentPose.animClipRef, currentPose.timestamp);
+        MotionPose newPose = new MotionPose(newPoseBones.ToArray(), currentPose.animName, currentPose.timestamp);
         return newPose;
     }
 
@@ -723,7 +722,7 @@ public class MotionFieldController : ScriptableObject {
 		List<float> dictKeys_weights = new List<float> ();
 		for (int i = 0; i < neighbors.Count(); i++){
 			for (int j = 0; j < nearestTasksArr.Length; j++){
-				dictKeys.Add (new vfKey(neighbors[i].animClipRef.name, neighbors[i].timestamp, nearestTasksArr[j]));
+				dictKeys.Add (new vfKey(neighbors[i].animName, neighbors[i].timestamp, nearestTasksArr[j]));
 				dictKeys_weights.Add (neighbors_weights [i] * nearestTasks_weights [j]);
 			}
 		}
@@ -745,10 +744,10 @@ public class MotionFieldController : ScriptableObject {
         precomputedRewards = new Dictionary<vfKey, float>();
         foreach (ArrayList arrLst in lst)
         {
-            MotionPose mp = arrLst[0] as MotionPose;
-            float[] taskarr = arrLst[1] as float[];
-            vfKey newkey = new vfKey(mp.animClipRef.name, mp.timestamp, taskarr);
-            //Debug.Log("VFKEY ADDED:\nclipname: " + mp.animClipRef.name + "\ntimestamp: " + mp.timestamp.ToString() + "\ntasks: " + string.Join(" ", taskarr.Select(w => w.ToString()).ToArray()) + "\nhashcode: " + newkey.GetHashCode() + "\ncomponent hashcodes: " + newkey.clipId.GetHashCode() + "  " + newkey.timeStamp.GetHashCode() + "  " + newkey.tasks.GetHashCode());
+            MotionPose mp = (MotionPose)arrLst[0];
+            float[] taskarr = (float[])arrLst[1];
+            vfKey newkey = new vfKey(mp.animName, mp.timestamp, taskarr);
+            //Debug.Log("VFKEY ADDED:\nclipname: " + mp.animName + "\ntimestamp: " + mp.timestamp.ToString() + "\ntasks: " + string.Join(" ", taskarr.Select(w => w.ToString()).ToArray()) + "\nhashcode: " + newkey.GetHashCode() + "\ncomponent hashcodes: " + newkey.clipId.GetHashCode() + "  " + newkey.timeStamp.GetHashCode() + "  " + newkey.tasks.GetHashCode());
             precomputedRewards.Add(newkey, System.Convert.ToSingle(arrLst[2]));
         }
     }

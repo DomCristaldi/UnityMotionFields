@@ -321,7 +321,7 @@ namespace AnimationMotionFields {
                 }
 
 				foreach (MotionPose pose in selectedMotionFieldController.NearestNeighbor(queryPoint, numActions)) {
-                    UnityEngine.Debug.Log("AnimName: " + pose.animClipRef.name + ", Timestamp: " + pose.timestamp + "\n");
+                    UnityEngine.Debug.Log("AnimName: " + pose.animName + ", Timestamp: " + pose.timestamp + "\n");
                 }
 
             }
@@ -334,102 +334,125 @@ namespace AnimationMotionFields {
 
             //skinnedMesh = (ModelImporterClipAnimation) EditorGUILayout.ObjectField("skinMesh: ", skinnedMesh, typeof(ModelImporterClipAnimation), false);
 			if (GUILayout.Button("Generate Rewards Table")) {
-                try
+                if(selectedMotionFieldController.kd == null)
                 {
-                    string test = selectedMotionFieldController.kd.toString();
+                    UnityEngine.Debug.LogError("KDTree is not initialized! Generate Poses first.");
                 }
-                catch(UnityException e)
+                else
                 {
-                    UnityEngine.Debug.LogError("Kdtree is uninitialized. Make sure you generate poses before generating the rewards table.");
+                    GenerateRewardsTable();
                 }
-
-                Stopwatch stopWatch = new Stopwatch();
-                stopWatch.Start();
-
-                //create precomputed table of reward lookups at (every pose in kdtree)*(range of potential task values)
-
-                //get list of task arrays to sample reward at
-                int taskSize = selectedMotionFieldController.TArrayInfo.TaskArray.Count();
-				List<List<float>> taskArr_samples = new List<List<float>> ();
-				for(int i=0; i < taskSize; i++){
-					List<float> tasksamples = new List<float> ();
-					float min = selectedMotionFieldController.TArrayInfo.TaskArray [i].min;
-					float max = selectedMotionFieldController.TArrayInfo.TaskArray [i].max;
-					int numSamples = selectedMotionFieldController.TArrayInfo.TaskArray [i].numSamples;
-
-					float interval = (max - min) / (numSamples - 1);
-					for(float sample = min; sample <= max; sample+=interval){
-						tasksamples.Add (sample);
-					}
-					taskArr_samples.Add (tasksamples);
-				}
-				taskArr_samples = selectedMotionFieldController.CartesianProduct(taskArr_samples);
-                UnityEngine.Debug.Log("num of task samples: " + taskArr_samples.Count + "\ntask length: " + taskArr_samples[0].Count + "\n task 0 val: " + taskArr_samples[0][0].ToString());
-
-                //create initial rewardTable as List<ArrayList>
-                //each arraylist has MotionPose in [0], float[] of tasks in [1] and float for reward in [2]
-                List<ArrayList> rewardTable = new List<ArrayList>(); 
-				foreach(AnimClipInfo animclip in selectedMotionFieldController.animClipInfoList ){
-					foreach(MotionPose pose in animclip.motionPoses){
-						foreach(List<float> taskArr in taskArr_samples){
-							ArrayList arr = new ArrayList();
-                            arr.Add (pose);
-                            arr.Add(taskArr.ToArray());
-							arr.Add (0.0f);
-                            rewardTable.Add (arr);
-						}
-					}
-				}
-
-                //now recursively update fitness values to get the future reward
-                //to guarantee calculated future reward is within p*(immediateReward) of 'the future reward after infinite generations', 
-                //with a scaling of s (the nth gen has scaled reward of reward*s^(n-1), so with 0<s<1, this will approach a limit) number of gens to run is
-                //ceil (ln(-p ln(S)) / ln(S))
-
-                float s = selectedMotionFieldController.scale;
-                float p = 0.1f;
-                int generations = System.Convert.ToInt32(Mathf.Ceil((Mathf.Log(-p * Mathf.Log(s)))/Mathf.Log(s)));
-
-                UnityEngine.Debug.Log("numActions: " + numActions.ToString());
-                UnityEngine.Debug.Log("running for " + generations.ToString() + " generations");
-
-                for(int i = 0; i < generations; i++)
-                {
-                    selectedMotionFieldController.makeDictfromList(rewardTable);
-
-                    foreach(ArrayList point in rewardTable)
-                    {
-                        //TODO: note that the precomputedRewards table is only updated between generations.
-                        //therefore, the order points are run to find there rewards does not matter, making this section easy to parallelize.
-                        //could be very beneficial, as generating the rewards table is likely to be rather slow.
-
-                        //also, if in need of more performance, could perhaps only calucate reward for every 'x' points, and other nearby points are extrapolated.
-                        //dont know how negatively this would effect accuracy, but if negligible could provide large speed boost.
-                        MotionPose pose = (MotionPose)point[0];
-                        float[] taskarr = (float[])point[1];
-                        float reward = 0.0f;
-
-                        selectedMotionFieldController.MoveOneFrame(pose, taskarr, numActions, ref reward);
-                        point[2] = reward;
-                    }
-                }
-
-                //finally, set to the initializer in selectedMotionFieldController.
-                //at runtime, this is converted to a dictionary
-                selectedMotionFieldController.precomputedRewards_Initializer = rewardTable;
-
-                stopWatch.Stop();
-                System.TimeSpan ts = stopWatch.Elapsed;
-                // Format and display the TimeSpan value.
-                string elapsedTime = string.Format("{0:00}:{1:00}:{2:00}.{3:00}",
-                    ts.Hours, ts.Minutes, ts.Seconds,
-                    ts.Milliseconds / 10);
-                UnityEngine.Debug.Log("RunTime " + elapsedTime);
             }
 
             EditorGUILayout.EndVertical();
 
 
+        }
+
+        private void GenerateRewardsTable()
+        {
+            //create precomputed table of reward lookups at (every pose in kdtree)*(range of potential task values)
+
+            //get list of task arrays to sample reward at
+            int taskSize = selectedMotionFieldController.TArrayInfo.TaskArray.Count();
+            List<List<float>> taskArr_samples = new List<List<float>>();
+            for (int i = 0; i < taskSize; i++)
+            {
+                List<float> tasksamples = new List<float>();
+                float min = selectedMotionFieldController.TArrayInfo.TaskArray[i].min;
+                float max = selectedMotionFieldController.TArrayInfo.TaskArray[i].max;
+                int numSamples = selectedMotionFieldController.TArrayInfo.TaskArray[i].numSamples;
+
+                float interval = (max - min) / (numSamples - 1);
+                for (float sample = min; sample <= max; sample += interval)
+                {
+                    tasksamples.Add(sample);
+                }
+                taskArr_samples.Add(tasksamples);
+            }
+            taskArr_samples = selectedMotionFieldController.CartesianProduct(taskArr_samples);
+            UnityEngine.Debug.Log("num of task samples: " + taskArr_samples.Count + "\ntask length: " + taskArr_samples[0].Count + "\n task 0 val: " + taskArr_samples[0][0].ToString());
+
+            //create initial rewardTable as List<ArrayList>
+            //each arraylist has MotionPose in [0], float[] of tasks in [1] and float for reward in [2]
+            List<ArrayList> rewardTable = new List<ArrayList>();
+            foreach (AnimClipInfo animclip in selectedMotionFieldController.animClipInfoList)
+            {
+                foreach (MotionPose pose in animclip.motionPoses)
+                {
+                    foreach (List<float> taskArr in taskArr_samples)
+                    {
+                        ArrayList arr = new ArrayList();
+                        arr.Add(pose);
+                        arr.Add(taskArr.ToArray());
+                        arr.Add(0.0f);
+                        rewardTable.Add(arr);
+                    }
+                }
+            }
+
+            //now recursively update fitness values to get the future reward
+            //to guarantee calculated future reward is within p*(immediateReward) of 'the future reward after infinite generations', 
+            //with a scaling of s (the nth gen has scaled reward of reward*s^(n-1), so with 0<s<1, this will approach a limit) number of gens to run is
+            //ceil (ln(-p ln(S)) / ln(S))
+
+            float s = selectedMotionFieldController.scale;
+            float p = 0.1f;
+            int generations = System.Convert.ToInt32(Mathf.Ceil((Mathf.Log(-p * Mathf.Log(s))) / Mathf.Log(s)));
+
+            UnityEngine.Debug.Log("numActions: " + numActions.ToString());
+            UnityEngine.Debug.Log("running for " + generations.ToString() + " generations");
+
+            Stopwatch stopWatch = new Stopwatch();
+            int numcycles = 0;
+            float averagetime = 0.0f;
+            int maxtime = 0;
+            int mintime = 1000;            
+
+            for (int i = 0; i < generations; i++)
+            {
+                selectedMotionFieldController.makeDictfromList(rewardTable);
+
+                foreach (ArrayList point in rewardTable)
+                {
+                    //TODO: note that the precomputedRewards table is only updated between generations.
+                    //therefore, the order points are run to find there rewards does not matter, making this section easy to parallelize.
+                    //could be very beneficial, as generating the rewards table is likely to be rather slow.
+
+                    //also, if in need of more performance, could perhaps only calucate reward for every 'x' points, and other nearby points are extrapolated.
+                    //dont know how negatively this would effect accuracy, but if negligible could provide large speed boost.
+                    MotionPose pose = (MotionPose)point[0];
+                    float[] taskarr = (float[])point[1];
+                    float reward = 0.0f;
+
+                    stopWatch.Start();
+
+                    selectedMotionFieldController.MoveOneFrame(pose, taskarr, numActions, ref reward);
+
+                    stopWatch.Stop();
+                    System.TimeSpan ts = stopWatch.Elapsed;
+                    numcycles++;
+                    averagetime += ts.Milliseconds;
+                    if(maxtime < ts.Milliseconds)
+                    {
+                        maxtime = ts.Milliseconds;
+                    }
+                    if(mintime > ts.Milliseconds)
+                    {
+                        mintime = ts.Milliseconds;
+                    }
+                    stopWatch.Reset();
+
+                    point[2] = reward;
+                }
+            }
+
+            averagetime = averagetime / numcycles;
+            UnityEngine.Debug.Log("Move One Frame Timings:     avg: " + averagetime.ToString() + "     max: " + maxtime.ToString() + "     min: " + mintime.ToString());
+
+            //finally, set to the initializer in selectedMotionFieldController.
+            //at runtime, this is converted to a dictionary
+            selectedMotionFieldController.precomputedRewards_Initializer = rewardTable;
         }
 
         private void BuildMotionField() {
