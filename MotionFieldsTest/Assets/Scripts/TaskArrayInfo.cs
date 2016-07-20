@@ -55,6 +55,7 @@ public class TaskArrayInfo_Editor : Editor {
 	public override void OnInspectorGUI()
 	{
 		base.OnInspectorGUI ();
+        return;
 
 		serializedObject.Update();
 		reorderATaskList.DoLayoutList();

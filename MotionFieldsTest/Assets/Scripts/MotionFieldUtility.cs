@@ -18,6 +18,19 @@ namespace AnimationMotionFields {
         public static BonePose[] ExtractBonePoses(AnimationClip animClipRefrence, MotionFieldComponent modelRef, float timestamp) {
             //Debug.LogError("IMPLEMENT ME!!!");
 
+            if(modelRef == null)
+            {
+                Debug.LogError("modelref is null");
+            }
+            if (modelRef.cosmeticSkel == null)
+            {
+                Debug.LogError("modelref.cosmeticskel is null");
+            }
+            if (modelRef.cosmeticSkel.cosmeticBones == null)
+            {
+                Debug.LogError("modelRef.cosmeticSkel.cosmeticBones is null");
+            }
+
             //we return this
             BonePose[] bonePoses = new BonePose[modelRef.cosmeticSkel.cosmeticBones.Count];
 
@@ -259,6 +272,9 @@ namespace AnimationMotionFields {
 
             motionPose.rootMotionInfo = new BonePose("RootMotion") { value = new BoneTransform(positionMotion, rotationMotion, Vector3.one) };
 
+            if (Mathf.Approximately(timestamp, frameStep)) {
+                GameObject.Instantiate(modelRef.cosmeticSkel.marker.gameObject, curHumanPose.bodyPosition, curHumanPose.bodyRotation);
+            }
             /*
             float frameStep = 1.0f / animClip.frameRate;//time for one animation frame
             float currentFrameTimePointer = 0.0f;
@@ -338,13 +354,18 @@ namespace AnimationMotionFields {
 
                 //*******
                 //motionPoses.Add(new MotionPose(animClip, currentFrameTimePointer, motionPoseKeyframes));
+//<<<<<<< HEAD
 
-                MotionPose newPose = new MotionPose(extractedBonePoses, animClip, currentFrameTimePointer);
+                MotionPose newPose = new MotionPose(extractedBonePoses, animClip.name, currentFrameTimePointer);
 
                 ExtractRootMotion(ref newPose, animClip, modelRef, currentFrameTimePointer, frameStep);
 
                 motionPoses.Add(newPose);
-
+/*
+=======
+                motionPoses.Add(new MotionPose(extractedBonePoses, animClip.name, currentFrameTimePointer) );
+>>>>>>> master
+*/
                 currentFrameTimePointer += frameStep * sampleStepSize;
 
                 /*
@@ -453,14 +474,23 @@ namespace AnimationMotionFields {
         public static void GenerateKDTree(ref KDTreeDLL.KDTree kdTree, List<AnimClipInfo> animClipInfoList) {
 
             //make KD Tree w/ number of dimension equal to total number of bone poses * (position * velocity) <- 20
-            kdTree = new KDTreeDLL.KDTree(animClipInfoList[0].motionPoses[0].bonePoses.Length * 20);
+            int KeyLength = animClipInfoList[0].motionPoses[0].bonePoses.Length * 20;
+            if(KeyLength == 0)
+            {
+                Debug.LogError("keylength for kdtree is 0! animClipInfoList[0].mationPoses[0] has an empty bonePoses array!"); //this error happened once, then went away...
+            }
+
+            Debug.Log("Length of kdtree key: " + KeyLength);
+            kdTree = new KDTreeDLL.KDTree(KeyLength);
+
+            Debug.Log("KDTREE's HASH CODE IS: " + kdTree.GetHashCode().ToString());
 
             foreach (AnimClipInfo clipInfo in animClipInfoList) {
                 foreach (MotionPose pose in clipInfo.motionPoses) {
                     
                     double[] position_velocity_pairings = pose.flattenedMotionPose.Select(x => System.Convert.ToDouble(x)).ToArray();
 
-                    string stuff = "Inserting id:" + pose.animClipRef.name + " , time: " + pose.timestamp + "  position_velocity_pairing:(";
+                    string stuff = "Inserting id:" + pose.animName + " , time: " + pose.timestamp + "  position_velocity_pairing:(";
                     foreach (double p in position_velocity_pairings) { stuff += p.ToString() + ", "; }
                     Debug.Log(stuff + ")");
 
@@ -472,6 +502,7 @@ namespace AnimationMotionFields {
                     }
                 }
             }
+            Debug.Log("kdtree:\n" + kdTree.toString());
         }
 
         /*public static void GenerateKDTree(ref KDTreeDLL.KDTree kdTree, List<AnimClipInfo> animClipInfoList, string[] uniquePaths, MotionFieldController.RootComponents rootComponents, int numDimensions) {

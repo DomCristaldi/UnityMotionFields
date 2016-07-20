@@ -1,8 +1,6 @@
 ﻿using UnityEngine;
 using System.Collections;
 
-//[System.Serializable]
-[CreateAssetMenu]
 public class ATask : ScriptableObject{
 
 	public ATask(){
