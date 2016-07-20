@@ -63,10 +63,6 @@ namespace AnimationMotionFields {
             }
         }
 
-        [SerializeField]
-		public int numActions = 1;
-    
-
         [MenuItem("MotionFields/Motion Field Author")]
         static void Init() {
             MotionField_EditorWindow window = (MotionField_EditorWindow)EditorWindow.GetWindow(typeof(MotionField_EditorWindow));
@@ -320,17 +316,11 @@ namespace AnimationMotionFields {
                     queryPoint[i] = 0.0f;
                 }
 
-				foreach (MotionPose pose in selectedMotionFieldController.NearestNeighbor(queryPoint, numActions)) {
+				foreach (MotionPose pose in selectedMotionFieldController.NearestNeighbor(queryPoint)) {
                     UnityEngine.Debug.Log("AnimName: " + pose.animName + ", Timestamp: " + pose.timestamp + "\n");
                 }
 
             }
-
-			EditorGUILayout.BeginHorizontal ();
-
-			numActions = EditorGUILayout.IntField (numActions);
-
-			EditorGUILayout.EndHorizontal ();
 
             //skinnedMesh = (ModelImporterClipAnimation) EditorGUILayout.ObjectField("skinMesh: ", skinnedMesh, typeof(ModelImporterClipAnimation), false);
 			if (GUILayout.Button("Generate Rewards Table")) {
@@ -400,7 +390,7 @@ namespace AnimationMotionFields {
             float p = 0.1f;
             int generations = System.Convert.ToInt32(Mathf.Ceil((Mathf.Log(-p * Mathf.Log(s))) / Mathf.Log(s)));
 
-            UnityEngine.Debug.Log("numActions: " + numActions.ToString());
+            UnityEngine.Debug.Log("numActions: " + selectedMotionFieldController.numActions.ToString());
             UnityEngine.Debug.Log("running for " + generations.ToString() + " generations");
 
             Stopwatch stopWatch = new Stopwatch();
@@ -427,7 +417,7 @@ namespace AnimationMotionFields {
 
                     stopWatch.Start();
 
-                    selectedMotionFieldController.MoveOneFrame(pose, taskarr, numActions, ref reward);
+                    selectedMotionFieldController.MoveOneFrame(pose, taskarr, ref reward);
 
                     stopWatch.Stop();
                     System.TimeSpan ts = stopWatch.Elapsed;

@@ -376,43 +376,45 @@ public class MotionFieldController : ScriptableObject {
     //closer to 1 also asymptotically increases time to generate precomputed rewards, so its recommended you dont set it too high. 
     public float scale = 0.5f; 
 
-	public float OneTick(MotionPose currentPose, int numActions = 1){
+    public int numActions = 1;
+
+	public float OneTick(MotionPose currentPose){
 
         float[] taskArr = GetTaskArray();
         Debug.Log("task Length: " + taskArr.Length.ToString());
 
         float reward = 0.0f;
-        currentPose = MoveOneFrame(currentPose, taskArr, numActions, ref reward);
+        currentPose = MoveOneFrame(currentPose, taskArr, ref reward);
 
         //TODO: currentPose needs to be applied to the model! note: 95% sure code was written for this. is it just not called, or done elsewhere?
 
         return reward;
 	}
 
-    public MotionPose MoveOneFrame(MotionPose currentPose, float[] taskArr, int numActions, ref float reward)
+    public MotionPose MoveOneFrame(MotionPose currentPose, float[] taskArr, ref float reward)
     {
 
         //float[] poseArr = currentPose.flattenedMotionPose;
         //Debug.Log("Move One Frame pose before GenCandActions: " + string.Join(" ", poseArr.Select(d => d.ToString()).ToArray()));
 
-        List<MotionPose> candidateActions = GenerateCandidateActions(currentPose, numActions);
+        List<MotionPose> candidateActions = GenerateCandidateActions(currentPose);
 
         //poseArr = currentPose.flattenedMotionPose;
         //Debug.Log("Move One Frame pose after GenCandActions: " + string.Join(" ", poseArr.Select(d => d.ToString()).ToArray()));
 
-        int chosenAction = PickCandidate(currentPose, candidateActions, taskArr, numActions, ref reward);
+        int chosenAction = PickCandidate(currentPose, candidateActions, taskArr, ref reward);
 
         //Debug.Log("Candidate Chosen! best fitness is " + reward + " from Action " + chosenAction + "\n");
 
         return candidateActions[chosenAction];
     }
 
-    public List<MotionPose> GenerateCandidateActions(MotionPose currentPose, int numActions)
+    public List<MotionPose> GenerateCandidateActions(MotionPose currentPose)
     {
         //generate candidate states to move to by finding closest poses in kdtree
         float[] currentPoseArr = currentPose.flattenedMotionPose;
 
-        MotionPose[] neighbors = NearestNeighbor(currentPoseArr, numActions);
+        MotionPose[] neighbors = NearestNeighbor(currentPoseArr);
 
         /*
         string StrNeighbors = "Neighbor Poses: ";
@@ -428,7 +430,7 @@ public class MotionFieldController : ScriptableObject {
 
         float[] weights = GenerateWeights(currentPoseArr, neighborsArr);
 
-        float[][] actionWeights = GenerateActionWeights(weights, numActions);
+        float[][] actionWeights = GenerateActionWeights(weights);
 
         List<MotionPose> candidateActions = new List<MotionPose>();
         foreach (float[] action in actionWeights)
@@ -439,12 +441,12 @@ public class MotionFieldController : ScriptableObject {
         return candidateActions;
     }
 
-    public int PickCandidate(MotionPose currentPose, List<MotionPose> candidateActions, float[] taskArr, int numActions, ref float bestReward) {
+    public int PickCandidate(MotionPose currentPose, List<MotionPose> candidateActions, float[] taskArr, ref float bestReward) {
         //choose the action with the highest reward
         int chosenAction = -1;
 
         for (int i = 0; i < candidateActions.Count(); i++) {
-            float reward = ComputeReward(currentPose, candidateActions[i], taskArr, numActions);
+            float reward = ComputeReward(currentPose, candidateActions[i], taskArr);
             //Debug.Log("Reward for action " + i.ToString() + " is " + reward.ToString());
             if (reward > bestReward) {
                 bestReward = reward;
@@ -454,11 +456,11 @@ public class MotionFieldController : ScriptableObject {
         return chosenAction;
     }
 
-    public MotionPose[] NearestNeighbor(float[] pose, int num_neighbors){
+    public MotionPose[] NearestNeighbor(float[] pose){
 		
 		double[] dbl_pose = pose.Select (x => System.Convert.ToDouble (x)).ToArray ();
 
-        object[] nn_data = kd.nearest (dbl_pose, num_neighbors);
+        object[] nn_data = kd.nearest (dbl_pose, numActions);
 
 		List<MotionPose> data = new List<MotionPose>();
 		foreach(object obj in nn_data){
@@ -467,8 +469,7 @@ public class MotionFieldController : ScriptableObject {
 		return data.ToArray();
 	}
 
-	public float[][] GenerateActionWeights(float[] weights, int numActions = 1){
-
+	public float[][] GenerateActionWeights(float[] weights){
 		float[][] actions = new float[numActions] [];
 		for(int i = 0; i < numActions; i++){
 			//for each action array, set weight[i] to 1 and renormalize
@@ -480,11 +481,11 @@ public class MotionFieldController : ScriptableObject {
 				actions[i][j] = actions[i][j] / actionSum;
 			}
 		}
-
 		return actions;
 	}
 
 	public float[] GenerateWeights(float[] pose, float[][] neighbors){
+        //note: neighbors.Length == numActions
         float infCount = 0.0f;
 		float[] weights = new float[neighbors.Length];
 
@@ -658,7 +659,7 @@ public class MotionFieldController : ScriptableObject {
 		return taskArr;
 	}
 
-	public float ComputeReward(MotionPose pose, MotionPose newPose, float[] taskArr, int numActions = 1){
+	public float ComputeReward(MotionPose pose, MotionPose newPose, float[] taskArr){
         //first calculate immediate reward
 		float immediateReward = 0.0f;
 		for(int i = 0; i < taskArr.Length; i++){
@@ -666,14 +667,14 @@ public class MotionFieldController : ScriptableObject {
 		}
 
         //calculate continuousReward
-        float continuousReward = ContRewardLookup(newPose, taskArr, numActions);
+        float continuousReward = ContRewardLookup(newPose, taskArr);
 
         //Debug.Log("Continuous Reward is " + continuousReward.ToString());
 
 		return immediateReward + scale*continuousReward;
 	}
 
-	public float ContRewardLookup(MotionPose pose, float[] Tasks, int numActions = 1){
+	public float ContRewardLookup(MotionPose pose, float[] Tasks){
         //get continuous reward from valuefunc lookup table.
         //reward is weighted blend of closest values in lookup table.
         //get closest poses from kdtree, and closest tasks from cartesian product
@@ -683,7 +684,7 @@ public class MotionFieldController : ScriptableObject {
 
         float[] poseArr = pose.flattenedMotionPose;
 
-        MotionPose[] neighbors = NearestNeighbor (poseArr, numActions);
+        MotionPose[] neighbors = NearestNeighbor (poseArr);
 		float[][] neighborsArr = neighbors.Select (x => x.flattenedMotionPose).ToArray ();
 		float[] neighbors_weights = GenerateWeights(poseArr, neighborsArr);
 
