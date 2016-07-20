@@ -194,15 +194,22 @@ namespace AnimationMotionFields {
 
 //ROOT MOTION EXTRACTION
         //TODO: restructure so looping is more intelligently implemented (maybe use deleagate functions? or more clever case checking? log position (center of mass / reference point) in hte umbrella function and pass that throught?)
-        public static void ExtractRootMotion(ref MotionPose[] motionPoses, CosmeticSkeleton skel, RootMotionCalculationMode calculationMode = RootMotionCalculationMode.ReferencePoint, bool looping = false) {
+        public static void ExtractRootMotion(ref MotionPose motionPose, AnimationClip animClip, MotionFieldComponent modelRef, float timestamp, float frameStep, RootMotionCalculationMode calculationMode = RootMotionCalculationMode.CenterOfMass, RootMotionFrameHandling frameHandling = RootMotionFrameHandling.SetFirstFrameToZero) {
 
+            //we're setting the root motion for the frist frame to zero, just set it here and break out
+            if (frameHandling == RootMotionFrameHandling.SetFirstFrameToZero && Mathf.Approximately(timestamp, 0.0f)) {
+                motionPose.rootMotionInfo = new BonePose("RootMotion") { value = new BoneTransform(Vector3.zero, Quaternion.identity, Vector3.zero) };
+                return;
+            }
+
+            //we want to do other things, do them here
             switch (calculationMode) {
                 case RootMotionCalculationMode.ReferencePoint:
-                    ExtractRootMotion_CenterOfMass(ref motionPoses, skel, looping);
+                    ExtractRootMotion_CenterOfMass(ref motionPose, animClip, modelRef, timestamp, frameStep, frameHandling);
                     break;
 
                 case RootMotionCalculationMode.CenterOfMass:
-                    ExtractRootMotion_CenterOfMass(ref motionPoses, skel, looping);
+                    ExtractRootMotion_CenterOfMass(ref motionPose, animClip, modelRef, timestamp, frameStep, frameHandling);
                     break;
 
                 default:
@@ -213,11 +220,66 @@ namespace AnimationMotionFields {
 
         }
 
-        private static void ExtractRootMotion_ReferencePoint(ref MotionPose[] motionPoses, CosmeticSkeleton skel, bool looping = false) {
-            
+        private static void ExtractRootMotion_ReferencePoint(ref MotionPose motionPose, AnimationClip animClip, MotionFieldComponent modelRef, float timestamp, float frameStep, RootMotionFrameHandling frameHandling = RootMotionFrameHandling.SetFirstFrameToZero) {
+
         }
 
-        public static void ExtractRootMotion_CenterOfMass(ref MotionPose[] motionPoses, CosmeticSkeleton skel, bool looping = false) {
+        public static void ExtractRootMotion_CenterOfMass(ref MotionPose motionPose, AnimationClip animClip, MotionFieldComponent modelRef, float timestamp, float frameStep, RootMotionFrameHandling frameHandling = RootMotionFrameHandling.SetFirstFrameToZero) {
+
+            //set up a pose handler for this model
+            HumanPoseHandler poseHandler = new HumanPoseHandler(modelRef.cosmeticSkel.avatar, modelRef.cosmeticSkel.skeletonRoot);
+            HumanPose prevHumanPose = new HumanPose();//this will store the previous frame's pose
+            HumanPose curHumanPose = new HumanPose();//this will store the current frame's pose
+            //poseHandler.GetHumanPose(ref hPose);
+
+
+
+            //HACK: assume that we're using the XZ plane for root motion, flatten out the Y to the Reference Point's Y
+            Vector3 projectedCenterOfMass = prevHumanPose.bodyPosition;
+            projectedCenterOfMass.y = modelRef.cosmeticSkel.rootMotionReferencePoint.position.y;
+
+
+            if (!AnimationMode.InAnimationMode()) {
+                AnimationMode.StartAnimationMode();
+            }
+            AnimationMode.BeginSampling();
+
+            //GRAB THE PREVIOUS POSE
+            AnimationMode.SampleAnimationClip(modelRef.gameObject, animClip, timestamp - frameStep);//sample the previous animation frame
+            poseHandler.GetHumanPose(ref prevHumanPose);//store the pose info here
+
+            AnimationMode.SampleAnimationClip(modelRef.gameObject, animClip, timestamp);//sample the current animation frame
+            poseHandler.GetHumanPose(ref curHumanPose);//store the pose info here
+
+
+            Quaternion adjustmentQuat = modelRef.cosmeticSkel.rootMotionReferencePoint.rotation * Quaternion.Inverse(prevHumanPose.bodyRotation);
+            Vector3 positionMotion = Vector3.ProjectOnPlane(adjustmentQuat * (curHumanPose.bodyPosition - prevHumanPose.bodyPosition), Vector3.up);
+
+            Quaternion rotationMotion = prevHumanPose.bodyRotation * Quaternion.Inverse(curHumanPose.bodyRotation);
+
+            motionPose.rootMotionInfo = new BonePose("RootMotion") { value = new BoneTransform(positionMotion, rotationMotion, Vector3.one) };
+
+            /*
+            float frameStep = 1.0f / animClip.frameRate;//time for one animation frame
+            float currentFrameTimePointer = 0.0f;
+
+            //MOVE ACROSS ANIMATION CLIP FRAME BY FRAME
+            while (currentFrameTimePointer <= ((animClip.length * animClip.frameRate) - frameStep) / animClip.frameRate) {
+
+                AnimationMode.SampleAnimationClip(modelRef.gameObject, animClip, currentFrameTimePointer);
+                poseHandler.GetHumanPose(ref hPose);
+
+                //Debug.Log(hPose.bodyRotation * Vector3.forward);
+
+                GameObject.Instantiate(modelRef.cosmeticSkel.marker, hPose.bodyPosition, hPose.bodyRotation);
+
+                //advance the frame pointer
+                currentFrameTimePointer += frameStep * frameStep;
+            }
+            */
+
+            AnimationMode.EndSampling();
+            AnimationMode.StopAnimationMode();
 
         }
 
@@ -276,7 +338,12 @@ namespace AnimationMotionFields {
 
                 //*******
                 //motionPoses.Add(new MotionPose(animClip, currentFrameTimePointer, motionPoseKeyframes));
-                motionPoses.Add(new MotionPose(extractedBonePoses, animClip, currentFrameTimePointer) );
+
+                MotionPose newPose = new MotionPose(extractedBonePoses, animClip, currentFrameTimePointer);
+
+                ExtractRootMotion(ref newPose, animClip, modelRef, currentFrameTimePointer, frameStep);
+
+                motionPoses.Add(newPose);
 
                 currentFrameTimePointer += frameStep * sampleStepSize;
 
@@ -292,6 +359,8 @@ namespace AnimationMotionFields {
             //motionPoses = DetermineKeyframeComponentVelocities(motionPoses.ToArray<MotionPose>(), velCalculationMode).ToList<MotionPose>();
 
             motionPoses = DetermineBonePoseComponentVelocities(motionPoses.ToArray<MotionPose>(), velCalculationMode).ToList<MotionPose>();
+
+            //ExtractRootMotion(ref motionPoses, animClip, modelRef, sampleStepSize);
 
             //Debug.LogFormat("Frame Count: {0} | Aggregate: {1}", frameCount, currentFramePointer);
             //Debug.LogFormat("Aggregate: {0} | Clip Length: {1}", currentFramePointer / animClip.frameRate, animClip.length);
