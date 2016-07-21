@@ -386,19 +386,23 @@ namespace AnimationMotionFields {
 
         public static List<AnimClipInfo> GenerateMotionField(List<AnimClipInfo> animClipInfos, MotionFieldComponent modelRef, int samplingRate) {
 
+            for (int i = 0; i < animClipInfos.Count; i++) {
 
-            foreach (AnimClipInfo clipInfo in animClipInfos) {
-                if (!clipInfo.useClip) {//only generate motion poses for the selected animations
-                    clipInfo.motionPoses = new MotionPose[] { };
+                EditorUtility.DisplayProgressBar("Generating Poses", "generating motion fields... ", ((float)i / (float)animClipInfos.Count));
+
+                if (!animClipInfos[i].useClip) {//only generate motion poses for the selected animations
+                    animClipInfos[i].motionPoses = new MotionPose[] { };
                 }
                 else {
                     //clipInfo.GenerateMotionPoses(samplingRate, uniquePaths);
-                    clipInfo.motionPoses = MotionFieldUtility.GenerateMotionPoses(clipInfo.animClip,
+                    animClipInfos[i].motionPoses = MotionFieldUtility.GenerateMotionPoses(animClipInfos[i].animClip,
                                                                                   modelRef,
                                                                                   samplingRate,
-                                                                                  clipInfo.velocityCalculationMode);
+                                                                                  animClipInfos[i].velocityCalculationMode);
                 }
             }
+
+            EditorUtility.ClearProgressBar();
 
             return animClipInfos;
         }
@@ -435,7 +439,7 @@ namespace AnimationMotionFields {
                 addedRuntimeController = true;
             }
 
-			mfController.animClipInfoList = MotionFieldUtility.GenerateMotionField(mfController.animClipInfoList, modelRef, samplingRate);
+            mfController.animClipInfoList = MotionFieldUtility.GenerateMotionField(mfController.animClipInfoList, modelRef, samplingRate);
 
             //reset any fields that may have been added
             if (addedRuntimeController) {
@@ -452,10 +456,8 @@ namespace AnimationMotionFields {
             modelRef.transform.rotation = originalModelRot;
             modelRef.transform.localScale = originalModelScale;
 
-
-            //*****************UNCOMMENT TO GENERATE KD TREE*********************
-            //MotionFieldUtility.GenerateKDTree(ref mfController, uniquePaths, mfController.rootComponents);
             MotionFieldUtility.GenerateKDTree(ref mfController);
+
         }
 
         public static void GenerateKDTree(ref MotionFieldController mfController) {
@@ -480,8 +482,11 @@ namespace AnimationMotionFields {
 
             Debug.Log("KDTREE's HASH CODE IS: " + kdTree.GetHashCode().ToString());
 
-            foreach (AnimClipInfo clipInfo in animClipInfoList) {
-                foreach (MotionPose pose in clipInfo.motionPoses) {
+            for (int i = 0; i < animClipInfoList.Count; i++) {
+
+                EditorUtility.DisplayProgressBar("Generating Poses", "generating ke tree... ", ((float)i / (float)animClipInfoList.Count));
+
+                foreach (MotionPose pose in animClipInfoList[i].motionPoses) {
                     
                     double[] position_velocity_pairings = pose.flattenedMotionPose.Select(x => System.Convert.ToDouble(x)).ToArray();
 
@@ -497,7 +502,8 @@ namespace AnimationMotionFields {
                     }
                 }
             }
-            Debug.Log("kdtree:\n" + kdTree.toString());
+
+            EditorUtility.ClearProgressBar();
         }
 
         /*public static void GenerateKDTree(ref KDTreeDLL.KDTree kdTree, List<AnimClipInfo> animClipInfoList, string[] uniquePaths, MotionFieldController.RootComponents rootComponents, int numDimensions) {

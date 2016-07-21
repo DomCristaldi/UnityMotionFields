@@ -87,9 +87,12 @@ namespace AnimationMotionFields {
                 selectedGO = Selection.activeGameObject;
             }
             //serializedSelectedMotoinSkeleton = new SerializedObject(Selection.activeGameObject);
-            Repaint();
         }
 
+        void OnInspectorUpdate()
+        {
+            Repaint();
+        }
 
         void OnGUI() {
 
@@ -394,25 +397,29 @@ namespace AnimationMotionFields {
             UnityEngine.Debug.Log("running for " + generations.ToString() + " generations");
 
             Stopwatch stopWatch = new Stopwatch();
-            int numcycles = 0;
+
+            float numcycles = generations * rewardTable.Count;
             float averagetime = 0.0f;
             int maxtime = 0;
-            int mintime = 1000;            
+            int mintime = 1000;
 
             for (int i = 0; i < generations; i++)
             {
                 selectedMotionFieldController.makeDictfromList(rewardTable);
 
-                foreach (ArrayList point in rewardTable)
+                int genstart = i * rewardTable.Count;
+                for (int j = 0; j < rewardTable.Count; j++)
                 {
+                    EditorUtility.DisplayProgressBar("Generating Rewards", "generation " + (i + 1).ToString() + " of " + generations.ToString() + "... ", ((genstart + j) / numcycles));
+
                     //TODO: note that the precomputedRewards table is only updated between generations.
                     //therefore, the order points are run to find there rewards does not matter, making this section easy to parallelize.
                     //could be very beneficial, as generating the rewards table is likely to be rather slow.
 
                     //also, if in need of more performance, could perhaps only calucate reward for every 'x' points, and other nearby points are extrapolated.
                     //dont know how negatively this would effect accuracy, but if negligible could provide large speed boost.
-                    MotionPose pose = (MotionPose)point[0];
-                    float[] taskarr = (float[])point[1];
+                    MotionPose pose = (MotionPose)rewardTable[j][0];
+                    float[] taskarr = (float[])rewardTable[j][1];
                     float reward = 0.0f;
 
                     stopWatch.Start();
@@ -421,7 +428,6 @@ namespace AnimationMotionFields {
 
                     stopWatch.Stop();
                     System.TimeSpan ts = stopWatch.Elapsed;
-                    numcycles++;
                     averagetime += ts.Milliseconds;
                     if(maxtime < ts.Milliseconds)
                     {
@@ -433,9 +439,11 @@ namespace AnimationMotionFields {
                     }
                     stopWatch.Reset();
 
-                    point[2] = reward;
+                    rewardTable[j][2] = reward;
                 }
             }
+
+            EditorUtility.ClearProgressBar();
 
             averagetime = averagetime / numcycles;
             UnityEngine.Debug.Log("Move One Frame Timings:     avg: " + averagetime.ToString() + "     max: " + maxtime.ToString() + "     min: " + mintime.ToString());
