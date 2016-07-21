@@ -28,8 +28,12 @@ namespace AnimationMotionFields {
     [System.Serializable]
     public class CosmeticSkeleton {
 
+        public GameObject marker;
+
         public Transform skeletonRoot;
         public Transform rootMotionReferencePoint;
+
+        public Avatar avatar;
 
         public List<CosmeticSkeletonBone> cosmeticBones;
 
@@ -138,9 +142,11 @@ namespace AnimationMotionFields {
 
             float yVal = position.y;
 
+            SerializedProperty markerProp = property.FindPropertyRelative("marker");
+
             SerializedProperty skelRootProp = property.FindPropertyRelative("skeletonRoot");
             SerializedProperty rootMotionRefPointProp = property.FindPropertyRelative("rootMotionReferencePoint");
-
+            SerializedProperty avatarProp = property.FindPropertyRelative("avatar");
 
             EditorGUI.BeginProperty(position, label, property);
 
@@ -149,11 +155,15 @@ namespace AnimationMotionFields {
 
             property.serializedObject.Update();
 
+            EditorGUI.PropertyField(new Rect(position.x, yVal,
+                                             position.width, EditorGUI.GetPropertyHeight(markerProp)),
+                                    markerProp);
+            yVal += EditorGUI.GetPropertyHeight(markerProp);
+
             //DRAW SKELETON ROOT PROPERTY FIELD
             EditorGUI.PropertyField(new Rect(position.x, yVal,
                                              position.width, EditorGUI.GetPropertyHeight(skelRootProp)),
                                     skelRootProp);
-
             yVal += EditorGUI.GetPropertyHeight(skelRootProp);
 
 
@@ -161,8 +171,14 @@ namespace AnimationMotionFields {
             EditorGUI.PropertyField(new Rect(position.x, yVal,
                                              position.width, EditorGUI.GetPropertyHeight(rootMotionRefPointProp)),
                                     rootMotionRefPointProp);
-
             yVal += EditorGUI.GetPropertyHeight(rootMotionRefPointProp);
+
+
+            //DRAW AVATAR PROPERTY FIELD
+            EditorGUI.PropertyField(new Rect(position.x, yVal,
+                                             position.width, EditorGUI.GetPropertyHeight(avatarProp)),
+                                    avatarProp);
+            yVal += EditorGUI.GetPropertyHeight(avatarProp);
 
 
             //_reorderList.DoList(position);

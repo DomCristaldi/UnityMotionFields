@@ -24,6 +24,12 @@ public enum RootMotionCalculationMode {
     CenterOfMass = 1,
 }
 
+public enum RootMotionFrameHandling {
+    DropFirstFrame = 0,
+    LoopToFirstFrame = 1,
+    SetFirstFrameToZero = 2,
+}
+
 //namespace AnimationMotionFields {
 
 /*[System.Serializable]
@@ -52,11 +58,26 @@ public class BoneTransform {
         this.rotW = this.sclX = this.sclY = this.sclZ = 1.0f;
     }
 
+    public BoneTransform(Vector3 position, Quaternion rotation, Vector3 scale) {
+        this.posX = position.x;
+        this.posY = position.y;
+        this.posZ = position.z;
+
+        this.rotW = rotation.w;
+        this.rotX = rotation.x;
+        this.rotY = rotation.y;
+        this.rotZ = rotation.z;
+
+        this.sclX = scale.x;
+        this.sclY = scale.y;
+        this.sclZ = scale.z;
+    }
+
     //Initialize everything to the same constant value (useful for setting velocity to 0)
     public BoneTransform(float constant) {
-        posX = posY = posZ
-      = rotW = rotX = rotY = rotZ
-      = sclX = sclY = sclZ
+        this.posX = this.posY = this.posZ
+      = this.rotW = this.rotX = this.rotY = this.rotZ
+      = this.sclX = this.sclY = this.sclZ
       = constant;
     }
 
@@ -64,34 +85,35 @@ public class BoneTransform {
     public BoneTransform(Transform tf, bool isLocal = true) {
 
         if (isLocal) {
-            posX = tf.localPosition.x;
-            posY = tf.localPosition.y;
-            posZ = tf.localPosition.z;
+            this.posX = tf.localPosition.x;
+            this.posY = tf.localPosition.y;
+            this.posZ = tf.localPosition.z;
 
-            rotW = tf.localRotation.w;
-            rotX = tf.localRotation.x;
-            rotY = tf.localRotation.y;
-            rotZ = tf.localRotation.z;
+            this.rotW = tf.localRotation.w;
+            this.rotX = tf.localRotation.x;
+            this.rotY = tf.localRotation.y;
+            this.rotZ = tf.localRotation.z;
 
-            sclX = tf.localScale.x;
-            sclY = tf.localScale.y;
-            sclZ = tf.localScale.z;
+            this.sclX = tf.localScale.x;
+            this.sclY = tf.localScale.y;
+            this.sclZ = tf.localScale.z;
         }
         else {//ASSUME WORLD
             //Debug.Log("world");
 
-            posX = tf.position.x;
-            posY = tf.position.y;
-            posZ = tf.position.z;
+            this.posX = tf.position.x;
+            this.posY = tf.position.y;
+            this.posZ = tf.position.z;
 
+            //HACN: projecting onto the plane of the transform's forward vector may not be the best idea here
             Quaternion quat = new Quaternion(tf.rotation.x, tf.rotation.y, tf.rotation.z, tf.rotation.w);
             Vector3 forVec = quat * Vector3.forward;
             quat = Quaternion.LookRotation(Vector3.ProjectOnPlane(forVec, Vector3.up));
 
-            rotW = quat.w;
-            rotX = quat.x;
-            rotY = quat.y;
-            rotZ = quat.z;
+            this.rotW = quat.w;
+            this.rotX = quat.x;
+            this.rotY = quat.y;
+            this.rotZ = quat.z;
 
             /*
             rotW = tf.rotation.w;
@@ -100,42 +122,42 @@ public class BoneTransform {
             rotZ = tf.rotation.z;
             */
 
-            sclX = tf.lossyScale.x;
-            sclY = tf.lossyScale.y;
-            sclZ = tf.lossyScale.z;
+            this.sclX = tf.lossyScale.x;
+            this.sclY = tf.lossyScale.y;
+            this.sclZ = tf.lossyScale.z;
         }
     }
 
     //Used for calculating velocity
     public BoneTransform(BoneTransform origin, BoneTransform destination) {
-        posX = destination.posX - origin.posX;
-        posY = destination.posY - origin.posY;
-        posZ = destination.posZ - origin.posZ;
+        this.posX = destination.posX - origin.posX;
+        this.posY = destination.posY - origin.posY;
+        this.posZ = destination.posZ - origin.posZ;
 
-        rotW = destination.rotW - origin.rotW;
-        rotX = destination.rotX - origin.rotX;
-        rotY = destination.rotY - origin.rotY;
-        rotZ = destination.rotZ - origin.rotZ;
+        this.rotW = destination.rotW - origin.rotW;
+        this.rotX = destination.rotX - origin.rotX;
+        this.rotY = destination.rotY - origin.rotY;
+        this.rotZ = destination.rotZ - origin.rotZ;
 
-        sclX = destination.sclX - origin.sclX;
-        sclY = destination.sclY - origin.sclY;
-        sclZ = destination.sclZ - origin.sclZ;
+        this.sclX = destination.sclX - origin.sclX;
+        this.sclY = destination.sclY - origin.sclY;
+        this.sclZ = destination.sclZ - origin.sclZ;
     }
 
     //Used for creating a copy
     public BoneTransform(BoneTransform copy) {
-        posX = copy.posX;
-        posY = copy.posY;
-        posZ = copy.posZ;
+        this.posX = copy.posX;
+        this.posY = copy.posY;
+        this.posZ = copy.posZ;
 
-        rotW = copy.rotW;
-        rotX = copy.rotX;
-        rotY = copy.rotY;
-        rotZ = copy.rotZ;
+        this.rotW = copy.rotW;
+        this.rotX = copy.rotX;
+        this.rotY = copy.rotY;
+        this.rotZ = copy.rotZ;
 
-        sclX = copy.sclX;
-        sclY = copy.sclY;
-        sclZ = copy.sclZ;
+        this.sclX = copy.sclX;
+        this.sclY = copy.sclY;
+        this.sclZ = copy.sclZ;
     }
 
     public float[] flattenedPosition {
