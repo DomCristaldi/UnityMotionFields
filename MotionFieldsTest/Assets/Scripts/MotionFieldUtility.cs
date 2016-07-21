@@ -354,18 +354,13 @@ namespace AnimationMotionFields {
 
                 //*******
                 //motionPoses.Add(new MotionPose(animClip, currentFrameTimePointer, motionPoseKeyframes));
-//<<<<<<< HEAD
 
                 MotionPose newPose = new MotionPose(extractedBonePoses, animClip.name, currentFrameTimePointer);
 
                 ExtractRootMotion(ref newPose, animClip, modelRef, currentFrameTimePointer, frameStep);
 
                 motionPoses.Add(newPose);
-/*
-=======
-                motionPoses.Add(new MotionPose(extractedBonePoses, animClip.name, currentFrameTimePointer) );
->>>>>>> master
-*/
+
                 currentFrameTimePointer += frameStep * sampleStepSize;
 
                 /*
