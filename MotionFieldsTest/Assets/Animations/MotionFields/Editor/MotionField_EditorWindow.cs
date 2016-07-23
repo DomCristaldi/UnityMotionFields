@@ -4,7 +4,6 @@ using UnityEditor;
 using UnityEditorInternal;
 using System.Collections.Generic;
 using System.Collections;
-using System.Diagnostics;
 using System.Linq;
 
 namespace AnimationMotionFields {
@@ -320,7 +319,7 @@ namespace AnimationMotionFields {
                 }
 
 				foreach (MotionPose pose in selectedMotionFieldController.NearestNeighbor(queryPoint)) {
-                    UnityEngine.Debug.Log("AnimName: " + pose.animName + ", Timestamp: " + pose.timestamp + "\n");
+                    Debug.Log("AnimName: " + pose.animName + ", Timestamp: " + pose.timestamp + "\n");
                 }
 
             }
@@ -329,7 +328,7 @@ namespace AnimationMotionFields {
 			if (GUILayout.Button("Generate Rewards Table")) {
                 if(selectedMotionFieldController.kd == null)
                 {
-                    UnityEngine.Debug.LogError("KDTree is not initialized! Generate Poses first.");
+                    Debug.LogError("KDTree is not initialized! Generate Poses first.");
                 }
                 else
                 {
@@ -364,7 +363,7 @@ namespace AnimationMotionFields {
                 taskArr_samples.Add(tasksamples);
             }
             taskArr_samples = selectedMotionFieldController.CartesianProduct(taskArr_samples);
-            UnityEngine.Debug.Log("num of task samples: " + taskArr_samples.Count + "\ntask length: " + taskArr_samples[0].Count + "\n task 0 val: " + taskArr_samples[0][0].ToString());
+            Debug.Log("num of task samples: " + taskArr_samples.Count + "\ntask length: " + taskArr_samples[0].Count + "\n task 0 val: " + taskArr_samples[0][0].ToString());
 
             //create initial rewardTable as List<ArrayList>
             //each arraylist has MotionPose in [0], float[] of tasks in [1] and float for reward in [2]
@@ -393,10 +392,10 @@ namespace AnimationMotionFields {
             float p = 0.1f;
             int generations = System.Convert.ToInt32(Mathf.Ceil((Mathf.Log(-p * Mathf.Log(s))) / Mathf.Log(s)));
 
-            UnityEngine.Debug.Log("numActions: " + selectedMotionFieldController.numActions.ToString());
-            UnityEngine.Debug.Log("running for " + generations.ToString() + " generations");
+            Debug.Log("numActions: " + selectedMotionFieldController.numActions.ToString());
+            Debug.Log("running for " + generations.ToString() + " generations");
 
-            Stopwatch stopWatch = new Stopwatch();
+            System.Diagnostics.Stopwatch stopWatch = new System.Diagnostics.Stopwatch();
 
             float numcycles = generations * rewardTable.Count;
             float averagetime = 0.0f;
@@ -446,7 +445,7 @@ namespace AnimationMotionFields {
             EditorUtility.ClearProgressBar();
 
             averagetime = averagetime / numcycles;
-            UnityEngine.Debug.Log("Move One Frame Timings:     avg: " + averagetime.ToString() + "     max: " + maxtime.ToString() + "     min: " + mintime.ToString());
+            Debug.Log("Move One Frame Timings:     avg: " + averagetime.ToString() + "     max: " + maxtime.ToString() + "     min: " + mintime.ToString());
 
             //finally, set to the initializer in selectedMotionFieldController.
             //at runtime, this is converted to a dictionary
@@ -459,7 +458,7 @@ namespace AnimationMotionFields {
             }
             else
             {
-                UnityEngine.Debug.LogError("selectedMFController is null. No kdtree generation occurred.");
+                Debug.LogError("selectedMFController is null. No kdtree generation occurred.");
             }
         }
 
