@@ -1,5 +1,6 @@
 ﻿using UnityEngine;
 //using UnityEngine.Experimental.Director;
+using System.Collections;
 using System.Collections.Generic;
 //using System.Linq;
 
@@ -54,6 +55,28 @@ namespace AnimationMotionFields {
                     }
                 }
             }
+        }
+
+        public CosmeticSkeletonBone GetBone(string boneLabel) {
+
+            foreach (CosmeticSkeletonBone bone in cosmeticBones) {
+                if (bone.boneLabel == boneLabel) {
+                    return bone;
+                }
+            }
+
+            return null;
+        }
+
+        public CosmeticSkeletonBone GetBone(Transform boneTf) {
+
+            foreach (CosmeticSkeletonBone bone in cosmeticBones) {
+                if (bone.boneTf == boneTf) {
+                    return bone;
+                }
+            }
+
+            return null;
         }
     }
 
@@ -262,6 +285,23 @@ namespace AnimationMotionFields {
 
         }
 
+
+        public IEnumerator PlayOutMotionPoseAnim(int animIndex) {
+
+            if (controller == null) { yield break; }
+
+            foreach (MotionPose pose in controller.animClipInfoList[animIndex].motionPoses) {
+
+                ApplyMotionPoseToSkeleton(pose);
+
+                yield return null;
+            }
+
+
+            yield break;
+        }
+
+
 #if UNITY_EDITOR
 
         [SerializeField]
@@ -323,6 +363,8 @@ namespace AnimationMotionFields {
 
             DrawMotionApplicationTool();
 
+            EditorGUILayout.Space();
+
             EditorGUILayout.Vector3Field("Angular Vel:", animControl.angularVelocity);
             EditorGUILayout.Vector3Field("Vel: ", animControl.velocity);
             EditorGUILayout.Vector3Field("DeltaPos: ", animControl.deltaPosition);
@@ -340,6 +382,10 @@ namespace AnimationMotionFields {
 
             if (GUILayout.Button("ApplyPose")) {
                 selfScript.ApplyMotionPoseToSkeleton(selfScript.controller.animClipInfoList[selectedAnim].motionPoses[selectedPose]);
+            }
+
+            if (GUILayout.Button("Play thorugh poses")) {
+                selfScript.StartCoroutine(selfScript.PlayOutMotionPoseAnim(selectedAnim));
             }
 
             EditorGUILayout.EndVertical();

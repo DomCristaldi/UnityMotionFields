@@ -18,16 +18,13 @@ namespace AnimationMotionFields {
         public static BonePose[] ExtractBonePoses(AnimationClip animClipRefrence, MotionFieldComponent modelRef, float timestamp) {
             //Debug.LogError("IMPLEMENT ME!!!");
 
-            if(modelRef == null)
-            {
+            if(modelRef == null) {
                 Debug.LogError("modelref is null");
             }
-            if (modelRef.cosmeticSkel == null)
-            {
+            if (modelRef.cosmeticSkel == null) {
                 Debug.LogError("modelref.cosmeticskel is null");
             }
-            if (modelRef.cosmeticSkel.cosmeticBones == null)
-            {
+            if (modelRef.cosmeticSkel.cosmeticBones == null) {
                 Debug.LogError("modelRef.cosmeticSkel.cosmeticBones is null");
             }
 
@@ -208,12 +205,60 @@ namespace AnimationMotionFields {
 //ROOT MOTION EXTRACTION
         //TODO: restructure so looping is more intelligently implemented (maybe use deleagate functions? or more clever case checking? log position (center of mass / reference point) in hte umbrella function and pass that throught?)
         public static void ExtractRootMotion(ref MotionPose motionPose, AnimationClip animClip, MotionFieldComponent modelRef, float timestamp, float frameStep, RootMotionCalculationMode calculationMode = RootMotionCalculationMode.CenterOfMass, RootMotionFrameHandling frameHandling = RootMotionFrameHandling.SetFirstFrameToZero) {
+            
+            switch (calculationMode) {
+                case RootMotionCalculationMode.ReferencePoint:
+
+                    break;
+
+                case RootMotionCalculationMode.CenterOfMass:
+                    BonePose skeletonRootBonePose = motionPose.GetBonePose(modelRef.cosmeticSkel.GetBone(modelRef.cosmeticSkel.skeletonRoot).boneLabel);
+
+
+                    Transform rootMotionRefPoint = modelRef.cosmeticSkel.rootMotionReferencePoint;
+                    Transform skelRoot = modelRef.cosmeticSkel.skeletonRoot;
+
+
+                    HumanPoseHandler hPoseHandler = new HumanPoseHandler(modelRef.cosmeticSkel.avatar, modelRef.cosmeticSkel.skeletonRoot);
+                    HumanPose hPose = new HumanPose();
+
+                    if (!AnimationMode.InAnimationMode()) { AnimationMode.StartAnimationMode(); }
+                    AnimationMode.BeginSampling();
+
+
+                    AnimationMode.SampleAnimationClip(modelRef.gameObject, animClip, timestamp);
+                    hPoseHandler.GetHumanPose(ref hPose);
+
+                    Vector3 newPos = Vector3.ProjectOnPlane( (modelRef.cosmeticSkel.rootMotionReferencePoint.position - modelRef.cosmeticSkel.skeletonRoot.position)
+                                     /*+ (hPose.bodyPosition - modelRef.cosmeticSkel.skeletonRoot.position)*/, Vector3.up)
+
+                                     + skelRoot.position;
+
+                    //transform the point to the reference point's local space, where the skeleton's root is originally located
+                    newPos = modelRef.cosmeticSkel.rootMotionReferencePoint.InverseTransformPoint(newPos);
+
+                    Quaternion newRot = (skelRoot.rotation * (rootMotionRefPoint.rotation * Quaternion.Inverse(skelRoot.rotation))) * (hPose.bodyRotation * Quaternion.Inverse(hPose.bodyRotation));
+
+                    //skeletonRootBonePose = new BonePose("bleh") { value = new BoneTransform(0.0f) };
+                    Debug.Log(skeletonRootBonePose.boneLabel);
+
+                    //skeletonRootBonePose.boneLabel = "asl;dkfj;alsdkjf";
+                    skeletonRootBonePose.value = new BoneTransform(newPos, newRot, skelRoot.localScale);
+
+                    AnimationMode.EndSampling();
+                    AnimationMode.StopAnimationMode();
+
+                    break;
+            }
+            
 
             //we're setting the root motion for the frist frame to zero, just set it here and break out
             if (frameHandling == RootMotionFrameHandling.SetFirstFrameToZero && Mathf.Approximately(timestamp, 0.0f)) {
                 motionPose.rootMotionInfo = new BonePose("RootMotion") { value = new BoneTransform(Vector3.zero, Quaternion.identity, Vector3.zero) };
                 return;
             }
+
+            
 
             //we want to do other things, do them here
             switch (calculationMode) {
@@ -222,7 +267,7 @@ namespace AnimationMotionFields {
                     break;
 
                 case RootMotionCalculationMode.CenterOfMass:
-                    ExtractRootMotion_CenterOfMass(ref motionPose, animClip, modelRef, timestamp, frameStep, frameHandling);
+                    //ExtractRootMotion_CenterOfMass(ref motionPose, animClip, modelRef, timestamp, frameStep, frameHandling);
                     break;
 
                 default:
@@ -230,6 +275,7 @@ namespace AnimationMotionFields {
                     
             }
 
+            //Debug.Log(skeletonRootBonePose.value.flattenedPosition[2]);
 
         }
 
@@ -272,27 +318,9 @@ namespace AnimationMotionFields {
 
             motionPose.rootMotionInfo = new BonePose("RootMotion") { value = new BoneTransform(positionMotion, rotationMotion, Vector3.one) };
 
-            if (Mathf.Approximately(timestamp, frameStep)) {
-                GameObject.Instantiate(modelRef.cosmeticSkel.marker.gameObject, curHumanPose.bodyPosition, curHumanPose.bodyRotation);
-            }
-            /*
-            float frameStep = 1.0f / animClip.frameRate;//time for one animation frame
-            float currentFrameTimePointer = 0.0f;
-
-            //MOVE ACROSS ANIMATION CLIP FRAME BY FRAME
-            while (currentFrameTimePointer <= ((animClip.length * animClip.frameRate) - frameStep) / animClip.frameRate) {
-
-                AnimationMode.SampleAnimationClip(modelRef.gameObject, animClip, currentFrameTimePointer);
-                poseHandler.GetHumanPose(ref hPose);
-
-                //Debug.Log(hPose.bodyRotation * Vector3.forward);
-
-                GameObject.Instantiate(modelRef.cosmeticSkel.marker, hPose.bodyPosition, hPose.bodyRotation);
-
-                //advance the frame pointer
-                currentFrameTimePointer += frameStep * frameStep;
-            }
-            */
+            //if (Mathf.Approximately(timestamp, frameStep)) {
+                //GameObject.Instantiate(modelRef.cosmeticSkel.marker.gameObject, curHumanPose.bodyPosition, curHumanPose.bodyRotation);
+            //}
 
             AnimationMode.EndSampling();
             AnimationMode.StopAnimationMode();

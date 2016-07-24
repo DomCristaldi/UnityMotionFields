@@ -330,6 +330,20 @@ public class MotionPose {
         }
     }
 
+    //RETRIEVE THE BONE POSE WITH THE SPECIFIED LABEL
+    public BonePose GetBonePose(string label) {
+        foreach (BonePose pose in bonePoses) {
+            if (pose.boneLabel == label) {
+
+                return pose;
+
+            }
+        }
+
+        //no bone pose with that label was found, return Null
+        return null;
+    }
+
 }
 
 [System.Serializable]
