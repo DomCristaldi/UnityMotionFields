@@ -313,19 +313,22 @@ namespace AnimationMotionFields {
 
 
             if (GUILayout.Button("test point 0")) {
-                float[] queryPoint = new float[selectedMotionFieldController.animClipInfoList[0].motionPoses[0].flattenedMotionPose.Length];
-                for (int i = 0; i < queryPoint.Length; ++i) {
-                    queryPoint[i] = 0.0f;
-                }
+                int length = selectedMotionFieldController.animClipInfoList[0].motionPoses[0].flattenedMotionPose.Length;
+                float[] queryPoint = new float[length];
 
-				foreach (MotionPose pose in selectedMotionFieldController.NearestNeighbor(queryPoint)) {
+                for(int i = 0; i < length; ++i){
+                    queryPoint[i] = 0;
+                }
+                MotionPose[] poses = selectedMotionFieldController.NearestNeighbor(queryPoint);
+
+                foreach(MotionPose pose in poses)
+                {
                     Debug.Log("AnimName: " + pose.animName + ", Timestamp: " + pose.timestamp + "\n");
                 }
-
             }
 
             //skinnedMesh = (ModelImporterClipAnimation) EditorGUILayout.ObjectField("skinMesh: ", skinnedMesh, typeof(ModelImporterClipAnimation), false);
-			if (GUILayout.Button("Generate Rewards Table")) {
+            if (GUILayout.Button("Generate Rewards Table")) {
                 if(selectedMotionFieldController.kd == null)
                 {
                     Debug.LogError("KDTree is not initialized! Generate Poses first.");
@@ -467,20 +470,20 @@ namespace AnimationMotionFields {
 
         }
 
-    /*
-        private void LoadMotionField() {
-            if (selectedMotionField != null) {
-                var serObj = new UnityEditor.SerializedObject(selectedMotionField);
+        /*
+            private void LoadMotionField() {
+                if (selectedMotionField != null) {
+                    var serObj = new UnityEditor.SerializedObject(selectedMotionField);
 
-                //reorderableAnimClips = new ReorderableList(animClips, typeof(AnimationClip), true, true, true, true);
-                reorderableAnimClips = new ReorderableList(serObj, serObj.FindProperty("animClips"), true, true, true, true);
+                    //reorderableAnimClips = new ReorderableList(animClips, typeof(AnimationClip), true, true, true, true);
+                    reorderableAnimClips = new ReorderableList(serObj, serObj.FindProperty("animClips"), true, true, true, true);
+                }
+                else {
+                    Debug.LogWarning("Motion Field Author: No Assigned Motion Field Found");
+                }
+
             }
-            else {
-                Debug.LogWarning("Motion Field Author: No Assigned Motion Field Found");
-            }
-        
-        }
-        */
+            */
 
 
 

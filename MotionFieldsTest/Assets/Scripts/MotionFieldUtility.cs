@@ -468,7 +468,7 @@ namespace AnimationMotionFields {
             MotionFieldUtility.GenerateKDTree(ref mfController.kd, mfController.animClipInfoList, uniquePaths, rootComponents, uniquePaths.Length * 2);
         }*/
 
-        public static void GenerateKDTree(ref KDTreeDLL.KDTree kdTree, List<AnimClipInfo> animClipInfoList) {
+        public static void GenerateKDTree(ref KDTreeDLL_f.KDTree kdTree, List<AnimClipInfo> animClipInfoList) {
 
             //make KD Tree w/ number of dimension equal to total number of bone poses * (position * velocity) <- 20
             int KeyLength = animClipInfoList[0].motionPoses[0].bonePoses.Length * 20;
@@ -478,9 +478,7 @@ namespace AnimationMotionFields {
             }
 
             Debug.Log("Length of kdtree key: " + KeyLength);
-            kdTree = new KDTreeDLL.KDTree(KeyLength);
-
-            Debug.Log("KDTREE's HASH CODE IS: " + kdTree.GetHashCode().ToString());
+            kdTree = new KDTreeDLL_f.KDTree(KeyLength);
 
             for (int i = 0; i < animClipInfoList.Count; i++) {
 
@@ -488,16 +486,18 @@ namespace AnimationMotionFields {
 
                 foreach (MotionPose pose in animClipInfoList[i].motionPoses) {
                     
-                    double[] position_velocity_pairings = pose.flattenedMotionPose.Select(x => System.Convert.ToDouble(x)).ToArray();
+                    float[] position_velocity_pairings = pose.flattenedMotionPose;
 
+                    /*
                     string stuff = "Inserting id:" + pose.animName + " , time: " + pose.timestamp + "  position_velocity_pairing:(";
                     foreach (double p in position_velocity_pairings) { stuff += p.ToString() + ", "; }
                     Debug.Log(stuff + ")");
+                    */
 
                     try {
                         kdTree.insert(position_velocity_pairings, pose);
                     }
-                    catch (KDTreeDLL.KeyDuplicateException e) {
+                    catch (KDTreeDLL_f.KeyDuplicateException e) {
                         Debug.Log(e.ToString() + "\nDuplicates in the kdtree are redundant. Skip inserting pt.");
                     }
                 }
@@ -547,6 +547,11 @@ namespace AnimationMotionFields {
             Debug.Log("tree generated");
         }*/
 
-		
+        public static void printTime(System.Diagnostics.Stopwatch st, string name)
+        {
+            Debug.Log(name + ": " + string.Format("{0:00}:{1:000}",
+            st.Elapsed.Seconds,
+            st.Elapsed.Milliseconds));
+        }
     }
 }

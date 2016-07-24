@@ -380,7 +380,7 @@ public class MotionFieldController : ScriptableObject {
 
     public List<AnimClipInfo> animClipInfoList;
 
-	public KDTreeDLL.KDTree kd;
+    public KDTreeDLL_f.KDTree kd;
 
 	public TaskArrayInfo TArrayInfo;
 
@@ -479,10 +479,7 @@ public class MotionFieldController : ScriptableObject {
     }
 
     public MotionPose[] NearestNeighbor(float[] pose){
-		
-		double[] dbl_pose = pose.Select (x => System.Convert.ToDouble (x)).ToArray ();
-
-        object[] nn_data = kd.nearest (dbl_pose, numActions);
+        object[] nn_data = kd.nearest (pose, numActions);
 
 		List<MotionPose> data = new List<MotionPose>();
 		foreach(object obj in nn_data){
@@ -491,7 +488,7 @@ public class MotionFieldController : ScriptableObject {
 		return data.ToArray();
 	}
 
-	public float[][] GenerateActionWeights(float[] weights){
+    public float[][] GenerateActionWeights(float[] weights){
 		float[][] actions = new float[numActions] [];
 		for(int i = 0; i < numActions; i++){
 			//for each action array, set weight[i] to 1 and renormalize
