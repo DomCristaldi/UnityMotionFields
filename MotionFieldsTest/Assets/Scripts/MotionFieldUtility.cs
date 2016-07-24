@@ -215,14 +215,6 @@ namespace AnimationMotionFields {
                     BonePose skeletonRootBonePose = motionPose.GetBonePose(modelRef.cosmeticSkel.GetBone(modelRef.cosmeticSkel.skeletonRoot).boneLabel);
 
 
-                    //Debug.Log("as;lkdfjas;ldkfja;sldkfjas;kdlfj");
-
-                    //skeletonRootBonePose.boneLabel = "asdf";
-
-                    //break;
-
-                    //Debug.Log(timestamp);
-
                     Transform rootMotionRefPoint = modelRef.cosmeticSkel.rootMotionReferencePoint;
                     Transform skelRoot = modelRef.cosmeticSkel.skeletonRoot;
 
@@ -233,13 +225,13 @@ namespace AnimationMotionFields {
                     if (!AnimationMode.InAnimationMode()) { AnimationMode.StartAnimationMode(); }
                     AnimationMode.BeginSampling();
 
-                    //skeletonRootBonePose.boneLabel
 
                     AnimationMode.SampleAnimationClip(modelRef.gameObject, animClip, timestamp);
                     hPoseHandler.GetHumanPose(ref hPose);
 
-                    Vector3 newPos = Vector3.ProjectOnPlane(modelRef.cosmeticSkel.rootMotionReferencePoint.position - modelRef.cosmeticSkel.skeletonRoot.position, Vector3.up)
-                                     + (hPose.bodyPosition - modelRef.cosmeticSkel.skeletonRoot.position)
+                    Vector3 newPos = Vector3.ProjectOnPlane( (modelRef.cosmeticSkel.rootMotionReferencePoint.position - modelRef.cosmeticSkel.skeletonRoot.position)
+                                     /*+ (hPose.bodyPosition - modelRef.cosmeticSkel.skeletonRoot.position)*/, Vector3.up)
+
                                      + skelRoot.position;
 
                     //transform the point to the reference point's local space, where the skeleton's root is originally located
