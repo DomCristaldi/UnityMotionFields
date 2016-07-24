@@ -13,12 +13,14 @@ public class VisualizeBodyPosition : MonoBehaviour {
     HumanPose hPose;
 
     void Awake() {
+        hPose = new HumanPose();
         poseHanlder = new HumanPoseHandler(avatar, skeletonRoot);
-        
+
     }
 
-	// Use this for initialization
-	void Start () {
+    // Use this for initialization
+    void Start () {
+
         UpdateHumanPose();
 	}
 	
@@ -28,6 +30,8 @@ public class VisualizeBodyPosition : MonoBehaviour {
 	}
 
     private void UpdateHumanPose() {
+
+
         poseHanlder.GetHumanPose(ref hPose);
     }
 
