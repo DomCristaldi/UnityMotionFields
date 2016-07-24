@@ -113,6 +113,12 @@ namespace AnimationMotionFields {
 
         private static MotionPose[] DetermineBonePoseComponentVelocities_DropLastTwoFrames(MotionPose[] motionPoses) {
             for (int i = 0; i < motionPoses.Length - 2; ++i) {//loop through all values in the keyframe data, ignore the last two
+
+                //ROOT MOTION
+                motionPoses[i].rootMotionInfo.positionNext = motionPoses[i + 1].rootMotionInfo.value;
+                motionPoses[i].rootMotionInfo.positionNextNext = motionPoses[i + 2].rootMotionInfo.value;
+
+
                 for (int j = 0; j < motionPoses[i].bonePoses.Length; ++j) {//move across all the BonePoses within the current Motion Pose
 
                     //Calculate the velocity by subtracting the current value from the next value
@@ -121,6 +127,8 @@ namespace AnimationMotionFields {
 
                     //motionPoses[i].bonePoses[j].velocityNext = new BoneTransform(motionPoses[i + 2].bonePoses[j].value, motionPoses[i + 1].bonePoses[j].value);
                     motionPoses[i].bonePoses[j].positionNextNext = motionPoses[i + 2].bonePoses[j].value;
+
+
 
                 }
             }
@@ -134,12 +142,29 @@ namespace AnimationMotionFields {
 
         private static MotionPose[] DetermineBonePoseComponentVelocities_LoopToFirstFrame(MotionPose[] motionPoses) {
             for (int i = 0; i < motionPoses.Length; ++i) {//loop through all values in the keyframe data
+
+//HACK: Come back and do velocities for root motion and bone poses in the same loop so you don't need duplicate if statments
+                if (i == motionPoses.Length - 1) {
+                    motionPoses[i].rootMotionInfo.positionNext = new BoneTransform(motionPoses[0].rootMotionInfo.value, motionPoses[i].rootMotionInfo.value);
+                    motionPoses[i].rootMotionInfo.positionNextNext = new BoneTransform(motionPoses[1].rootMotionInfo.value, motionPoses[0].rootMotionInfo.value);
+                }
+                else {
+                    motionPoses[i].rootMotionInfo.positionNext = new BoneTransform(motionPoses[i + 1].rootMotionInfo.value, motionPoses[i].rootMotionInfo.value);
+
+                    if (i == motionPoses.Length - 2) {
+                        motionPoses[i].rootMotionInfo.positionNextNext = new BoneTransform(motionPoses[0].rootMotionInfo.value, motionPoses[i + 1].rootMotionInfo.value);
+                    }
+                }
+                
+
+
                 for (int j = 0; j < motionPoses[i].bonePoses.Length; ++j) {//move across all the BonePoses within the current Motion Pose
 
                     //SPECIAL CASE
                     if (i == motionPoses.Length - 1) {//do the velocity calculation using the first frame as the next frame for the math
                         motionPoses[i].bonePoses[j].positionNext = new BoneTransform(motionPoses[0].bonePoses[j].value, motionPoses[i].bonePoses[j].value);
                         motionPoses[i].bonePoses[j].positionNextNext = new BoneTransform(motionPoses[1].bonePoses[j].value, motionPoses[0].bonePoses[j].value);
+
                     }
                     //BUSINESS AS USUAL
                     else {//Calculate the velocity by subtracting the current value from the next value
@@ -158,6 +183,25 @@ namespace AnimationMotionFields {
 
         private static MotionPose[] DetermineBonePoseComponentVelocities_UseVelocityFromSecondToLastFrame(MotionPose[] motionPoses) {
             for (int i = 0; i < motionPoses.Length; ++i) {//loop through all values in the keyframe data
+
+//HACK: COME BACK AND DO EVERYTHING IN ONE LOOP SO WE CAN AVOID DUPLICATE IF STATEMENTS
+                //SPECIAL CASE
+                if (i == motionPoses.Length - 1) {//we're at the end of the array, use the value from the frame before it
+                    motionPoses[i].rootMotionInfo.positionNext = new BoneTransform(motionPoses[i - 1].rootMotionInfo.positionNext);
+
+                    //we can't calculate any further next velocities, use the last calculateable velocity
+                    motionPoses[i].rootMotionInfo.positionNextNext = new BoneTransform(motionPoses[i - 1].rootMotionInfo.positionNext);
+                }
+                //BUSINESS AS USUAL
+                else {//Calculate the velocity by subtracting the current value from the next value
+                    motionPoses[i].rootMotionInfo.positionNext = new BoneTransform(motionPoses[i + 1].rootMotionInfo.value, motionPoses[i].rootMotionInfo.value);
+
+                    //we can't calculate any further next velocities, use the last calculateable velocity
+                    if (i == motionPoses.Length - 2) {
+                        motionPoses[i].rootMotionInfo.positionNextNext = new BoneTransform(motionPoses[i + 1].rootMotionInfo.value, motionPoses[i].rootMotionInfo.value);
+                    }
+                }
+
                 for (int j = 0; j < motionPoses[i].bonePoses.Length; ++j) {//move across all the BonePoses within the current Motion Pose
 
                     //SPECIAL CASE
@@ -229,7 +273,8 @@ namespace AnimationMotionFields {
                     AnimationMode.SampleAnimationClip(modelRef.gameObject, animClip, timestamp);
                     hPoseHandler.GetHumanPose(ref hPose);
 
-                    Vector3 newPos = Vector3.ProjectOnPlane( (modelRef.cosmeticSkel.rootMotionReferencePoint.position - modelRef.cosmeticSkel.skeletonRoot.position)
+                    //calculate the distance between refererence point and the root, use that to adjust the hips location
+                    Vector3 newPos = Vector3.ProjectOnPlane( (modelRef.cosmeticSkel.rootMotionReferencePoint.position - hPose.bodyPosition /*modelRef.cosmeticSkel.skeletonRoot.position*/)
                                      /*+ (hPose.bodyPosition - modelRef.cosmeticSkel.skeletonRoot.position)*/, Vector3.up)
 
                                      + skelRoot.position;
@@ -239,10 +284,6 @@ namespace AnimationMotionFields {
 
                     Quaternion newRot = (skelRoot.rotation * (rootMotionRefPoint.rotation * Quaternion.Inverse(skelRoot.rotation))) * (hPose.bodyRotation * Quaternion.Inverse(hPose.bodyRotation));
 
-                    //skeletonRootBonePose = new BonePose("bleh") { value = new BoneTransform(0.0f) };
-                    Debug.Log(skeletonRootBonePose.boneLabel);
-
-                    //skeletonRootBonePose.boneLabel = "asl;dkfj;alsdkjf";
                     skeletonRootBonePose.value = new BoneTransform(newPos, newRot, skelRoot.localScale);
 
                     AnimationMode.EndSampling();
@@ -267,7 +308,7 @@ namespace AnimationMotionFields {
                     break;
 
                 case RootMotionCalculationMode.CenterOfMass:
-                    //ExtractRootMotion_CenterOfMass(ref motionPose, animClip, modelRef, timestamp, frameStep, frameHandling);
+                    ExtractRootMotion_CenterOfMass(ref motionPose, animClip, modelRef, timestamp, frameStep, frameHandling);
                     break;
 
                 default:
