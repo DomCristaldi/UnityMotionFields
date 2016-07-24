@@ -174,10 +174,9 @@ public class BoneTransform {
 
     public float[] flattenedTransform {
         get {
-            return flattenedPosition
-                   .Concat<float>(flattenedRotation)
-                   .Concat<float>(flattenedScale)
-                   .ToArray<float>();
+            return new float[] {posX, posY, posZ,
+                                rotW, rotX, rotY, rotZ,
+                                sclX, sclY, sclZ };
         }
     }
 
@@ -319,14 +318,15 @@ public class MotionPose {
 
     public float[] flattenedMotionPose {
         get {
-            float[] retArray = new float[] { };
-
-            foreach (BonePose pose in bonePoses) {
-                retArray = retArray.Concat<float>(pose.flattenedValue).ToArray().Concat<float>(pose.flattenedVelocity).ToArray();
+            var retArray = bonePoses[0].flattenedValue.Concat<float>(bonePoses[0].flattenedVelocity);
+            int length = bonePoses.Length;
+            for (int i = 1; i < length; ++i)
+            {
+                retArray = retArray.Concat<float>(bonePoses[i].flattenedValue.Concat<float>(bonePoses[i].flattenedVelocity));
             }
 
             //return retArray.ToArray<float>();
-            return retArray;
+            return retArray.ToArray();
         }
     }
 
@@ -628,7 +628,7 @@ public class MotionFieldController : ScriptableObject {
             newPoseBones.Add(newBone);
         }
 
-        MotionPose newPose = new MotionPose(newPoseBones.ToArray(), currentPose.animName, currentPose.timestamp);
+        MotionPose newPose = new MotionPose(newPoseBones.ToArray());
         return newPose;
     }
 
