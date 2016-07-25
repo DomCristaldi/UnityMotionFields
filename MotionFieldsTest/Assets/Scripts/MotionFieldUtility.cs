@@ -356,6 +356,8 @@ namespace AnimationMotionFields {
             Vector3 positionMotion = Vector3.ProjectOnPlane(adjustmentQuat * (curHumanPose.bodyPosition - prevHumanPose.bodyPosition), Vector3.up);
 
             Quaternion rotationMotion = prevHumanPose.bodyRotation * Quaternion.Inverse(curHumanPose.bodyRotation);
+            //project the rotation onto a plane by using it to modify a vector and then generating a quaternion out from that
+            rotationMotion = Quaternion.LookRotation(Vector3.ProjectOnPlane(rotationMotion * Vector3.forward, Vector3.up), Vector3.up);
 
             motionPose.rootMotionInfo = new BonePose("RootMotion") { value = new BoneTransform(positionMotion, rotationMotion, Vector3.one) };
 
