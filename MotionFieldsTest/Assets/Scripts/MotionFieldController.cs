@@ -217,6 +217,13 @@ public class BonePose {
         this.boneLabel = boneLabel;
     }
 
+    public Vector3 positionValue {
+        get { return new Vector3(value.posX, value.posY, value.posZ); }
+    }
+    public Quaternion rotationValue {
+        get { return new Quaternion(value.rotX, value.rotY, value.rotZ, value.rotW); }
+    }
+
     public float[] flattenedValue {
         get {
             return value.flattenedTransform;

@@ -220,7 +220,8 @@ namespace AnimationMotionFields {
     [RequireComponent(typeof(Animator))]
     public class MotionFieldComponent : MonoBehaviour {
 
-        Animator anim;
+
+        //Animator anim;
 
         public MotionFieldController controller;
 
@@ -246,18 +247,23 @@ namespace AnimationMotionFields {
 
         //public float t;
 
+        public bool useRootMotion = true;
+
         void Awake() {
-            anim = GetComponent<Animator>();
+            //anim = GetComponent<Animator>();
+
         }
 
         // Use this for initialization
         void Start () {
+
             //anim.Play();
             //transform.LerpTransform(transform, transform, 0.0f, Transform_ExtensionMethods.LerpType.Position | Transform_ExtensionMethods.LerpType.Rotation | Transform_ExtensionMethods.LerpType.Scale);
         }
 
         // Update is called once per frame
         void Update () {
+
             //Debug.Log("adf");
             //anim.SetTime(t);
 
@@ -267,7 +273,6 @@ namespace AnimationMotionFields {
 
         }
 
-        //public 
 
         public void ApplyMotionPoseToSkeleton(MotionPose pose) {
             if (controller == null) {
@@ -280,12 +285,24 @@ namespace AnimationMotionFields {
                 return;
             }
 
-
             cosmeticSkel.ApplyPose(pose);
 
+            if (useRootMotion) {
+                ApplyRootMotion(pose.rootMotionInfo.positionValue, pose.rootMotionInfo.rotationValue);
+            }
         }
 
+        //Apply the root motoin to the character
+        public void ApplyRootMotion(Vector3 translation, Quaternion rotation) {
 
+            //apply position first, because it was extracted from the movement of the previous frame and that previous frame's rotation
+            transform.position += transform.rotation * translation;
+
+            //now it's safe to apply the rotation
+            transform.rotation *= rotation;
+        }
+
+        //TEMP: Function to help test if the motion poses are correct, called from an Editor Script
         public IEnumerator PlayOutMotionPoseAnim(int animIndex) {
 
             if (controller == null) { yield break; }
