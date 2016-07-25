@@ -346,6 +346,15 @@ namespace AnimationMotionFields {
 
         private void GenerateRewardsTable()
         {
+            if(selectedMotionFieldController.TArrayInfo == null){
+                Debug.LogError("You must assign a TaskArray to the MotionField");
+                return;
+            }
+            if(selectedMotionFieldController.numActions <= 0)
+            {
+                Debug.LogError("The numActions variable in the MotionField must be a positive int");
+                return;
+            }
             //create precomputed table of reward lookups at (every pose in kdtree)*(range of potential task values)
 
             //get list of task arrays to sample reward at
