@@ -377,21 +377,6 @@ public class AnimClipInfo {
 [CreateAssetMenu]
 public class MotionFieldController : ScriptableObject {
 
-    //USER DEFINED ANIMATION CURVE PATHS FOR ROOT MOTION COMPONENT
-	[System.Serializable]
-	public class  RootComponents{
-		public string tx;
-		public string ty;
-		public string tz;
-
-		public string qx;
-		public string qy;
-		public string qz;
-		public string qw;
-	}
-
-	public RootComponents rootComponents;
-
     public List<AnimClipInfo> animClipInfoList;
 
     public KDTreeDLL_f.KDTree kd;
@@ -445,7 +430,7 @@ public class MotionFieldController : ScriptableObject {
         return candidateActions[chosenAction];
     }
 
-    public List<MotionPose> GenerateCandidateActions(MotionPose currentPose)
+    private List<MotionPose> GenerateCandidateActions(MotionPose currentPose)
     {
         //generate candidate states to move to by finding closest poses in kdtree
         float[] currentPoseArr = currentPose.flattenedMotionPose;
@@ -477,7 +462,7 @@ public class MotionFieldController : ScriptableObject {
         return candidateActions;
     }
 
-    public int PickCandidate(MotionPose currentPose, List<MotionPose> candidateActions, float[] taskArr, ref float bestReward) {
+    private int PickCandidate(MotionPose currentPose, List<MotionPose> candidateActions, float[] taskArr, ref float bestReward) {
         //choose the action with the highest reward
         int chosenAction = -1;
 
@@ -502,7 +487,7 @@ public class MotionFieldController : ScriptableObject {
 		return data.ToArray();
 	}
 
-    public float[][] GenerateActionWeights(float[] weights){
+    private float[][] GenerateActionWeights(float[] weights){
 		float[][] actions = new float[numActions] [];
 		for(int i = 0; i < numActions; i++){
 			//for each action array, set weight[i] to 1 and renormalize
@@ -517,7 +502,7 @@ public class MotionFieldController : ScriptableObject {
 		return actions;
 	}
 
-	public float[] GenerateWeights(float[] pose, float[][] neighbors){
+	private float[] GenerateWeights(float[] pose, float[][] neighbors){
         //note: neighbors.Length == numActions
         float infCount = 0.0f;
 		float[] weights = new float[neighbors.Length];
@@ -558,7 +543,7 @@ public class MotionFieldController : ScriptableObject {
         return weights;
 	}
 
-	public MotionPose GeneratePose(MotionPose currentPose, MotionPose[] neighbors, float[] action){
+	private MotionPose GeneratePose(MotionPose currentPose, MotionPose[] neighbors, float[] action){
         //note: forgive me programming gods, for I have sinned by creating this ugly function.
 
         /*
@@ -651,38 +636,7 @@ public class MotionFieldController : ScriptableObject {
 		return product; 
 	}
 
-    /*public float[] poseToPosVelArray(MotionPose pose)
-    {
-        //from MP, create float array with only position+velocity information
-        //in order [p1,v1,p2,v2,p3,v3,ect...]
-        float[] poseArray = new float[pose.bonePoses.Length * 20]; //20 because each bonePose has 10 pos vals and 10 vel vals
-        for (int i = 0; i < pose.bonePoses.Length; i++)
-        {
-            poseArray[i * 20] = pose.bonePoses[i].value.posX;
-            poseArray[i * 20 + 1] = pose.bonePoses[i].velocity.posX;
-            poseArray[i * 20 + 2] = pose.bonePoses[i].value.posY;
-            poseArray[i * 20 + 3] = pose.bonePoses[i].velocity.posY;
-            poseArray[i * 20 + 4] = pose.bonePoses[i].value.posZ;
-            poseArray[i * 20 + 5] = pose.bonePoses[i].velocity.posZ;
-            poseArray[i * 20 + 6] = pose.bonePoses[i].value.rotX;
-            poseArray[i * 20 + 7] = pose.bonePoses[i].velocity.rotX;
-            poseArray[i * 20 + 8] = pose.bonePoses[i].value.rotY;
-            poseArray[i * 20 + 9] = pose.bonePoses[i].velocity.rotY;
-            poseArray[i * 20 + 10] = pose.bonePoses[i].value.rotZ;
-            poseArray[i * 20 + 11] = pose.bonePoses[i].velocity.rotZ;
-            poseArray[i * 20 + 12] = pose.bonePoses[i].value.rotW;
-            poseArray[i * 20 + 13] = pose.bonePoses[i].velocity.rotW;
-            poseArray[i * 20 + 14] = pose.bonePoses[i].value.sclX;
-            poseArray[i * 20 + 15] = pose.bonePoses[i].velocity.sclX;
-            poseArray[i * 20 + 16] = pose.bonePoses[i].value.sclY;
-            poseArray[i * 20 + 17] = pose.bonePoses[i].velocity.sclY;
-            poseArray[i * 20 + 18] = pose.bonePoses[i].value.sclZ;
-            poseArray[i * 20 + 19] = pose.bonePoses[i].velocity.sclZ;
-        }
-        return poseArray;
-    }*/
-
-    public float[] GetTaskArray(){
+    private float[] GetTaskArray(){
         //current value of task array determined by world params
 		int tasklength = TArrayInfo.TaskArray.Count ();
 		float[] taskArr = new float[tasklength];
@@ -692,7 +646,7 @@ public class MotionFieldController : ScriptableObject {
 		return taskArr;
 	}
 
-	public float ComputeReward(MotionPose pose, MotionPose newPose, float[] taskArr){
+	private float ComputeReward(MotionPose pose, MotionPose newPose, float[] taskArr){
         //first calculate immediate reward
 		float immediateReward = 0.0f;
 		for(int i = 0; i < taskArr.Length; i++){
@@ -707,7 +661,7 @@ public class MotionFieldController : ScriptableObject {
 		return immediateReward + scale*continuousReward;
 	}
 
-	public float ContRewardLookup(MotionPose pose, float[] Tasks){
+	private float ContRewardLookup(MotionPose pose, float[] Tasks){
         //get continuous reward from valuefunc lookup table.
         //reward is weighted blend of closest values in lookup table.
         //get closest poses from kdtree, and closest tasks from cartesian product
@@ -786,45 +740,6 @@ public class MotionFieldController : ScriptableObject {
         }
     }
 }
-
-//NodeData to be removed, MotionPose will be the data field of the kd tree
-/*public class NodeData{
-	public string clipId;
-	public float timeStamp;
-	public double[] position;
-	public double[] velocity;
-	public double[] velocityNext;
-
-	public int rootComponent_tx;
-	public int rootComponent_ty;
-	public int rootComponent_tz;
-
-	public int rootComponent_qx;
-	public int rootComponent_qy;
-	public int rootComponent_qz;
-	public int rootComponent_qw;
-
-
-	public NodeData(string id, float time, double[] position, double[] velocity, double[] velocityNext, 
-		int rootComponent_tx, int rootComponent_ty, int rootComponent_tz, int rootComponent_qx, int rootComponent_qy, int rootComponent_qz, int rootComponent_qw ){
-		this.clipId = id;
-		this.timeStamp = time;
-		this.position = position;
-		this.velocity = velocity;
-		this.velocityNext = velocityNext;
-		this.rootComponent_tx = rootComponent_tx;
-		this.rootComponent_ty = rootComponent_ty;
-		this.rootComponent_tz = rootComponent_tz;
-		this.rootComponent_qx = rootComponent_qx;
-		this.rootComponent_qy = rootComponent_qy;
-		this.rootComponent_qz = rootComponent_qz;
-		this.rootComponent_qw = rootComponent_qw;
-	}
-
-    public string PrintNode() {
-        return string.Format("Clip ID: {0}, Timestamp: {1}", clipId, timeStamp);
-    }
-}*/
 
 public struct vfKey{
 	private readonly string _clipId;

@@ -220,8 +220,6 @@ namespace AnimationMotionFields {
     [RequireComponent(typeof(Animator))]
     public class MotionFieldComponent : MonoBehaviour {
 
-        Animator anim;
-
         public MotionFieldController controller;
 
         public CosmeticSkeleton cosmeticSkel;
@@ -245,10 +243,6 @@ namespace AnimationMotionFields {
         //MotionSkeletonBonePlayable testPlayable;
 
         //public float t;
-
-        void Awake() {
-            anim = GetComponent<Animator>();
-        }
 
         // Use this for initialization
         void Start () {
