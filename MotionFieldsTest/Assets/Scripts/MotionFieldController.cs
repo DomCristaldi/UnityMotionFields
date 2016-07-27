@@ -160,18 +160,6 @@ public class BoneTransform {
         this.sclZ = copy.sclZ;
     }
 
-    public float[] flattenedPosition {
-        get { return new float[] { posX, posY, posZ }; }
-    }
-
-    public float[] flattenedRotation {
-        get { return new float[] { rotW, rotX, rotY, rotZ }; }
-    }
-
-    public float[] flattenedScale {
-        get { return new float[] { sclX, sclY, sclZ }; }
-    }
-
     public float[] flattenedTransform {
         get {
             return new float[] {posX, posY, posZ,
@@ -272,7 +260,7 @@ public class MotionPose {
         //Break out if there's no data to work with for either poses or weights
         if (posesToBlend.Length == 0) { Debug.LogError("Supplied Poses Array is of length 0"); return; }
         if (weights.Length == 0) { Debug.LogError("Supplied Weights Array is of length 0"); return; }
-        if (posesToBlend.Count() != weights.Count()) { Debug.LogError("The number of poses does not match the number of weigts"); return; }
+        if (posesToBlend.Length != weights.Length) { Debug.LogError("The number of poses does not match the number of weigts"); return; }
         
         //notify user that they have bad data and should take a look at it
         if (posesToBlend.Length != weights.Length) {
@@ -402,6 +390,7 @@ public class MotionFieldController : ScriptableObject {
     //reward = r(firstframe) + scale*r(secondframe) + scale^2*r(thirdframe) + ... ect
     //close to 0 has higher preference on early reward. closer to 1 has higher preference on later reward
     //closer to 1 also asymptotically increases time to generate precomputed rewards, so its recommended you dont set it too high. 
+    [Range(0.0f,1.0f)]
     public float scale = 0.5f; 
 
     public int numActions = 1;
@@ -454,9 +443,7 @@ public class MotionFieldController : ScriptableObject {
         Debug.Log(StrNeighbors);
         */
 
-        float[][] neighborsArr = neighbors.Select(x => x.flattenedMotionPose).ToArray();
-
-        float[] weights = GenerateWeights(currentPoseArr, neighborsArr);
+        float[] weights = GenerateWeights(currentPose, neighbors);
 
         float[][] actionWeights = GenerateActionWeights(weights);
 
@@ -473,7 +460,7 @@ public class MotionFieldController : ScriptableObject {
         //choose the action with the highest reward
         int chosenAction = -1;
 
-        for (int i = 0; i < candidateActions.Count(); i++) {
+        for (int i = 0; i < candidateActions.Count; i++) {
             float reward = ComputeReward(currentPose, candidateActions[i], taskArr);
             //Debug.Log("Reward for action " + i.ToString() + " is " + reward.ToString());
             if (reward > bestReward) {
@@ -501,8 +488,13 @@ public class MotionFieldController : ScriptableObject {
 			actions [i] = new float[weights.Length];
 			actions [i] = (float[])weights.Clone ();
 			actions [i] [i] = 1;
-			float actionSum = actions[i].Sum();
-			for(int j = 0; j < actions[i].Length; j++){
+
+            float actionSum = 0;
+            for(int j = 0; j < actions.Length; ++j){
+                actionSum += actions[i][j];
+            }
+
+            for (int j = 0; j < actions[i].Length; j++){
 				actions[i][j] = actions[i][j] / actionSum;
 			}
 		}
@@ -511,38 +503,43 @@ public class MotionFieldController : ScriptableObject {
 
 	private float[] GenerateWeights(float[] pose, float[][] neighbors){
         //note: neighbors.Length == numActions
-        float infCount = 0.0f;
 		float[] weights = new float[neighbors.Length];
+        float diff;
+        int i, j;
 
 		//weights[i] = 1/distance(neighbors[i] , floatpos) ^2 
-		for(int i = 0; i < neighbors.Length; i++){
+		for(i = 0; i < neighbors.Length; i++){
 			weights [i] = 0.0f;
-			for(int j = 0; j < pose.Length; j++){
-				weights [i] += Mathf.Pow (pose [j] - neighbors [i][j], 2);
+			for(j = 0; j < pose.Length; j++){
+                diff = pose[j] - neighbors[i][j];
+				weights [i] += diff*diff;
 			}
 			weights [i] = 1.0f / weights [i];
             if (float.IsInfinity(weights[i]))
             {
-                infCount += 1;
+                for (j = 0; j < weights.Length; j++)
+                {
+                    if (j == i)
+                    {
+                        weights[j] = 1.0f;
+                    }
+                    else {
+                        weights[j] = 0.0f;
+                    }
+                }
+
+                return weights;
             }
         }
 
         //now normalize weights so that they sum to 1
-        if (infCount == 0.0f) {
-            float weightsSum = weights.Sum();
-            for (int i = 0; i < weights.Length; i++) {
-                weights[i] = weights[i] / weightsSum;
-            }
+        float weightsSum = 0;
+        for (i= 0; i < weights.Length; ++i){
+            weightsSum += weights[i];
         }
-        else { // at least one neighbor is identical to pose
-            for (int i = 0; i < weights.Length; i++) {
-                if (float.IsInfinity(weights[i])) {
-                    weights[i] = 1.0f / infCount;
-                }
-                else {
-                    weights[i] = 0.0f;
-                }
-            }
+
+        for (i = 0; i < weights.Length; i++) {
+            weights[i] = weights[i] / weightsSum;
         }
 
         //Debug.Log("weights: " + string.Join(" ", weights.Select(w => w.ToString()).ToArray()));
@@ -550,7 +547,73 @@ public class MotionFieldController : ScriptableObject {
         return weights;
 	}
 
-	private MotionPose GeneratePose(MotionPose currentPose, MotionPose[] neighbors, float[] action){
+    private float[] GenerateWeights(MotionPose pose, MotionPose[] neighbors)
+    {
+        //note: neighbors.Length == numActions
+        BonePose[] Bones = pose.bonePoses;
+        BonePose[] neighborBones = new BonePose[Bones.Length];
+        float[] weights = new float[neighbors.Length];
+        int i, j;
+
+        //weights[i] = 1/distance(neighbors[i] , floatpos) ^2 
+        for (i = 0; i < neighbors.Length; ++i)
+        {
+            neighborBones = neighbors[i].bonePoses;
+            weights[i] = 0.0f;
+            for (j = 0; j < pose.bonePoses.Length; ++j)
+            {
+                weights[i] += sqDist(Bones[i].value, neighborBones[i].value);
+                weights[i] += sqDist(Bones[i].positionNext, neighborBones[i].positionNext);
+            }
+
+            weights[i] = 1.0f / weights[i];
+
+            if (float.IsInfinity(weights[i])){
+                for (j = 0; j < weights.Length; j++)
+                {
+                    if (j == i){
+                        weights[j] = 1.0f;
+                    }
+                    else {
+                        weights[j] = 0.0f;
+                    }
+                }
+
+                return weights;
+            }
+        }
+
+        //now normalize weights so that they sum to 1
+        float weightsSum = 0;
+        for (i = 0; i < weights.Length; ++i){
+            weightsSum += weights[i];
+        }
+
+        for (i = 0; i < weights.Length; i++)
+        {
+            weights[i] = weights[i] / weightsSum;
+        }
+
+        return weights;
+    }
+
+    private float sqDist(BoneTransform b1, BoneTransform b2)
+    {
+        float sqDist = 0.0f;
+        sqDist += ((b1.posX - b2.posX) * (b1.posX - b2.posX));
+        sqDist += ((b1.posY - b2.posY) * (b1.posY - b2.posY));
+        sqDist += ((b1.posZ - b2.posZ) * (b1.posZ - b2.posZ));
+        sqDist += ((b1.rotX - b2.rotX) * (b1.rotX - b2.rotX));
+        sqDist += ((b1.rotY - b2.rotY) * (b1.rotY - b2.rotY));
+        sqDist += ((b1.rotZ - b2.rotZ) * (b1.rotZ - b2.rotZ));
+        sqDist += ((b1.rotW - b2.rotW) * (b1.rotW - b2.rotW));
+        sqDist += ((b1.sclX - b2.sclX) * (b1.sclX - b2.sclX));
+        sqDist += ((b1.sclY - b2.sclY) * (b1.sclY - b2.sclY));
+        sqDist += ((b1.sclZ - b2.sclZ) * (b1.sclZ - b2.sclZ));
+        return sqDist;
+    }
+
+    private MotionPose GeneratePose(MotionPose currentPose, MotionPose[] neighbors, float[] action){
         //note: forgive me programming gods, for I have sinned by creating this ugly function.
 
         /*
@@ -645,7 +708,7 @@ public class MotionFieldController : ScriptableObject {
 
     private float[] GetTaskArray(){
         //current value of task array determined by world params
-		int tasklength = TArrayInfo.TaskArray.Count ();
+		int tasklength = TArrayInfo.TaskArray.Count;
 		float[] taskArr = new float[tasklength];
 		for(int i = 0; i < tasklength; i++){
 			taskArr[i] = TArrayInfo.TaskArray[i].DetermineTaskValue();
@@ -679,8 +742,7 @@ public class MotionFieldController : ScriptableObject {
         float[] poseArr = pose.flattenedMotionPose;
 
         MotionPose[] neighbors = NearestNeighbor (poseArr);
-		float[][] neighborsArr = neighbors.Select (x => x.flattenedMotionPose).ToArray ();
-		float[] neighbors_weights = GenerateWeights(poseArr, neighborsArr);
+		float[] neighbors_weights = GenerateWeights(pose, neighbors);
 
 		//get closest tasks.
 		List<List<float>> nearest_vals = new List<List<float>> ();
@@ -715,7 +777,7 @@ public class MotionFieldController : ScriptableObject {
 		//get matrix of neighbors x tasks. The corresponding weight matrix should sum to 1.
 		List<vfKey> dictKeys = new List<vfKey> ();
 		List<float> dictKeys_weights = new List<float> ();
-		for (int i = 0; i < neighbors.Count(); i++){
+		for (int i = 0; i < neighbors.Length; i++){
 			for (int j = 0; j < nearestTasksArr.Length; j++){
 				dictKeys.Add (new vfKey(neighbors[i].animName, neighbors[i].timestamp, nearestTasksArr[j]));
 				dictKeys_weights.Add (neighbors_weights [i] * nearestTasks_weights [j]);
@@ -724,7 +786,7 @@ public class MotionFieldController : ScriptableObject {
 
 		//do lookups in precomputed table, get weighted sum
 		float continuousReward = 0.0f;
-		for(int i = 0; i < dictKeys.Count(); i++){
+		for(int i = 0; i < dictKeys.Count; i++){
             //Debug.Log("lookup table vfkey:\nclipname: " + dictKeys[i].clipId + "\ntimestamp: " + dictKeys[i].timeStamp.ToString() + "\ntasks: " + string.Join(" ", dictKeys[i].tasks.Select(w => w.ToString()).ToArray()) + "\nhashcode: " + dictKeys[i].GetHashCode() + "\ncomponent hashcodes: " + dictKeys[i].clipId.GetHashCode() + "  " + dictKeys[i].timeStamp.GetHashCode() + "  " + dictKeys[i].tasks.GetHashCode());
             continuousReward += precomputedRewards[dictKeys[i]]*dictKeys_weights[i];
 		}
