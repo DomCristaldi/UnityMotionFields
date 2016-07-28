@@ -421,7 +421,12 @@ namespace AnimationMotionFields {
                 int genstart = i * rewardTable.Count;
                 for (int j = 0; j < rewardTable.Count; j++)
                 {
-                    EditorUtility.DisplayProgressBar("Generating Rewards", "generation " + (i + 1).ToString() + " of " + generations.ToString() + "... ", ((genstart + j) / numcycles));
+                    if (EditorUtility.DisplayCancelableProgressBar("Generating Rewards", "generation " + (i + 1).ToString() + " of " + generations.ToString() + "... ", ((genstart + j) / numcycles)))
+                    {
+                        Debug.Log("Gen Rewards Canceled");
+                        EditorUtility.ClearProgressBar();
+                        return;
+                    }
 
                     //TODO: note that the precomputedRewards table is only updated between generations.
                     //therefore, the order points are run to find there rewards does not matter, making this section easy to parallelize.
@@ -440,12 +445,10 @@ namespace AnimationMotionFields {
                     stopWatch.Stop();
                     System.TimeSpan ts = stopWatch.Elapsed;
                     averagetime += ts.Milliseconds;
-                    if(maxtime < ts.Milliseconds)
-                    {
+                    if(maxtime < ts.Milliseconds){
                         maxtime = ts.Milliseconds;
                     }
-                    if(mintime > ts.Milliseconds)
-                    {
+                    if(mintime > ts.Milliseconds){
                         mintime = ts.Milliseconds;
                     }
                     stopWatch.Reset();

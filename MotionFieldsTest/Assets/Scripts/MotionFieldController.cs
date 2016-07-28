@@ -485,8 +485,7 @@ public class MotionFieldController : ScriptableObject {
 
             for (j = 0; j < numActions; j++)
             {
-                if (i == j)
-                {
+                if (i == j){
                     actions[i][j] = 1.0f / actionSum;
                 }
                 else {
@@ -518,8 +517,7 @@ public class MotionFieldController : ScriptableObject {
             {
                 for (j = 0; j < weights.Length; j++)
                 {
-                    if (j == i)
-                    {
+                    if (j == i){
                         weights[j] = 1.0f;
                     }
                     else {
