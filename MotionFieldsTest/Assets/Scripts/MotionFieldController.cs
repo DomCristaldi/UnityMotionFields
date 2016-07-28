@@ -410,19 +410,13 @@ public class MotionFieldController : ScriptableObject {
 
     public MotionPose MoveOneFrame(MotionPose currentPose, float[] taskArr, ref float reward)
     {
-
-        //float[] poseArr = currentPose.flattenedMotionPose;
-        //Debug.Log("Move One Frame pose before GenCandActions: " + string.Join(" ", poseArr.Select(d => d.ToString()).ToArray()));
-
+        //Debug.Log("Move One Frame pose before GenCandActions: " + string.Join(" ", currentPose.flattenedMotionPose.Select(d => d.ToString()).ToArray()));
         List<MotionPose> candidateActions = GenerateCandidateActions(currentPose);
 
-        //poseArr = currentPose.flattenedMotionPose;
-        //Debug.Log("Move One Frame pose after GenCandActions: " + string.Join(" ", poseArr.Select(d => d.ToString()).ToArray()));
-
+        //Debug.Log("Move One Frame pose after GenCandActions: " + string.Join(" ", currentPose.flattenedMotionPose.Select(d => d.ToString()).ToArray()));
         int chosenAction = PickCandidate(currentPose, candidateActions, taskArr, ref reward);
 
         //Debug.Log("Candidate Chosen! best fitness is " + reward + " from Action " + chosenAction + "\n");
-
         return candidateActions[chosenAction];
     }
 
@@ -433,15 +427,11 @@ public class MotionFieldController : ScriptableObject {
 
         MotionPose[] neighbors = NearestNeighbor(currentPoseArr);
 
-        /*
-        string StrNeighbors = "Neighbor Poses: ";
-        for (int i = 0; i < neighbors.Count(); i++)
-        {
-            float[] poseArr = neighbors[i].flattenedMotionPose;
-            StrNeighbors += "\n\n" + string.Join(" ", poseArr.Select(d => d.ToString()).ToArray());
+        /*string StrNeighbors = "Neighbor Poses: ";
+        for (int i = 0; i < neighbors.Count(); i++){
+            StrNeighbors += "\n\n" + string.Join(" ", neighbors[i].flattenedMotionPose.Select(d => d.ToString()).ToArray());
         }
-        Debug.Log(StrNeighbors);
-        */
+        Debug.Log(StrNeighbors);*/
 
         float[] weights = GenerateWeights(currentPose, neighbors);
 
@@ -473,38 +463,46 @@ public class MotionFieldController : ScriptableObject {
 
     public MotionPose[] NearestNeighbor(float[] pose){
         object[] nn_data = kd.nearest (pose, numActions);
-
-		List<MotionPose> data = new List<MotionPose>();
-		foreach(object obj in nn_data){
-			data.Add((MotionPose) obj);
-		}
-		return data.ToArray();
-	}
+        
+        MotionPose[] data = new MotionPose[nn_data.Length];
+        for(int i = 0; i < nn_data.Length; ++i)
+        {
+            data[i] = (MotionPose)nn_data[i];
+        }
+        return data;
+    }
 
     private float[][] GenerateActionWeights(float[] weights){
-		float[][] actions = new float[numActions] [];
-		for(int i = 0; i < numActions; i++){
-			//for each action array, set weight[i] to 1 and renormalize
-			actions [i] = new float[weights.Length];
-			actions [i] = (float[])weights.Clone ();
-			actions [i] [i] = 1;
+        int i, j;
+        float[][] actions = new float[numActions][];
+        float actionSum = 0.0f;
 
-            float actionSum = 0;
-            for(int j = 0; j < actions.Length; ++j){
-                actionSum += actions[i][j];
+        for (i = 0; i < numActions; i++)
+        {
+            //for each action array, set weight[i] to 1 and renormalize
+            actions[i] = new float[numActions];
+            actionSum = 1.0f + (1.0f - weights[i]); //note sum of weights[] is 1.0f
+
+            for (j = 0; j < numActions; j++)
+            {
+                if (i == j)
+                {
+                    actions[i][j] = 1.0f / actionSum;
+                }
+                else {
+                    actions[i][j] = weights[j] / actionSum;
+                }
             }
+        }
+        return actions;
+    }
 
-            for (int j = 0; j < actions[i].Length; j++){
-				actions[i][j] = actions[i][j] / actionSum;
-			}
-		}
-		return actions;
-	}
 
 	private float[] GenerateWeights(float[] pose, float[][] neighbors){
         //note: neighbors.Length == numActions
 		float[] weights = new float[neighbors.Length];
         float diff;
+        float weightsSum = 0;
         int i, j;
 
 		//weights[i] = 1/distance(neighbors[i] , floatpos) ^2 
@@ -515,6 +513,7 @@ public class MotionFieldController : ScriptableObject {
 				weights [i] += diff*diff;
 			}
 			weights [i] = 1.0f / weights [i];
+            weightsSum += weights[i];
             if (float.IsInfinity(weights[i]))
             {
                 for (j = 0; j < weights.Length; j++)
@@ -533,11 +532,6 @@ public class MotionFieldController : ScriptableObject {
         }
 
         //now normalize weights so that they sum to 1
-        float weightsSum = 0;
-        for (i= 0; i < weights.Length; ++i){
-            weightsSum += weights[i];
-        }
-
         for (i = 0; i < weights.Length; i++) {
             weights[i] = weights[i] / weightsSum;
         }
@@ -553,6 +547,7 @@ public class MotionFieldController : ScriptableObject {
         BonePose[] Bones = pose.bonePoses;
         BonePose[] neighborBones = new BonePose[Bones.Length];
         float[] weights = new float[neighbors.Length];
+        float weightsSum = 0.0f;
         int i, j;
 
         //weights[i] = 1/distance(neighbors[i] , floatpos) ^2 
@@ -567,6 +562,7 @@ public class MotionFieldController : ScriptableObject {
             }
 
             weights[i] = 1.0f / weights[i];
+            weightsSum += weights[i];
 
             if (float.IsInfinity(weights[i])){
                 for (j = 0; j < weights.Length; j++)
@@ -584,11 +580,6 @@ public class MotionFieldController : ScriptableObject {
         }
 
         //now normalize weights so that they sum to 1
-        float weightsSum = 0;
-        for (i = 0; i < weights.Length; ++i){
-            weightsSum += weights[i];
-        }
-
         for (i = 0; i < weights.Length; i++)
         {
             weights[i] = weights[i] / weightsSum;
