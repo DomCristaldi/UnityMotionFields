@@ -543,6 +543,7 @@ namespace AnimationMotionFields {
 
             //make KD Tree w/ number of dimension equal to total number of bone poses * (position * velocity) <- 20
             int KeyLength = animClipInfoList[0].motionPoses[0].bonePoses.Length * 20;
+            KeyLength += 20; // adding number of fields to store rootMotionInfo.
             if(KeyLength == 0)
             {
                 Debug.LogError("keylength for kdtree is 0! animClipInfoList[0].mationPoses[0] has an empty bonePoses array!"); //this error happened once, then went away...
