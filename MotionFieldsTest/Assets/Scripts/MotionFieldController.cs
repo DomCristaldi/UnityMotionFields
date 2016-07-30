@@ -484,7 +484,7 @@ public class MotionFieldController : ScriptableObject {
 
 
 	private float[] GenerateWeights(float[] pose, float[][] neighbors){
-        //note: neighbors.Length == numActions
+
 		float[] weights = new float[neighbors.Length];
         float diff;
         float weightsSum = 0;
@@ -721,13 +721,25 @@ public class MotionFieldController : ScriptableObject {
 
 		//get closest tasks.
 		List<List<float>> nearest_vals = new List<List<float>> ();
+        float min, max, numSamples, interval;
 		for(int i=0; i < Tasks.Length; i++){
-			List<float> nearest_val = new List<float> ();
-			float interval = (TArrayInfo.TaskArray [i].max - TArrayInfo.TaskArray [i].min) / (TArrayInfo.TaskArray [i].numSamples - 1);
-            //Debug.Log("interval for " + TArrayInfo.TaskArray[i].min.ToString() + " to " + TArrayInfo.TaskArray[i].max.ToString() + " for " + TArrayInfo.TaskArray[i].numSamples.ToString() + " samples is " + interval.ToString());
-            float lower = Mathf.Floor((Tasks[i] - TArrayInfo.TaskArray[i].min) / interval) * interval + TArrayInfo.TaskArray[i].min;
+
+            List<float> nearest_val = new List<float> ();
+
+            min = TArrayInfo.TaskArray[i].min;
+            max = TArrayInfo.TaskArray[i].max;
+            numSamples = TArrayInfo.TaskArray[i].numSamples;
+            interval = (max - min) / (numSamples - 1);
+
+            //Debug.Log("interval for " + min.ToString() + " to " + max.ToString() + " for " + numSamples.ToString() + " samples is " + interval.ToString());
+            int lowerIndex = Mathf.FloorToInt((Tasks[i] - min) / interval);
+            float lower = min;
+            for(int qq = 0; qq < lowerIndex; ++qq)
+            {
+                lower += interval;
+            }
             nearest_val.Add (lower);
-            if(lower != TArrayInfo.TaskArray[i].max)
+            if(lower != max && lower != Tasks[i])
             {
                 nearest_val.Add(lower + interval);
             }
@@ -762,8 +774,8 @@ public class MotionFieldController : ScriptableObject {
 		//do lookups in precomputed table, get weighted sum
 		float continuousReward = 0.0f;
 		for(int i = 0; i < dictKeys.Count; i++){
-            //Debug.Log("lookup table vfkey:\nclipname: " + dictKeys[i].clipId + "\ntimestamp: " + dictKeys[i].timeStamp.ToString() + "\ntasks: " + string.Join(" ", dictKeys[i].tasks.Select(w => w.ToString()).ToArray()) + "\nhashcode: " + dictKeys[i].GetHashCode() + "\ncomponent hashcodes: " + dictKeys[i].clipId.GetHashCode() + "  " + dictKeys[i].timeStamp.GetHashCode() + "  " + dictKeys[i].tasks.GetHashCode());
-            continuousReward += precomputedRewards[dictKeys[i]]*dictKeys_weights[i];
+            //Debug.Log("lookup table vfkey:\nclipname: " + dictKeys[i].clipId + "\ntimestamp: " + dictKeys[i].timeStamp.ToString() + "\ntasks: " + string.Join(" ", dictKeys[i].tasks.Select(w => w.ToString()).ToArray()) + "\nhashcode: " + dictKeys[i].GetHashCode() + "\ncomponent hashcodes: " + dictKeys[i].clipId.GetHashCode() + "  " + dictKeys[i].timeStamp.GetHashCode() + "  (" + string.Join(" ", dictKeys[i].tasks.Select(w => w.GetHashCode().ToString()).ToArray()) + ")");
+            continuousReward += precomputedRewards[dictKeys[i]] * dictKeys_weights[i];    
 		}
 
         //Debug.Log("Continuous Reward Lookup complete, cont reward is " + continuousReward.ToString());
