@@ -386,7 +386,7 @@ public class MotionFieldController : ScriptableObject {
         float[] taskArr = GetTaskArray();
         Debug.Log("task Length: " + taskArr.Length.ToString());
 
-        float reward = 0.0f;
+        float reward = float.MinValue;
         MotionPose newPose = MoveOneFrame(currentPose, taskArr, ref reward);
 
         return newPose;
@@ -402,6 +402,7 @@ public class MotionFieldController : ScriptableObject {
 
         //Debug.Log("Candidate Chosen! best fitness is " + reward + " from Action " + chosenAction + "\n");
         return candidateActions[chosenAction];
+         
     }
 
     private MotionPose[] GenerateCandidateActions(MotionPose currentPose)

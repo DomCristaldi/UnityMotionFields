@@ -439,7 +439,7 @@ namespace AnimationMotionFields {
                     //dont know how negatively this would effect accuracy, but if negligible could provide large speed boost.
                     MotionPose pose = (MotionPose)rewardTable[j][0];
                     float[] taskarr = (float[])rewardTable[j][1];
-                    float reward = 0.0f;
+                    float reward = float.MinValue;
 
                     stopWatch.Start();
 
