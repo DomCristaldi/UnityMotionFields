@@ -381,17 +381,15 @@ public class MotionFieldController : ScriptableObject {
 
     public int numActions = 1;
 
-	public float OneTick(MotionPose currentPose){
+	public MotionPose OneTick(MotionPose currentPose){
 
         float[] taskArr = GetTaskArray();
         Debug.Log("task Length: " + taskArr.Length.ToString());
 
         float reward = 0.0f;
-        currentPose = MoveOneFrame(currentPose, taskArr, ref reward);
+        MotionPose newPose = MoveOneFrame(currentPose, taskArr, ref reward);
 
-        //TODO: currentPose needs to be applied to the model! note: 95% sure code was written for this. is it just not called, or done elsewhere?
-
-        return reward;
+        return newPose;
 	}
 
     public MotionPose MoveOneFrame(MotionPose currentPose, float[] taskArr, ref float reward)
