@@ -40,6 +40,8 @@ namespace AnimationMotionFields {
             //set the model to the pose we want so we can sample the transforms
             AnimationMode.SampleAnimationClip(modelRef.gameObject, animClipRefrence, timestamp);
 
+            //TODO: move some of this Pose Extraction code over to Cosmetic Skeleton
+
             //record all the transforms
             for (int i = 0; i < modelRef.cosmeticSkel.cosmeticBones.Count; ++i) {
                 //create bone Pose
@@ -133,8 +135,24 @@ namespace AnimationMotionFields {
                 }
             }
 
+            //TODO: handle the "too low resolution" problem more gracefully than this shit
             List<MotionPose> mpList = motionPoses.ToList<MotionPose>();
-            mpList.RemoveRange(mpList.Count - 2, 2);
+            bool resolutionTooLow = false;
+
+            try {
+                mpList.RemoveRange(mpList.Count - 2, 2);
+            }
+            catch {
+                //return mpList;
+                //TODO: this debug is stupid. Pass it some sort of info that's not reliant on index 0 of an array
+                Debug.LogWarningFormat("resolution for {0} too low, returning no poses", motionPoses[0].animName);
+                resolutionTooLow = true;
+            }
+
+            if (resolutionTooLow) {
+                return new MotionPose[0];
+            }
+
             return mpList.ToArray();
 
 
@@ -248,6 +266,7 @@ namespace AnimationMotionFields {
 
 //ROOT MOTION EXTRACTION
         //TODO: restructure so looping is more intelligently implemented (maybe use deleagate functions? or more clever case checking? log position (center of mass / reference point) in hte umbrella function and pass that throught?)
+        //TODO: add back in hip displacement
         public static void ExtractRootMotion(ref MotionPose motionPose, AnimationClip animClip, MotionFieldComponent modelRef, float timestamp, float frameStep, RootMotionCalculationMode calculationMode = RootMotionCalculationMode.CenterOfMass, RootMotionFrameHandling frameHandling = RootMotionFrameHandling.SetFirstFrameToZero) {
             
             switch (calculationMode) {
@@ -399,8 +418,11 @@ namespace AnimationMotionFields {
 
             List<MotionPose> motionPoses = new List<MotionPose>();
 
+            //TODO: make this a desired framerate sampline. Don't use animClip.framerate, but supply the framerate. ex, a supplied framerate of 60 fps would calc framerate as 1.0f / 60.0f
             float frameStep = 1.0f / animClip.frameRate;//time for one animation frame
             float currentFrameTimePointer = 0.0f;
+            //Debug.LogFormat("{0} framestep: {1}", animClip.name, frameStep);
+
 
             //MOVE ACROSS ANIMATION CLIP FRAME BY FRAME
             while (currentFrameTimePointer <= ((animClip.length * animClip.frameRate) - frameStep) / animClip.frameRate) {
