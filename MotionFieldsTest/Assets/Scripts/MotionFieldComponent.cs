@@ -38,6 +38,8 @@ namespace AnimationMotionFields {
 
         public List<CosmeticSkeletonBone> cosmeticBones;
 
+        //TODO: Write GetCurrentPose() to get the current Motion Pose of the skeleton
+
         public void ApplyPose(MotionPose pose) {
             foreach (BonePose poseBone in pose.bonePoses) {
                 foreach (CosmeticSkeletonBone cosBone in cosmeticBones) {
@@ -221,6 +223,7 @@ namespace AnimationMotionFields {
     public class MotionFieldComponent : MonoBehaviour {
 
         public MotionFieldController controller;
+
 
         public CosmeticSkeleton cosmeticSkel;
 
