@@ -247,7 +247,8 @@ namespace AnimationMotionFields {
         public bool useRootMotion = true;
 
         void Awake() {
-
+            //HACK: in release build, it should be impossible to call functions from MotionFieldUtility
+            MotionFieldUtility.GenerateKDTree(ref controller);
         }
 		
         // Use this for initialization
