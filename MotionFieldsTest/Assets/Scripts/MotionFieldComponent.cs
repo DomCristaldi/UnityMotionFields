@@ -249,13 +249,20 @@ namespace AnimationMotionFields {
 
         public bool useRootMotion = true;
 
+        private MotionPose curMotionPose;
+
         void Awake() {
             //HACK: in release build, it should be impossible to call functions from MotionFieldUtility
             MotionFieldUtility.GenerateKDTree(ref controller);
+
         }
 		
         // Use this for initialization
         void Start () {
+            if (controller != null) {
+                curMotionPose = controller.animClipInfoList[0].motionPoses[0];
+            }
+
 
             //anim.Play();
             //transform.LerpTransform(transform, transform, 0.0f, Transform_ExtensionMethods.LerpType.Position | Transform_ExtensionMethods.LerpType.Rotation | Transform_ExtensionMethods.LerpType.Scale);
@@ -271,6 +278,9 @@ namespace AnimationMotionFields {
 
             //lerpVal += lerpDelta * Time.deltaTime;
 
+            curMotionPose = controller.OneTick(curMotionPose);
+
+            ApplyMotionPoseToSkeleton(curMotionPose);
         }
 
 
