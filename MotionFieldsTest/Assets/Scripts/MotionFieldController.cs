@@ -400,7 +400,7 @@ public class MotionFieldController : ScriptableObject {
         //Debug.Log("Move One Frame pose after GenCandActions: " + string.Join(" ", currentPose.flattenedMotionPose.Select(d => d.ToString()).ToArray()));
         int chosenAction = PickCandidate(currentPose, candidateActions, taskArr, ref reward);
 
-        //Debug.Log("Candidate Chosen! best fitness is " + reward + " from Action " + chosenAction + "\n");
+        Debug.Log("Candidate Chosen! best fitness is " + reward + " from Action " + chosenAction + "\n");
         return candidateActions[chosenAction];
          
     }

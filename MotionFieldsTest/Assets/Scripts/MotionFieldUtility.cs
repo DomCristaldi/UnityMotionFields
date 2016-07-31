@@ -389,6 +389,7 @@ namespace AnimationMotionFields {
 
         }
 
+        /*
         //GET EVERY UNIQUE PATH FROM THE SUPPLIED ANIM CLIPS
         public static string[] GetUniquePaths(AnimationClip[] animClips) {
             //List<string> extractedUniquePaths = new List<string>();
@@ -404,14 +405,13 @@ namespace AnimationMotionFields {
                     ++bindingcount;
                 }
             }
-
-
             return extractedUniquePaths.ToArray<string>();
         }
 
         public static string[] GetUniquePaths(MotionFieldController motionFieldConroller) {
             return (GetUniquePaths(motionFieldConroller.animClipInfoList.Select(x => x.animClip).ToArray()));
         }
+        */
 
         public static MotionPose[] GenerateMotionPoses(AnimationClip animClip, MotionFieldComponent modelRef, int sampleStepSize = 100, VelocityCalculationMode velCalculationMode = VelocityCalculationMode.DropLastTwoFrames) {
             //Animator modelAnimator = modelRef.GetComponent<Animator>();
@@ -549,12 +549,8 @@ namespace AnimationMotionFields {
             modelRef.transform.rotation = originalModelRot;
             modelRef.transform.localScale = originalModelScale;
 
-            MotionFieldUtility.GenerateKDTree(ref mfController);
-
-        }
-
-        public static void GenerateKDTree(ref MotionFieldController mfController) {
             MotionFieldUtility.GenerateKDTree(ref mfController.kd, mfController.animClipInfoList);
+
         }
 
         /*public static void GenerateKDTree(ref MotionFieldController mfController, string[] uniquePaths, MotionFieldController.RootComponents rootComponents) {
@@ -564,16 +560,30 @@ namespace AnimationMotionFields {
         public static void GenerateKDTree(ref KDTreeDLL_f.KDTree kdTree, List<AnimClipInfo> animClipInfoList) {
 
             //make KD Tree w/ number of dimension equal to total number of bone poses * (position * velocity) <- 20
-            int KeyLength = animClipInfoList[0].motionPoses[0].bonePoses.Length * 20;
-            KeyLength += 20; // adding number of fields to store rootMotionInfo.
-            if(KeyLength == 0)
+            int KeyLength = 0;
+            for (int i = 0; i < animClipInfoList.Count; i++)
             {
-                Debug.LogError("keylength for kdtree is 0! animClipInfoList[0].mationPoses[0] has an empty bonePoses array!"); //this error happened once, then went away...
+                if(animClipInfoList[i].useClip == true)
+                {
+                    if(animClipInfoList[i].motionPoses.Length != 0)
+                    {
+                        KeyLength = animClipInfoList[i].motionPoses[0].bonePoses.Length * 20; //HACK: 20 is the magic number of values in each bonePose that is aded to the kdtree.
+                        break;
+                    }
+                }
             }
+            if (KeyLength == 0)
+            {
+                Debug.LogError("Cannot Populate KDTree because no poses were generated! Try lowering the Frame Resolution and try again."); //this error happened once, then went away...
+                return;
+            }
+
+            KeyLength += 20; // adding number of fields to store rootMotionInfo.
 
             Debug.Log("Length of kdtree key: " + KeyLength);
             kdTree = new KDTreeDLL_f.KDTree(KeyLength);
 
+            int numPts = 0;
             for (int i = 0; i < animClipInfoList.Count; i++) {
 
                 EditorUtility.DisplayProgressBar("Generating Poses", "generating ke tree... ", ((float)i / (float)animClipInfoList.Count));
@@ -590,13 +600,14 @@ namespace AnimationMotionFields {
 
                     try {
                         kdTree.insert(position_velocity_pairings, pose);
+                        numPts += 1;
                     }
                     catch (KDTreeDLL_f.KeyDuplicateException e) {
                         Debug.Log(e.ToString() + "\nDuplicates in the kdtree are redundant. Skip inserting pt.");
                     }
                 }
             }
-
+            Debug.Log(numPts.ToString() + " points added to KDTree");
             EditorUtility.ClearProgressBar();
         }
 
@@ -641,6 +652,7 @@ namespace AnimationMotionFields {
             Debug.Log("tree generated");
         }*/
 
+        //helper function to print out timings when debugging
         public static void printTime(System.Diagnostics.Stopwatch st, string name)
         {
             Debug.Log(name + ": " + string.Format("{0:00}:{1:000}",

@@ -253,14 +253,22 @@ namespace AnimationMotionFields {
 
         void Awake() {
             //HACK: in release build, it should be impossible to call functions from MotionFieldUtility
-            MotionFieldUtility.GenerateKDTree(ref controller);
+            MotionFieldUtility.GenerateKDTree(ref controller.kd, controller.animClipInfoList);
+            controller.DeserializeDict();
 
         }
 		
         // Use this for initialization
         void Start () {
             if (controller != null) {
-                curMotionPose = controller.animClipInfoList[0].motionPoses[0];
+                for(int i = 0; i < controller.animClipInfoList.Count; ++i)
+                {
+                    if(controller.animClipInfoList[i].useClip == true)
+                    {
+                        curMotionPose = controller.animClipInfoList[i].motionPoses[0];
+                        break;
+                    }
+                }
             }
 
 
@@ -278,9 +286,11 @@ namespace AnimationMotionFields {
 
             //lerpVal += lerpDelta * Time.deltaTime;
 
-            curMotionPose = controller.OneTick(curMotionPose);
+            MotionPose newPose = controller.OneTick(curMotionPose);
 
-            ApplyMotionPoseToSkeleton(curMotionPose);
+            ApplyMotionPoseToSkeleton(newPose);
+
+            curMotionPose = newPose;
         }
 
 
