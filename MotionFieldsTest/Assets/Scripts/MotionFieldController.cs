@@ -370,7 +370,7 @@ public class MotionFieldController : ScriptableObject {
 	//each arralist should holds a MotionPose in [0] a float[] in [1], and a float in [2]
 	//since ArrayList stores everything as object, must cast it when taking out data
 	[HideInInspector]
-	public List<ArrayList> precomputedRewards_Initializer;
+	public List<precomputedRewards_Initializer_Element> precomputedRewards_Initializer;
 
     //how much to prefer the immediate reward vs future reward. 
     //reward = r(firstframe) + scale*r(secondframe) + scale^2*r(thirdframe) + ... ect
@@ -798,6 +798,25 @@ public class MotionFieldController : ScriptableObject {
             precomputedRewards.Add(newkey, System.Convert.ToSingle(arrLst[2]));
         }
     }
+
+    public void DeserializeDict()
+    {
+        precomputedRewards = new Dictionary<vfKey, float>();
+        foreach (precomputedRewards_Initializer_Element elem in precomputedRewards_Initializer)
+        {
+            vfKey newKey = new vfKey(elem.animName, elem.timestamp, elem.taskArr);
+            precomputedRewards.Add(newKey, elem.reward);
+        }
+    }
+}
+
+[System.Serializable]
+public class precomputedRewards_Initializer_Element
+{
+    public string animName;
+    public float timestamp;
+    public float[] taskArr;
+    public float reward;
 }
 
 public struct vfKey{

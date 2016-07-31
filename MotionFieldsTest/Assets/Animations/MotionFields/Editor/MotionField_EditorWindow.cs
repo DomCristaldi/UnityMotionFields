@@ -467,7 +467,18 @@ namespace AnimationMotionFields {
 
             //finally, set to the initializer in selectedMotionFieldController.
             //at runtime, this is converted to a dictionary
-            selectedMotionFieldController.precomputedRewards_Initializer = rewardTable;
+            selectedMotionFieldController.precomputedRewards_Initializer = new List<precomputedRewards_Initializer_Element>();
+            foreach(ArrayList arrList in rewardTable)
+            {
+                precomputedRewards_Initializer_Element newElem = new precomputedRewards_Initializer_Element
+                                                                {
+                                                                    animName = ((MotionPose)arrList[0]).animName,
+                                                                    timestamp = ((MotionPose)arrList[0]).timestamp,
+                                                                    taskArr = (float[])arrList[1],
+                                                                    reward = (float)arrList[2]
+                                                                };
+                selectedMotionFieldController.precomputedRewards_Initializer.Add(newElem);
+            }
         }
 
         private void BuildMotionField() {
