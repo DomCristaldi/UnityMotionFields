@@ -384,7 +384,7 @@ public class MotionFieldController : ScriptableObject {
 	public MotionPose OneTick(MotionPose currentPose){
 
         float[] taskArr = GetTaskArray();
-        Debug.Log("task Length: " + taskArr.Length.ToString());
+        //Debug.Log("task Length: " + taskArr.Length.ToString());
 
         float reward = float.MinValue;
         MotionPose newPose = MoveOneFrame(currentPose, taskArr, ref reward);
