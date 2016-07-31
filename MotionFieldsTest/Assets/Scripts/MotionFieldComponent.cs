@@ -218,7 +218,6 @@ namespace AnimationMotionFields {
     }
 #endif
 
-    [ExecuteInEditMode]
     [RequireComponent(typeof(Animator))]
     public class MotionFieldComponent : MonoBehaviour {
 
