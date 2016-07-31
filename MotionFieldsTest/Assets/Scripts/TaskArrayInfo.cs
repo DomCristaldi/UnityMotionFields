@@ -55,11 +55,11 @@ public class TaskArrayInfo_Editor : Editor {
 	public override void OnInspectorGUI()
 	{
 		base.OnInspectorGUI ();
-        return;
+        //return;
 
-		serializedObject.Update();
-		reorderATaskList.DoLayoutList();
-		serializedObject.ApplyModifiedProperties();
+		//serializedObject.Update();
+		//reorderATaskList.DoLayoutList();
+		//serializedObject.ApplyModifiedProperties();
 	}
 
 }
