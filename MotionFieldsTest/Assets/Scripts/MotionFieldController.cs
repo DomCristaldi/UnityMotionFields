@@ -726,18 +726,14 @@ public class MotionFieldController : ScriptableObject {
 
             List<float> nearest_val = new List<float> ();
 
+            //dont change math on how tasks are sampled unless you know what your doing. must make equivalent changes when creating dict in MFEditorWindow
             min = TArrayInfo.TaskArray[i].min;
             max = TArrayInfo.TaskArray[i].max;
             numSamples = TArrayInfo.TaskArray[i].numSamples;
             interval = (max - min) / (numSamples - 1);
 
             //Debug.Log("interval for " + min.ToString() + " to " + max.ToString() + " for " + numSamples.ToString() + " samples is " + interval.ToString());
-            int lowerIndex = Mathf.FloorToInt((Tasks[i] - min) / interval);
-            float lower = min;
-            for(int qq = 0; qq < lowerIndex; ++qq)
-            {
-                lower += interval;
-            }
+            float lower = Mathf.FloorToInt((Tasks[i] - min) / interval) * interval + min;
             nearest_val.Add (lower);
             if(lower != max && lower != Tasks[i])
             {
@@ -775,7 +771,15 @@ public class MotionFieldController : ScriptableObject {
 		float continuousReward = 0.0f;
 		for(int i = 0; i < dictKeys.Count; i++){
             //Debug.Log("lookup table vfkey:\nclipname: " + dictKeys[i].clipId + "\ntimestamp: " + dictKeys[i].timeStamp.ToString() + "\ntasks: " + string.Join(" ", dictKeys[i].tasks.Select(w => w.ToString()).ToArray()) + "\nhashcode: " + dictKeys[i].GetHashCode() + "\ncomponent hashcodes: " + dictKeys[i].clipId.GetHashCode() + "  " + dictKeys[i].timeStamp.GetHashCode() + "  (" + string.Join(" ", dictKeys[i].tasks.Select(w => w.GetHashCode().ToString()).ToArray()) + ")");
-            continuousReward += precomputedRewards[dictKeys[i]] * dictKeys_weights[i];    
+            try
+            {
+                continuousReward += precomputedRewards[dictKeys[i]] * dictKeys_weights[i];
+            }
+            catch (KeyNotFoundException)
+            {
+                Debug.LogError("Failed to find key in dict with params \nclipname: " + dictKeys[i].clipId + "\ntimestamp: " + dictKeys[i].timeStamp.ToString() + "\ntasks: " + string.Join(" ", dictKeys[i].tasks.Select(w => ((double)w).ToString()).ToArray()) + "\nhashcode: " + dictKeys[i].GetHashCode() + "\ncomponent hashcodes: " + dictKeys[i].clipId.GetHashCode() + "  " + dictKeys[i].timeStamp.GetHashCode() + " (" + string.Join(" ", dictKeys[i].tasks.Select(w => w.GetHashCode().ToString()).ToArray()) + ")");
+            }
+            
 		}
 
         //Debug.Log("Continuous Reward Lookup complete, cont reward is " + continuousReward.ToString());
@@ -791,7 +795,7 @@ public class MotionFieldController : ScriptableObject {
             MotionPose mp = (MotionPose)arrLst[0];
             float[] taskarr = (float[])arrLst[1];
             vfKey newkey = new vfKey(mp.animName, mp.timestamp, taskarr);
-            //Debug.Log("VFKEY ADDED:\nclipname: " + mp.animName + "\ntimestamp: " + mp.timestamp.ToString() + "\ntasks: " + string.Join(" ", taskarr.Select(w => w.ToString()).ToArray()) + "\nhashcode: " + newkey.GetHashCode() + "\ncomponent hashcodes: " + newkey.clipId.GetHashCode() + "  " + newkey.timeStamp.GetHashCode() + "  " + newkey.tasks.GetHashCode());
+            //Debug.Log("VFKEY ADDED:\nclipname: " + mp.animName + "\ntimestamp: " + mp.timestamp.ToString() + "\ntasks: " + string.Join(" ", taskarr.Select(w => ((double)w).ToString()).ToArray()) + "\nhashcode: " + newkey.GetHashCode() + "\ncomponent hashcodes: " + newkey.clipId.GetHashCode() + "  " + newkey.timeStamp.GetHashCode() + " (" + string.Join(" ", newkey.tasks.Select(w => w.GetHashCode().ToString()).ToArray()) + ")");
             precomputedRewards.Add(newkey, System.Convert.ToSingle(arrLst[2]));
         }
     }

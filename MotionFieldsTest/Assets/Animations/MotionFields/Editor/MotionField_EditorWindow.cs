@@ -362,14 +362,17 @@ namespace AnimationMotionFields {
             List<List<float>> taskArr_samples = new List<List<float>>();
             for (int i = 0; i < taskSize; i++)
             {
+                //dont change math on how tasks are sampled unless you know what your doing. must make equivalent changes when accessing dict in MFController
                 List<float> tasksamples = new List<float>();
                 float min = selectedMotionFieldController.TArrayInfo.TaskArray[i].min;
                 float max = selectedMotionFieldController.TArrayInfo.TaskArray[i].max;
                 int numSamples = selectedMotionFieldController.TArrayInfo.TaskArray[i].numSamples;
 
+                //min + ((max-min)*i)/(numSamples-1);
                 float interval = (max - min) / (numSamples - 1);
-                for (float sample = min; sample <= max; sample += interval)
+                for (int j = 0; j < numSamples; ++j)
                 {
+                    float sample = j * interval + min;
                     tasksamples.Add(sample);
                 }
                 taskArr_samples.Add(tasksamples);
