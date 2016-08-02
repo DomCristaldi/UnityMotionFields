@@ -153,6 +153,30 @@ public class BoneTransform {
         }
     }
 
+    public Vector3 position
+    {
+        get
+        {
+            return new Vector3(posX, posY, posZ);
+        }
+    }
+
+    public Quaternion rotation
+    {
+        get
+        {
+            return new Quaternion(rotX, rotY, rotZ, rotW);
+        }
+    }
+
+    public Vector3 scale
+    {
+        get
+        {
+            return new Vector3(sclX, sclY, sclZ);
+        }
+    }
+
     public static BoneTransform BlendTransform(BoneTransform tf1, BoneTransform tf2, float alpha) {
         BoneTransform retBoneTf = new BoneTransform();
 
@@ -187,13 +211,6 @@ public class BonePose {
 
     public BonePose(string boneLabel) {
         this.boneLabel = boneLabel;
-    }
-
-    public Vector3 positionValue {
-        get { return new Vector3(value.posX, value.posY, value.posZ); }
-    }
-    public Quaternion rotationValue {
-        get { return new Quaternion(value.rotX, value.rotY, value.rotZ, value.rotW); }
     }
 
     public float[] flattenedValue {
@@ -389,6 +406,9 @@ public class MotionFieldController : ScriptableObject {
         float reward = float.MinValue;
         MotionPose newPose = MoveOneFrame(currentPose, taskArr, ref reward);
 
+        BoneTransform curRoot = newPose.rootMotionInfo.value;
+        //Debug.Log("root motion of chosen pose:\n posX: " + curRoot.posX + "  posY: "  + curRoot.posY)
+
         return newPose;
 	}
 
@@ -400,7 +420,7 @@ public class MotionFieldController : ScriptableObject {
         //Debug.Log("Move One Frame pose after GenCandActions: " + string.Join(" ", currentPose.flattenedMotionPose.Select(d => d.ToString()).ToArray()));
         int chosenAction = PickCandidate(currentPose, candidateActions, taskArr, ref reward);
 
-        Debug.Log("Candidate Chosen! best fitness is " + reward + " from Action " + chosenAction + "\n");
+        Debug.Log("Candidate Chosen! best fitness is " + reward.ToString() + " from Action " + chosenAction.ToString() + ", whose main influnce is " + candidateActions[chosenAction].animName + " at time " + candidateActions[chosenAction].timestamp.ToString());
         return candidateActions[chosenAction];
          
     }
@@ -426,6 +446,8 @@ public class MotionFieldController : ScriptableObject {
         for(int i = 0; i < actionWeights.Length; ++i)
         {
             candidateActions[i] = GeneratePose(currentPose, neighbors, actionWeights[i]);
+            candidateActions[i].animName = neighbors[i].animName;
+            candidateActions[i].timestamp = neighbors[i].timestamp;
         }
 
         return candidateActions;
@@ -590,12 +612,15 @@ public class MotionFieldController : ScriptableObject {
     }
 
     private MotionPose GeneratePose(MotionPose currentPose, MotionPose[] neighbors, float[] action){
-
+        if(action[0] == 0.0f || action[0] == -0.0f)
+        {
+            Debug.LogError("This shouldnt happen and is bad.");
+        }
         MotionPose blendedNeighbors = new MotionPose(neighbors, action);
 
         int numBones = currentPose.bonePoses.Length;
 
-        BonePose newRootBone = GenerateBone(currentPose.rootMotionInfo, blendedNeighbors.rootMotionInfo);
+        BonePose newRootBone = GenerateRootBone(currentPose.rootMotionInfo, blendedNeighbors.rootMotionInfo);
 
         BonePose[] newPoseBones = new BonePose[numBones];
         for (int i = 0; i < numBones; i++)
@@ -607,55 +632,45 @@ public class MotionFieldController : ScriptableObject {
         return newPose;
     }
 
-    public BonePose GenerateBone(BonePose currBonePose, BonePose blendBonePose)
+    public BonePose GenerateBone(BonePose currBone, BonePose blendBone)
     {
+        //note about quaternion math: v = x2 * x1^-1,     x2 = x1 * v,     x1 * v != v * x1  (quaternion math is not commutative)
         /*
-        addition/subtraction logic:
+        OLD broken logic:
         new_position = currentPose.position + blendedNeighbors.positionNext - blendedNeighbors.position
         new_positionNext = currentPose.position + blendedNeighbors.position + blendedNeighbors.positionNextNext - 2(blendedNeighbors.positionNext)
-        new_positionNextNext = not needed 
+        
+        NEW logic: 
+        new_position = currentPose.position + (blendedNeighbors.positionNext - blendedNeighbors.position)
+        new_positionNext = new_position + (blendedNeighbors.positionNextNext - blendedNeighbors.positionNext)  
         */
+        Vector3 newPos = currBone.value.position + (blendBone.positionNext.position - blendBone.value.position);
+        Quaternion newRot = currBone.value.rotation * (blendBone.positionNext.rotation * Quaternion.Inverse(blendBone.value.rotation));
+        Vector3 newScl = currBone.value.scale + (blendBone.positionNext.scale - blendBone.value.scale);
 
-        Quaternion Q_currPosition = new Quaternion(currBonePose.value.rotX, currBonePose.value.rotY, currBonePose.value.rotZ, currBonePose.value.rotW);
-        Quaternion Q_blendPosition = new Quaternion(blendBonePose.value.rotX, blendBonePose.value.rotY, blendBonePose.value.rotZ, blendBonePose.value.rotW);
-        Quaternion Q_blendPositionNext = new Quaternion(blendBonePose.positionNext.rotX, blendBonePose.positionNext.rotY, blendBonePose.positionNext.rotZ, blendBonePose.positionNext.rotW);
-        Quaternion Q_blendPositionNextNext = new Quaternion(blendBonePose.positionNextNext.rotX, blendBonePose.positionNextNext.rotY, blendBonePose.positionNextNext.rotZ, blendBonePose.positionNextNext.rotW);
+        Vector3 newPosNext = newPos + (blendBone.positionNextNext.position - blendBone.positionNext.position);
+        Quaternion newRotNext = newRot * (blendBone.positionNextNext.rotation * Quaternion.Inverse(blendBone.positionNext.rotation));
+        Vector3 newSclNext = newScl + (blendBone.positionNextNext.scale - blendBone.positionNext.scale);
 
-        Quaternion Q_newPostion = (Q_currPosition * Q_blendPositionNext) * Quaternion.Inverse(Q_blendPosition);
-        Quaternion Q_newPostionNext = (((Q_currPosition * Q_blendPosition) * Q_blendPositionNextNext) * Quaternion.Inverse(Q_blendPositionNext)) * Quaternion.Inverse(Q_blendPositionNext);
+        BonePose newBone = new BonePose(currBone.boneLabel);
 
-        BonePose newBone = new BonePose(currBonePose.boneLabel);
-        newBone.value = new BoneTransform()
-        {
-            posX = currBonePose.value.posX + blendBonePose.positionNext.posX - blendBonePose.value.posX,
-            posY = currBonePose.value.posY + blendBonePose.positionNext.posY - blendBonePose.value.posY,
-            posZ = currBonePose.value.posZ + blendBonePose.positionNext.posZ - blendBonePose.value.posZ,
+        newBone.value = new BoneTransform( newPos, newRot, newScl);
+        newBone.positionNext = new BoneTransform( newPosNext, newRotNext, newSclNext);
 
-            rotX = Q_newPostion.x,
-            rotY = Q_newPostion.y,
-            rotZ = Q_newPostion.z,
-            rotW = Q_newPostion.w,
+        return newBone;
+    }
 
-            sclX = currBonePose.value.sclX + blendBonePose.positionNext.sclX - blendBonePose.value.sclX,
-            sclY = currBonePose.value.sclY + blendBonePose.positionNext.sclY - blendBonePose.value.sclY,
-            sclZ = currBonePose.value.sclZ + blendBonePose.positionNext.sclZ - blendBonePose.value.sclZ,
-        };
+    public BonePose GenerateRootBone(BonePose currBone, BonePose blendBone)
+    {
+        //note about quaternion math: v = x2 * x1^-1,     x2 = x1 * v,     x1 * v != v * x1  (quaternion math is not commutative)
+        /*root bone must be handled differently because it is stored as a displacement, not a position!
+        new_position = blendBone.positionNext  //note this works if currBone.value is either a velocity from previous frame or a value of 0, which are the current two modes for root calculation. If, somehow, currBone.value contains a non-zero position for root, change this to currBone.Value + blendBone.PositionNext
+        new_positionNext = blendBone.positionNextNext  
+        */
+        BonePose newBone = new BonePose(currBone.boneLabel);
 
-        newBone.positionNext = new BoneTransform()
-        {
-            posX = currBonePose.value.posX + blendBonePose.value.posX + blendBonePose.positionNextNext.posX - 2 * blendBonePose.positionNext.posX,
-            posY = currBonePose.value.posY + blendBonePose.value.posY + blendBonePose.positionNextNext.posY - 2 * blendBonePose.positionNext.posY,
-            posZ = currBonePose.value.posZ + blendBonePose.value.posZ + blendBonePose.positionNextNext.posZ - 2 * blendBonePose.positionNext.posZ,
-
-            rotX = Q_newPostionNext.x,
-            rotY = Q_newPostionNext.y,
-            rotZ = Q_newPostionNext.z,
-            rotW = Q_newPostionNext.w,
-
-            sclX = currBonePose.value.sclX + blendBonePose.value.sclX + blendBonePose.positionNextNext.sclX - 2 * blendBonePose.positionNext.sclX,
-            sclY = currBonePose.value.sclY + blendBonePose.value.sclY + blendBonePose.positionNextNext.sclY - 2 * blendBonePose.positionNext.sclY,
-            sclZ = currBonePose.value.sclZ + blendBonePose.value.sclZ + blendBonePose.positionNextNext.sclZ - 2 * blendBonePose.positionNext.sclZ
-        };
+        newBone.value = new BoneTransform(blendBone.positionNext.position, blendBone.positionNext.rotation, blendBone.positionNext.scale);
+        newBone.positionNext = new BoneTransform(blendBone.positionNextNext.position, blendBone.positionNextNext.rotation, blendBone.positionNextNext.scale);
 
         return newBone;
     }
