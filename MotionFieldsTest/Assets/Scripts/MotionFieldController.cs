@@ -635,6 +635,7 @@ public class MotionFieldController : ScriptableObject {
     public BonePose GenerateBone(BonePose currBone, BonePose blendBone)
     {
         //note about quaternion math: v = x2 * x1^-1,     x2 = x1 * v,     x1 * v != v * x1  (quaternion math is not commutative)
+        //b * (a * b^-1) == a, i believe
         /*
         OLD broken logic:
         new_position = currentPose.position + blendedNeighbors.positionNext - blendedNeighbors.position
@@ -663,6 +664,7 @@ public class MotionFieldController : ScriptableObject {
     public BonePose GenerateRootBone(BonePose currBone, BonePose blendBone)
     {
         //note about quaternion math: v = x2 * x1^-1,     x2 = x1 * v,     x1 * v != v * x1  (quaternion math is not commutative)
+        //b * (a * b^-1) == a, i believe
         /*root bone must be handled differently because it is stored as a displacement, not a position!
         new_position = blendBone.positionNext  //note this works if currBone.value is either a velocity from previous frame or a value of 0, which are the current two modes for root calculation. If, somehow, currBone.value contains a non-zero position for root, change this to currBone.Value + blendBone.PositionNext
         new_positionNext = blendBone.positionNextNext  
