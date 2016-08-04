@@ -321,7 +321,7 @@ namespace AnimationMotionFields {
             cosmeticSkel.ApplyPose(pose);
 
             if (useRootMotion) {
-                ApplyRootMotion(pose.rootMotionInfo.positionValue, pose.rootMotionInfo.rotationValue);
+                ApplyRootMotion(pose.rootMotionInfo.value.position, pose.rootMotionInfo.value.rotation);
             }
         }
 

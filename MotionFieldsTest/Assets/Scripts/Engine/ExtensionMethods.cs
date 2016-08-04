@@ -1,6 +1,44 @@
 ﻿using UnityEngine;
 using System.Linq;
 
+public static class Quaternion_ExtensionMethods
+{
+    public static Quaternion AverageQuaternions(Quaternion[] quats, float[] weights)
+    {
+        if (quats.Length != weights.Length) { Debug.LogError("number of quaternions to average does not equal th number of weights."); return Quaternion.identity; }
+        Quaternion avgRot = new Quaternion(0, 0, 0, 0);
+        Quaternion first = quats[0];
+
+        for (int i = 0; i < quats.Length; ++i)
+        {
+            //if the dot product is negaticve, negate quats[i] so that it exists on the same half-sphere. 
+            //This is allowed because q = -q, and is nessesary because the error of aproximation increases the farther apart the quaternions are.
+            if (Quaternion.Dot(quats[i], first) > 0.0f) 
+            {
+                avgRot.w += (quats[i].w * weights[i]);
+                avgRot.x += (quats[i].x * weights[i]);
+                avgRot.y += (quats[i].y * weights[i]);
+                avgRot.z += (quats[i].z * weights[i]);
+            }
+            else
+            {
+                avgRot.w -= (quats[i].w * weights[i]);
+                avgRot.x -= (quats[i].x * weights[i]);
+                avgRot.y -= (quats[i].y * weights[i]);
+                avgRot.z -= (quats[i].z * weights[i]);
+            }
+        }
+        //Normalize the result to a unit Quaternion
+        float D = 1.0f / Mathf.Sqrt(avgRot.w * avgRot.w + avgRot.x * avgRot.x + avgRot.y * avgRot.y + avgRot.z * avgRot.z);
+        avgRot.w *= D;
+        avgRot.x *= D;
+        avgRot.y *= D;
+        avgRot.z *= D;
+
+        return avgRot;
+    }
+}
+
 public static class Transform_ExtensionMethods {
 
     [System.Flags]
