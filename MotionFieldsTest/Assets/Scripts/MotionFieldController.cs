@@ -147,34 +147,6 @@ public class BoneTransform {
         return new BoneTransform(b1.position + b2.position, b1.rotation * b2.rotation, b1.scale + b2.scale);
     }
 
-    public static bool operator ==(BoneTransform b1, BoneTransform b2)
-    {
-        return (b1.posX == b2.posX &&
-            b1.posY == b2.posY &&
-            b1.posZ == b2.posZ &&
-            b1.rotX == b2.rotX &&
-            b1.rotY == b2.rotY &&
-            b1.rotZ == b2.rotZ &&
-            b1.rotW == b2.rotW &&
-            b1.sclX == b2.sclX &&
-            b1.sclY == b2.sclY &&
-            b1.sclZ == b2.sclZ);
-    }
-
-    public static bool operator !=(BoneTransform b1, BoneTransform b2)
-    {
-        return !(b1.posX == b2.posX &&
-            b1.posY == b2.posY &&
-            b1.posZ == b2.posZ &&
-            b1.rotX == b2.rotX &&
-            b1.rotY == b2.rotY &&
-            b1.rotZ == b2.rotZ &&
-            b1.rotW == b2.rotW &&
-            b1.sclX == b2.sclX &&
-            b1.sclY == b2.sclY &&
-            b1.sclZ == b2.sclZ);
-    }
-
     public float[] flattenedTransform {
         get {
             return new float[] {posX, posY, posZ,
@@ -208,7 +180,7 @@ public class BoneTransform {
     }
 
     public static BoneTransform BlendTransform(BoneTransform tf1, BoneTransform tf2, float alpha) {
-        BoneTransform retBoneTf = new BoneTransform();
+        /*BoneTransform retBoneTf = new BoneTransform();
 
         retBoneTf.posX = Mathf.Lerp(tf1.posX, tf2.posX, alpha);
         retBoneTf.posY = Mathf.Lerp(tf1.posY, tf2.posY, alpha);
@@ -226,7 +198,12 @@ public class BoneTransform {
         retBoneTf.sclY = Mathf.Lerp(tf1.sclY, tf2.sclY, alpha);
         retBoneTf.sclZ = Mathf.Lerp(tf1.sclZ, tf2.sclZ, alpha);
 
-        return retBoneTf;
+        return retBoneTf;*/
+        Vector3 newPos = Vector3.Lerp(tf1.position, tf2.position, alpha);
+        Quaternion newRot = Quaternion.Slerp(tf1.rotation, tf2.rotation, alpha);
+        Vector3 newScl = Vector3.Lerp(tf1.scale, tf2.position, alpha);
+
+        return new BoneTransform(newPos, newRot, newScl);
     }
 
 }
@@ -439,8 +416,7 @@ public class MotionFieldController : ScriptableObject {
         float reward = float.MinValue;
         MotionPose newPose = MoveOneFrame(currentPose, taskArr, ref reward);
 
-        BoneTransform curRoot = newPose.rootMotionInfo.value;
-        //Debug.Log("root motion of chosen pose:\n posX: " + curRoot.posX + "  posY: "  + curRoot.posY)
+        //Debug.Log("root motion of chosen pose:\n posX: " + newPose.rootMotionInfo.value.posX + "  posY: " + newPose.rootMotionInfo.value.posY + "  posZ: " + newPose.rootMotionInfo.value.posZ);
 
         return newPose;
 	}
@@ -680,8 +656,14 @@ public class MotionFieldController : ScriptableObject {
         new_position = currentPose.position + (blendedNeighbors.positionNext - blendedNeighbors.position)
         new_positionNext = new_position + (blendedNeighbors.positionNextNext - blendedNeighbors.positionNext)  
         */
-        BoneTransform V = BoneTransform.Subtract(blendBone.positionNext, blendBone.value);
-        BoneTransform Y = BoneTransform.Subtract(blendBone.positionNextNext, blendBone.positionNext);
+        BoneTransform V1 = BoneTransform.Subtract(blendBone.positionNext, blendBone.value);
+        BoneTransform V2 = BoneTransform.Subtract(closestBone.positionNext, currBone.value);
+        BoneTransform V = BoneTransform.BlendTransform(V1, V2, driftCorrection);
+        
+
+        BoneTransform Y1 = BoneTransform.Subtract(blendBone.positionNextNext, blendBone.positionNext);
+        BoneTransform Y2 = BoneTransform.Subtract(closestBone.positionNextNext, closestBone.positionNext);
+        BoneTransform Y = BoneTransform.BlendTransform(Y1, Y2, driftCorrection);
 
         BonePose newBone = new BonePose(currBone.boneLabel);
 
