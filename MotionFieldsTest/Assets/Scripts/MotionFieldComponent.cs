@@ -321,7 +321,7 @@ namespace AnimationMotionFields {
             cosmeticSkel.ApplyPose(pose);
 
             if (useRootMotion) {
-                ApplyRootMotion(pose.rootMotionInfo.positionValue, pose.rootMotionInfo.rotationValue);
+                ApplyRootMotion(pose.rootMotionInfo.value.position, pose.rootMotionInfo.value.rotation);
             }
         }
 
@@ -461,8 +461,8 @@ namespace AnimationMotionFields {
             if (selfScript.controller.animClipInfoList.Count > 0) {
                 if (selfScript.controller.animClipInfoList[selectedAnim].motionPoses.Length > 0) {
                     Handles.DrawLine(Vector3.zero, //selfScript.transform.position,
-                                     selfScript.controller.animClipInfoList[selectedAnim].motionPoses[selectedPose].rootMotionInfo.rotationValue * 
-                                     selfScript.controller.animClipInfoList[selectedAnim].motionPoses[selectedPose].rootMotionInfo.positionValue *
+                                     selfScript.controller.animClipInfoList[selectedAnim].motionPoses[selectedPose].rootMotionInfo.value.rotation * 
+                                     selfScript.controller.animClipInfoList[selectedAnim].motionPoses[selectedPose].rootMotionInfo.value.position *
                                      1000.0f);
                 }
 
