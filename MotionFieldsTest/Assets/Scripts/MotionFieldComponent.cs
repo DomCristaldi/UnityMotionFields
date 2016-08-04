@@ -29,7 +29,7 @@ namespace AnimationMotionFields {
     [System.Serializable]
     public class CosmeticSkeleton {
 
-        public GameObject marker;
+        //public GameObject marker;
 
         public Transform skeletonRoot;
         public Transform rootMotionReferencePoint;
@@ -105,7 +105,7 @@ namespace AnimationMotionFields {
 
     }
     */
-
+    
     [CustomPropertyDrawer(typeof(CosmeticSkeleton))]
     public class CosmeticSkeleton_PropertyDrawer : PropertyDrawer {
 
@@ -150,16 +150,27 @@ namespace AnimationMotionFields {
 
         public override float GetPropertyHeight(SerializedProperty property, GUIContent label) {
 
+            if (_reorderList == null) { _reorderList = GetReorderList(property.FindPropertyRelative("cosmeticBones")); }
+
             float propHeight = 0.0f;
 
-            if (_reorderList == null) { _reorderList = GetReorderList(property.FindPropertyRelative("cosmeticBones")); }
+            propHeight += EditorGUI.GetPropertyHeight(property.FindPropertyRelative("skeletonRoot"))
+                        + EditorGUI.GetPropertyHeight(property.FindPropertyRelative("rootMotionReferencePoint"))
+                        + EditorGUI.GetPropertyHeight(property.FindPropertyRelative("avatar"))
+                        + _reorderList.GetHeight();
+                        //+ EditorGUI.GetPropertyHeight(_reorderList.serializedProperty);
+
+            return propHeight;
+            /*
             propHeight += _reorderList.GetHeight();
+            */
 
+            //return EditorGUI.GetPropertyHeight(_reorderList.serializedProperty);
 
+            //return EditorGUI.GetPropertyHeight(property);
 
-            return EditorGUI.GetPropertyHeight(property);
-       
-            //return propHeight; //GetReorderList(property.FindPropertyRelative("cosmeticBones")).GetHeight();
+            //return propHeight;
+            //return GetReorderList(property.FindPropertyRelative("cosmeticBones")).GetHeight();
 
         }
 
@@ -179,11 +190,12 @@ namespace AnimationMotionFields {
             if (_reorderList == null) { _reorderList = GetReorderList(property.FindPropertyRelative("cosmeticBones")); }
 
             property.serializedObject.Update();
-
+            /*
             EditorGUI.PropertyField(new Rect(position.x, yVal,
                                              position.width, EditorGUI.GetPropertyHeight(markerProp)),
                                     markerProp);
             yVal += EditorGUI.GetPropertyHeight(markerProp);
+            */
 
             //DRAW SKELETON ROOT PROPERTY FIELD
             EditorGUI.PropertyField(new Rect(position.x, yVal,
@@ -214,9 +226,10 @@ namespace AnimationMotionFields {
 
             EditorGUI.EndProperty();
         }
-
     }
+    
 #endif
+
 
     //[ExecuteInEditMode]
     [RequireComponent(typeof(Animator))]
@@ -345,9 +358,9 @@ namespace AnimationMotionFields {
         private bool g_showSkeleton;
 
         [SerializeField]
-        private Color g_skeletonBoneColor;
+        private Color g_skeletonBoneColor = Color.cyan;
         [SerializeField]
-        private Color g_skeletonJointColor;
+        private Color g_skeletonJointColor = Color.yellow;
         [SerializeField]
         private float g_skeletonJointRadius = 0.05f;
 
@@ -386,13 +399,23 @@ namespace AnimationMotionFields {
         private MotionFieldComponent selfScript;
         private Animator animControl;
 
-        public int selectedAnim;
-        public int selectedPose;
+        public int selectedAnim = 0;
+        public int selectedPose = 0;
+
+        public Color rootMotionColor = Color.red;
 
         void OnEnable() {
 
             selfScript = (MotionFieldComponent)target;
             animControl = selfScript.GetComponent<Animator>();
+        }
+
+        void OnSceneGUI() {
+            Color originalHandleColor = Handles.color;
+
+            DrawRootMotionVectors();
+
+            Handles.color = originalHandleColor;
         }
 
         public override void OnInspectorGUI() {
@@ -428,6 +451,25 @@ namespace AnimationMotionFields {
             EditorGUILayout.EndVertical();
         }
 
+        private void DrawRootMotionVectors() {
+            Matrix4x4 originalMatrix = Handles.matrix;
+            Handles.matrix = selfScript.transform.localToWorldMatrix;
+
+            Handles.color = rootMotionColor;
+
+
+            if (selfScript.controller.animClipInfoList.Count > 0) {
+                if (selfScript.controller.animClipInfoList[selectedAnim].motionPoses.Length > 0) {
+                    Handles.DrawLine(Vector3.zero, //selfScript.transform.position,
+                                     selfScript.controller.animClipInfoList[selectedAnim].motionPoses[selectedPose].rootMotionInfo.rotationValue * 
+                                     selfScript.controller.animClipInfoList[selectedAnim].motionPoses[selectedPose].rootMotionInfo.positionValue *
+                                     1000.0f);
+                }
+
+            }
+
+            Handles.matrix = originalMatrix;
+        }
     }
 
 #endif
