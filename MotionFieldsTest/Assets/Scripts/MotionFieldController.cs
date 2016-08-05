@@ -113,22 +113,6 @@ public class BoneTransform {
         }
     }
 
-    //Used for calculating velocity
-    public BoneTransform(BoneTransform origin, BoneTransform destination) {
-        this.posX = destination.posX - origin.posX;
-        this.posY = destination.posY - origin.posY;
-        this.posZ = destination.posZ - origin.posZ;
-
-        this.rotW = destination.rotW - origin.rotW;
-        this.rotX = destination.rotX - origin.rotX;
-        this.rotY = destination.rotY - origin.rotY;
-        this.rotZ = destination.rotZ - origin.rotZ;
-
-        this.sclX = destination.sclX - origin.sclX;
-        this.sclY = destination.sclY - origin.sclY;
-        this.sclZ = destination.sclZ - origin.sclZ;
-    }
-
     //Used for creating a copy
     public BoneTransform(BoneTransform copy) {
         this.posX = copy.posX;
@@ -143,6 +127,24 @@ public class BoneTransform {
         this.sclX = copy.sclX;
         this.sclY = copy.sclY;
         this.sclZ = copy.sclZ;
+    }
+
+    /// <summary>
+    ///  'Subtracts' the fields of the two bone transforms.
+    ///  <para>Not implemented as an operator because it has special behavior </para>
+    /// </summary>
+    public static BoneTransform Subtract(BoneTransform b2, BoneTransform b1)
+    {
+        return new BoneTransform(b2.position - b1.position, b2.rotation * Quaternion.Inverse(b1.rotation), b2.scale - b1.scale);
+    }
+
+    /// <summary>
+    ///  'Adds' the fields of the two bone transforms.
+    ///  <para>Not implemented as an operator because it has special behavior (NOT COMMUTATIVE)</para>
+    /// </summary>
+    public static BoneTransform Add(BoneTransform b1, BoneTransform b2)
+    {
+        return new BoneTransform(b1.position + b2.position, b1.rotation * b2.rotation, b1.scale + b2.scale);
     }
 
     public float[] flattenedTransform {
@@ -178,7 +180,7 @@ public class BoneTransform {
     }
 
     public static BoneTransform BlendTransform(BoneTransform tf1, BoneTransform tf2, float alpha) {
-        BoneTransform retBoneTf = new BoneTransform();
+        /*BoneTransform retBoneTf = new BoneTransform();
 
         retBoneTf.posX = Mathf.Lerp(tf1.posX, tf2.posX, alpha);
         retBoneTf.posY = Mathf.Lerp(tf1.posY, tf2.posY, alpha);
@@ -196,7 +198,12 @@ public class BoneTransform {
         retBoneTf.sclY = Mathf.Lerp(tf1.sclY, tf2.sclY, alpha);
         retBoneTf.sclZ = Mathf.Lerp(tf1.sclZ, tf2.sclZ, alpha);
 
-        return retBoneTf;
+        return retBoneTf;*/
+        Vector3 newPos = Vector3.Lerp(tf1.position, tf2.position, alpha);
+        Quaternion newRot = Quaternion.Slerp(tf1.rotation, tf2.rotation, alpha);
+        Vector3 newScl = Vector3.Lerp(tf1.scale, tf2.position, alpha);
+
+        return new BoneTransform(newPos, newRot, newScl);
     }
 
 }
@@ -399,6 +406,9 @@ public class MotionFieldController : ScriptableObject {
 
     public int numActions = 1;
 
+    [Range(0.0f, 1.0f)]
+    public float driftCorrection = 0.1f;
+
 	public MotionPose OneTick(MotionPose currentPose){
 
         float[] taskArr = GetTaskArray();
@@ -407,8 +417,7 @@ public class MotionFieldController : ScriptableObject {
         float reward = float.MinValue;
         MotionPose newPose = MoveOneFrame(currentPose, taskArr, ref reward);
 
-        BoneTransform curRoot = newPose.rootMotionInfo.value;
-        //Debug.Log("root motion of chosen pose:\n posX: " + curRoot.posX + "  posY: "  + curRoot.posY)
+        //Debug.Log("root motion of chosen pose:\n posX: " + newPose.rootMotionInfo.value.posX + "  posY: " + newPose.rootMotionInfo.value.posY + "  posZ: " + newPose.rootMotionInfo.value.posZ);
 
         return newPose;
 	}
@@ -446,7 +455,7 @@ public class MotionFieldController : ScriptableObject {
         MotionPose[] candidateActions = new MotionPose[actionWeights.Length];
         for(int i = 0; i < actionWeights.Length; ++i)
         {
-            candidateActions[i] = GeneratePose(currentPose, neighbors, actionWeights[i]);
+            candidateActions[i] = GeneratePose(currentPose, neighbors, 0,  actionWeights[i]); //0 is the index in neighbors of the neighbor which is closest to the current pose. Because of how the kdtree works, the closest neighbor pose will ALWAYS be at index 0, hence the magic number. sorry.
             candidateActions[i].animName = neighbors[i].animName;
             candidateActions[i].timestamp = neighbors[i].timestamp;
         }
@@ -612,7 +621,7 @@ public class MotionFieldController : ScriptableObject {
         return sqDist;
     }
 
-    private MotionPose GeneratePose(MotionPose currentPose, MotionPose[] neighbors, float[] action){
+    private MotionPose GeneratePose(MotionPose currentPose, MotionPose[] neighbors, int closestNeighborIndex, float[] action){
         if(action[0] == 0.0f || action[0] == -0.0f)
         {
             Debug.LogError("This shouldnt happen and is bad.");
@@ -621,20 +630,22 @@ public class MotionFieldController : ScriptableObject {
 
         int numBones = currentPose.bonePoses.Length;
 
-        BonePose newRootBone = GenerateRootBone(currentPose.rootMotionInfo, blendedNeighbors.rootMotionInfo);
+        BonePose newRootBone = GenerateRootBone(currentPose.rootMotionInfo, blendedNeighbors.rootMotionInfo, neighbors[closestNeighborIndex].rootMotionInfo);
 
         BonePose[] newPoseBones = new BonePose[numBones];
         for (int i = 0; i < numBones; i++)
         {
-            newPoseBones[i] = GenerateBone(currentPose.bonePoses[i], blendedNeighbors.bonePoses[i]);
+            newPoseBones[i] = GenerateBone(currentPose.bonePoses[i], blendedNeighbors.bonePoses[i], neighbors[closestNeighborIndex].bonePoses[i]);
         }
 
         MotionPose newPose = new MotionPose(newPoseBones, newRootBone);
         return newPose;
     }
 
-    public BonePose GenerateBone(BonePose currBone, BonePose blendBone)
+    public BonePose GenerateBone(BonePose currBone, BonePose blendBone, BonePose closestBone)
     {
+        //TODO: add drift correction with closestbone
+
         //note about quaternion math: v = x2 * x1^-1,     x2 = x1 * v,     x1 * v != v * x1  (quaternion math is not commutative)
         //b * (a * b^-1) == a, i believe
         /*
@@ -646,24 +657,27 @@ public class MotionFieldController : ScriptableObject {
         new_position = currentPose.position + (blendedNeighbors.positionNext - blendedNeighbors.position)
         new_positionNext = new_position + (blendedNeighbors.positionNextNext - blendedNeighbors.positionNext)  
         */
-        Vector3 newPos = currBone.value.position + (blendBone.positionNext.position - blendBone.value.position);
-        Quaternion newRot = currBone.value.rotation * (blendBone.positionNext.rotation * Quaternion.Inverse(blendBone.value.rotation));
-        Vector3 newScl = currBone.value.scale + (blendBone.positionNext.scale - blendBone.value.scale);
+        BoneTransform V1 = BoneTransform.Subtract(blendBone.positionNext, blendBone.value);
+        BoneTransform V2 = BoneTransform.Subtract(closestBone.positionNext, currBone.value);
+        BoneTransform V = BoneTransform.BlendTransform(V1, V2, driftCorrection);
+        
 
-        Vector3 newPosNext = newPos + (blendBone.positionNextNext.position - blendBone.positionNext.position);
-        Quaternion newRotNext = newRot * (blendBone.positionNextNext.rotation * Quaternion.Inverse(blendBone.positionNext.rotation));
-        Vector3 newSclNext = newScl + (blendBone.positionNextNext.scale - blendBone.positionNext.scale);
+        BoneTransform Y1 = BoneTransform.Subtract(blendBone.positionNextNext, blendBone.positionNext);
+        BoneTransform Y2 = BoneTransform.Subtract(closestBone.positionNextNext, closestBone.positionNext);
+        BoneTransform Y = BoneTransform.BlendTransform(Y1, Y2, driftCorrection);
 
         BonePose newBone = new BonePose(currBone.boneLabel);
 
-        newBone.value = new BoneTransform( newPos, newRot, newScl);
-        newBone.positionNext = new BoneTransform( newPosNext, newRotNext, newSclNext);
+        newBone.value = BoneTransform.Add(currBone.value, V);
+        newBone.positionNext = BoneTransform.Add(newBone.value, Y);
 
         return newBone;
     }
 
-    public BonePose GenerateRootBone(BonePose currBone, BonePose blendBone)
+    public BonePose GenerateRootBone(BonePose currBone, BonePose blendBone, BonePose closestBone)
     {
+        //TODO: add drift correction with closestbone
+
         //note about quaternion math: v = x2 * x1^-1,     x2 = x1 * v,     x1 * v != v * x1  (quaternion math is not commutative)
         //b * (a * b^-1) == a, i believe
         /*root bone must be handled differently because it is stored as a displacement, not a position!
@@ -672,8 +686,8 @@ public class MotionFieldController : ScriptableObject {
         */
         BonePose newBone = new BonePose(currBone.boneLabel);
 
-        newBone.value = new BoneTransform(blendBone.positionNext.position, blendBone.positionNext.rotation, blendBone.positionNext.scale);
-        newBone.positionNext = new BoneTransform(blendBone.positionNextNext.position, blendBone.positionNextNext.rotation, blendBone.positionNextNext.scale);
+        newBone.value = new BoneTransform(blendBone.positionNext);
+        newBone.positionNext = new BoneTransform(blendBone.positionNextNext);
 
         return newBone;
     }

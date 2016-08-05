@@ -157,14 +157,14 @@ namespace AnimationMotionFields {
 
 //HACK: Come back and do velocities for root motion and bone poses in the same loop so you don't need duplicate if statments
                 if (i == motionPoses.Length - 1) {
-                    motionPoses[i].rootMotionInfo.positionNext = new BoneTransform(motionPoses[0].rootMotionInfo.value, motionPoses[i].rootMotionInfo.value);
-                    motionPoses[i].rootMotionInfo.positionNextNext = new BoneTransform(motionPoses[1].rootMotionInfo.value, motionPoses[0].rootMotionInfo.value);
+                    motionPoses[i].rootMotionInfo.positionNext = BoneTransform.Subtract(motionPoses[0].rootMotionInfo.value, motionPoses[i].rootMotionInfo.value);
+                    motionPoses[i].rootMotionInfo.positionNextNext = BoneTransform.Subtract(motionPoses[1].rootMotionInfo.value, motionPoses[0].rootMotionInfo.value);
                 }
                 else {
-                    motionPoses[i].rootMotionInfo.positionNext = new BoneTransform(motionPoses[i + 1].rootMotionInfo.value, motionPoses[i].rootMotionInfo.value);
+                    motionPoses[i].rootMotionInfo.positionNext = BoneTransform.Subtract(motionPoses[i + 1].rootMotionInfo.value, motionPoses[i].rootMotionInfo.value);
 
                     if (i == motionPoses.Length - 2) {
-                        motionPoses[i].rootMotionInfo.positionNextNext = new BoneTransform(motionPoses[0].rootMotionInfo.value, motionPoses[i + 1].rootMotionInfo.value);
+                        motionPoses[i].rootMotionInfo.positionNextNext = BoneTransform.Subtract(motionPoses[0].rootMotionInfo.value, motionPoses[i + 1].rootMotionInfo.value);
                     }
                 }
                 
@@ -174,16 +174,16 @@ namespace AnimationMotionFields {
 
                     //SPECIAL CASE
                     if (i == motionPoses.Length - 1) {//do the velocity calculation using the first frame as the next frame for the math
-                        motionPoses[i].bonePoses[j].positionNext = new BoneTransform(motionPoses[0].bonePoses[j].value, motionPoses[i].bonePoses[j].value);
-                        motionPoses[i].bonePoses[j].positionNextNext = new BoneTransform(motionPoses[1].bonePoses[j].value, motionPoses[0].bonePoses[j].value);
+                        motionPoses[i].bonePoses[j].positionNext = BoneTransform.Subtract(motionPoses[0].bonePoses[j].value, motionPoses[i].bonePoses[j].value);
+                        motionPoses[i].bonePoses[j].positionNextNext = BoneTransform.Subtract(motionPoses[1].bonePoses[j].value, motionPoses[0].bonePoses[j].value);
 
                     }
                     //BUSINESS AS USUAL
                     else {//Calculate the velocity by subtracting the current value from the next value
-                        motionPoses[i].bonePoses[j].positionNext = new BoneTransform(motionPoses[i + 1].bonePoses[j].value, motionPoses[i].bonePoses[j].value);
+                        motionPoses[i].bonePoses[j].positionNext = BoneTransform.Subtract(motionPoses[i + 1].bonePoses[j].value, motionPoses[i].bonePoses[j].value);
 
                         if (i == motionPoses.Length - 2) {
-                            motionPoses[i].bonePoses[j].positionNextNext = new BoneTransform(motionPoses[0].bonePoses[j].value, motionPoses[i + 1].bonePoses[j].value);
+                            motionPoses[i].bonePoses[j].positionNextNext = BoneTransform.Subtract(motionPoses[0].bonePoses[j].value, motionPoses[i + 1].bonePoses[j].value);
                         }
                     }
 
@@ -206,11 +206,11 @@ namespace AnimationMotionFields {
                 }
                 //BUSINESS AS USUAL
                 else {//Calculate the velocity by subtracting the current value from the next value
-                    motionPoses[i].rootMotionInfo.positionNext = new BoneTransform(motionPoses[i + 1].rootMotionInfo.value, motionPoses[i].rootMotionInfo.value);
+                    motionPoses[i].rootMotionInfo.positionNext = BoneTransform.Subtract(motionPoses[i + 1].rootMotionInfo.value, motionPoses[i].rootMotionInfo.value);
 
                     //we can't calculate any further next velocities, use the last calculateable velocity
                     if (i == motionPoses.Length - 2) {
-                        motionPoses[i].rootMotionInfo.positionNextNext = new BoneTransform(motionPoses[i + 1].rootMotionInfo.value, motionPoses[i].rootMotionInfo.value);
+                        motionPoses[i].rootMotionInfo.positionNextNext = BoneTransform.Subtract(motionPoses[i + 1].rootMotionInfo.value, motionPoses[i].rootMotionInfo.value);
                     }
                 }
 
@@ -225,11 +225,11 @@ namespace AnimationMotionFields {
                     }
                     //BUSINESS AS USUAL
                     else {//Calculate the velocity by subtracting the current value from the next value
-                        motionPoses[i].bonePoses[j].positionNext = new BoneTransform(motionPoses[i + 1].bonePoses[j].value, motionPoses[i].bonePoses[j].value);
+                        motionPoses[i].bonePoses[j].positionNext = BoneTransform.Subtract(motionPoses[i + 1].bonePoses[j].value, motionPoses[i].bonePoses[j].value);
                         
                         //we can't calculate any further next velocities, use the last calculateable velocity
                         if (i == motionPoses.Length - 2) {
-                            motionPoses[i].bonePoses[j].positionNextNext = new BoneTransform(motionPoses[i + 1].bonePoses[j].value, motionPoses[i].bonePoses[j].value);
+                            motionPoses[i].bonePoses[j].positionNextNext = BoneTransform.Subtract(motionPoses[i + 1].bonePoses[j].value, motionPoses[i].bonePoses[j].value);
                         }
                     }
                 }
