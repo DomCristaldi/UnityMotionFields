@@ -45,7 +45,9 @@ namespace AnimationMotionFields {
             //record all the transforms
             for (int i = 0; i < modelRef.cosmeticSkel.cosmeticBones.Count; ++i) {
                 //create bone Pose
-                bonePoses[i] = new BonePose(modelRef.cosmeticSkel.cosmeticBones[i].boneLabel);
+                CosmeticSkeletonBone cosBone = modelRef.cosmeticSkel.cosmeticBones[i];
+
+                bonePoses[i] = new BonePose(cosBone.boneLabel);
 
                 //Debug.Log(modelRef.cosmeticSkel.cosmeticBones[i].boneMovementSpace);
 
@@ -55,26 +57,18 @@ namespace AnimationMotionFields {
                 if (modelRef.cosmeticSkel.cosmeticBones[i].boneMovementSpace == CosmeticSkeletonBone.MovementSpace.World) {
                     isLocalSpace = false;
                 }
-                bonePoses[i].value = new BoneTransform(modelRef.cosmeticSkel.cosmeticBones[i].boneTf, isLocalSpace);
+                bonePoses[i].value = new BoneTransform(cosBone.boneTf, isLocalSpace);
                 
-                /*
-                if (modelRef.cosmeticSkel.cosmeticBones[i].boneMovementSpace == CosmeticSkeletonBone.MovementSpace.Local) {
-                    bonePoses[i].value = new BoneTransform(modelRef.cosmeticSkel.cosmeticBones[i].boneTf, true);
+                //ENCODE BONE LENGTHS
+                if (modelRef.cosmeticSkel.skeletonRoot == cosBone.boneTf) {
+                    //HACK: predefine bone length of the root of the Skeleton to 0.5f meters
+                    bonePoses[i].boneLength = 0.5f;
                 }
                 else {
-                    Animator modelRefAnimator = modelRef.GetComponent<Animator>();
-                    bonePoses[i].value = new BoneTransform() {
-                                                              posX = modelRefAnimator.deltaPosition.x,
-                                                              posY = modelRefAnimator.deltaPosition.y,
-                                                              posZ = modelRefAnimator.deltaPosition.z,
-
-                                                              rotW = modelRefAnimator.deltaRotation.w,
-                                                              rotX = modelRefAnimator.deltaRotation.x,
-                                                              rotY = modelRefAnimator.deltaRotation.y,
-                                                              rotZ = modelRefAnimator.deltaRotation.z,
-                                                             };
+                    //bone length should be the magnitude of the local position
+                    bonePoses[i].boneLength = cosBone.boneTf.localPosition.magnitude;
                 }
-                */
+
             }
 
             //return model to it's non-animated pose
