@@ -251,6 +251,7 @@ public class BoneTransform {
 [System.Serializable]
 public class BonePose {
     public string boneLabel;
+    public float boneLength;
 
     public BoneTransform value;
     public BoneTransform positionNext;

@@ -2,7 +2,7 @@
 //using UnityEngine.Experimental.Director;
 using System.Collections;
 using System.Collections.Generic;
-//using System.Linq;
+using System.Linq;
 
 #if UNITY_EDITOR
 using UnityEditor;
@@ -178,7 +178,7 @@ namespace AnimationMotionFields {
 
             float yVal = position.y;
 
-            SerializedProperty markerProp = property.FindPropertyRelative("marker");
+            //SerializedProperty markerProp = property.FindPropertyRelative("marker");
 
             SerializedProperty skelRootProp = property.FindPropertyRelative("skeletonRoot");
             SerializedProperty rootMotionRefPointProp = property.FindPropertyRelative("rootMotionReferencePoint");
@@ -235,10 +235,10 @@ namespace AnimationMotionFields {
     [RequireComponent(typeof(Animator))]
     public class MotionFieldComponent : MonoBehaviour {
 
-        public MotionFieldController controller;
-
 
         public CosmeticSkeleton cosmeticSkel;
+        public MotionFieldController controller;
+
 
         //public MotionSkeleton skeleton;
 
@@ -420,7 +420,14 @@ namespace AnimationMotionFields {
 
         public override void OnInspectorGUI() {
             base.OnInspectorGUI();
+            /*
+            EditorGUILayout.Space();
+            if (GUILayout.Button("Transcribe Bone Poses")) {
+                TranscribeBoneLabelsFromControllerTool();
+            }
+            */
 
+            EditorGUILayout.Space();
             DrawMotionApplicationTool();
 
             EditorGUILayout.Space();
@@ -431,8 +438,23 @@ namespace AnimationMotionFields {
             EditorGUILayout.Vector3Field("Center of Mass: ", animControl.bodyPosition);
         }
 
+        private void TranscribeBoneLabelsFromControllerTool() {
+            if (selfScript.controller == null) { return; }
+        //HACK: come back and use a Bone Labels Scriptable Object instead (when it finally exists
+            if (selfScript.controller.animClipInfoList.Count == 0) { return; }
+            if (selfScript.controller.animClipInfoList[0].motionPoses.Length == 0) { return; }
+            /*
+            selfScript.cosmeticSkel.cosmeticBones = new List<CosmeticSkeletonBone>();
+            
+            foreach (string s in selfScript.controller.animClipInfoList[0].motionPoses.Select(x => x.bonePoses[0].boneLabel)) {
+                selfScript.cosmeticSkel.cosmeticBones.Add(new CosmeticSkeletonBone() { boneLabel = s });
+            }
+            */
+        }
 
         private void DrawMotionApplicationTool() {
+            if (selfScript.controller == null) { return; }
+
             EditorGUILayout.BeginVertical();
 
             EditorGUILayout.LabelField("Test Your Motion Pose");
@@ -452,6 +474,9 @@ namespace AnimationMotionFields {
         }
 
         private void DrawRootMotionVectors() {
+
+            if (selfScript.controller == null) { return; }
+
             Matrix4x4 originalMatrix = Handles.matrix;
             Handles.matrix = selfScript.transform.localToWorldMatrix;
 
