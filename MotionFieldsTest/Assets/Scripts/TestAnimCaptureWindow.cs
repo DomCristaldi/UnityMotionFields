@@ -62,6 +62,8 @@ public class SampleClipTool : EditorWindow {
             AnimationMode.StopAnimationMode();
 
 
+        DisplayAnimInfo();
+
         EditorGUILayout.EndVertical();
     }
 
@@ -110,5 +112,52 @@ public class SampleClipTool : EditorWindow {
             AnimationMode.StopAnimationMode();
         else
             AnimationMode.StartAnimationMode();
+    }
+
+    private void DisplayAnimInfo() {
+
+
+        Transform skelRootTf = null;
+
+        EditorGUILayout.Space();
+
+        EditorGUILayout.BeginVertical();
+
+        //HIPS LOCATION AND ROTATION
+        //skelRootTf = EditorGUILayout.ObjectField(skelRootTf, typeof(Transform), true) as Transform;
+        skelRootTf = go.GetComponent<AnimationMotionFields.MotionFieldComponent>().cosmeticSkel.skeletonRoot;
+
+        if (skelRootTf == null) { return; }
+
+        EditorGUILayout.Vector3Field("Hip Location: ", skelRootTf.position);
+        EditorGUILayout.Vector4Field("Hip Rotatoin: ", skelRootTf.rotation.Ex_VectorValue());
+
+        EditorGUILayout.Space();
+
+        //BODY LOCATION AND ROTATION
+        HumanPoseHandler hPoseHandler = new HumanPoseHandler(go.GetComponent<Animator>().avatar,
+                                                             skelRootTf);
+        HumanPose hPose = new HumanPose();
+        hPoseHandler.GetHumanPose(ref hPose);
+
+        EditorGUILayout.Vector3Field("Body Location: ", hPose.bodyPosition);
+        EditorGUILayout.Vector4Field("Body Rotation: ", hPose.bodyRotation.Ex_VectorValue());
+
+
+        //hip position
+        //hip rotation
+        //body position
+        //body rotation
+
+
+
+
+
+        EditorGUILayout.EndVertical();
+    }
+
+    private void DrawHumanPoseInfo() {
+
+
     }
 }

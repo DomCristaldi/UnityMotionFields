@@ -364,6 +364,19 @@ namespace AnimationMotionFields {
         [SerializeField]
         private float g_skeletonJointRadius = 0.05f;
 
+        [Space]
+        [SerializeField]
+        private Color g_bodyOrientaionVecColor = Color.magenta;
+        [SerializeField]
+        private Color g_hipsOrientationVecColor = Color.blue;
+
+        [Space]
+        [SerializeField]
+        private Color g_flooredBodyPosColor = Color.red;
+        [SerializeField]
+        private float g_flooredBodyPosRadius = 0.05f;
+
+        [Space]
         [SerializeField]
         private Transform g_skeletonRoot;
 
@@ -371,6 +384,7 @@ namespace AnimationMotionFields {
             Color originalGizmoColor = Gizmos.color;
             
             if (g_showSkeleton) { Gizmo_DrawSkeletonHierarchy(g_skeletonRoot); }
+            Gizmo_DrawBodyOrientation();
 
             Gizmos.color = originalGizmoColor;
         }
@@ -386,6 +400,40 @@ namespace AnimationMotionFields {
 
             Gizmos.color = g_skeletonJointColor;
             Gizmos.DrawSphere(root.position, g_skeletonJointRadius);
+        }
+
+        private void Gizmo_DrawBodyOrientation() {
+
+            Gizmos.color = g_bodyOrientaionVecColor;
+
+            HumanPoseHandler hPoseHandler = new HumanPoseHandler(cosmeticSkel.avatar, cosmeticSkel.skeletonRoot);
+            HumanPose hPose = new HumanPose();
+            hPoseHandler.GetHumanPose(ref hPose);
+
+            Gizmos.DrawLine(hPose.bodyPosition + transform.position,
+                            hPose.bodyPosition + (hPose.bodyRotation * Vector3.forward * 12.0f));
+
+
+            Debug.Log(hPose.bodyPosition);
+
+            Gizmos.color = g_hipsOrientationVecColor;
+
+            Gizmos.DrawLine(cosmeticSkel.skeletonRoot.position,
+                            cosmeticSkel.skeletonRoot.position + (cosmeticSkel.skeletonRoot.rotation * Vector3.forward * 12.0f));
+
+
+
+            Gizmos.color = g_flooredBodyPosColor;
+            Gizmos.DrawLine(new Vector3(hPose.bodyPosition.x,
+                                        cosmeticSkel.rootMotionReferencePoint.position.y,
+                                        hPose.bodyPosition.z),
+                            hPose.bodyRotation * Vector3.forward * 12.0f);
+
+            Gizmos.DrawLine(new Vector3(hPose.bodyPosition.x,
+                                        cosmeticSkel.rootMotionReferencePoint.position.y,
+                                        hPose.bodyPosition.z),
+                            hPose.bodyRotation * Vector3.up * 12.0f);
+
         }
 #endif
 
@@ -414,8 +462,11 @@ namespace AnimationMotionFields {
             Color originalHandleColor = Handles.color;
 
             DrawRootMotionVectors();
+            //DrawBodyOrientation();
 
             Handles.color = originalHandleColor;
+
+            //Repaint();
         }
 
         public override void OnInspectorGUI() {
@@ -492,6 +543,25 @@ namespace AnimationMotionFields {
                 }
 
             }
+
+            Handles.matrix = originalMatrix;
+        }
+
+        private void DrawBodyOrientation() {
+            Handles.color = Color.cyan;
+            Matrix4x4 originalMatrix = Handles.matrix;
+
+            HumanPoseHandler hPoseHandler = new HumanPoseHandler(selfScript.cosmeticSkel.avatar, selfScript.cosmeticSkel.skeletonRoot);
+            HumanPose hPose = new HumanPose();
+            hPoseHandler.GetHumanPose(ref hPose);
+
+            //hPose.
+            Matrix4x4 poseMat = new Matrix4x4();
+            poseMat.SetTRS(hPose.bodyPosition, hPose.bodyRotation, Vector3.one);
+
+            //Handles.matrix = poseMat;
+
+            Handles.DrawLine(hPose.bodyPosition, hPose.bodyRotation * Vector3.forward * 12.0f);
 
             Handles.matrix = originalMatrix;
         }
