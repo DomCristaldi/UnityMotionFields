@@ -37,6 +37,15 @@ public static class Quaternion_ExtensionMethods
 
         return avgRot;
     }
+
+    /// <summary>
+    /// Returns a Vector4 representation of the quaternion (w, x, y, z)
+    /// </summary>
+    /// <param name="value"></param>
+    /// <returns>Vector4(w, x, y, z)</returns>
+    public static Vector4 Ex_VectorValue(this Quaternion value) {
+        return new Vector4(value.w, value.x, value.y, value.z);
+    }
 }
 
 public static class Transform_ExtensionMethods {

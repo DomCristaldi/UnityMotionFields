@@ -292,6 +292,8 @@ namespace AnimationMotionFields {
                     AnimationMode.SampleAnimationClip(modelRef.gameObject, animClip, timestamp);
                     hPoseHandler.GetHumanPose(ref hPose);
 
+
+
                     //calculate the distance between refererence point and the root, use that to adjust the hips location
                     Vector3 newPos = Vector3.ProjectOnPlane( (modelRef.cosmeticSkel.rootMotionReferencePoint.position - hPose.bodyPosition /*modelRef.cosmeticSkel.skeletonRoot.position*/)
                                      /*+ (hPose.bodyPosition - modelRef.cosmeticSkel.skeletonRoot.position)*/, Vector3.up)
@@ -301,9 +303,55 @@ namespace AnimationMotionFields {
                     //transform the point to the reference point's local space, where the skeleton's root is originally located
                     newPos = modelRef.cosmeticSkel.rootMotionReferencePoint.InverseTransformPoint(newPos);
 
-                    Quaternion newRot = (skelRoot.rotation * (rootMotionRefPoint.rotation * Quaternion.Inverse(skelRoot.rotation))) * (hPose.bodyRotation * Quaternion.Inverse(hPose.bodyRotation));
+                    //Quaternion newRot = (skelRoot.rotation * (rootMotionRefPoint.rotation * Quaternion.Inverse(skelRoot.rotation))) * (hPose.bodyRotation * Quaternion.Inverse(hPose.bodyRotation));
+                    /*
+                    Quaternion flooredCenterOfRot = Quaternion.LookRotation(Vector3.ProjectOnPlane(hPose.bodyRotation * Vector3.forward, Vector3.up), Vector3.up);
+                    //Quaternion newRot = flooredCenterOfRot * Quaternion.Inverse(skelRoot.rotation);
 
-                    skeletonRootBonePose.value = new BoneTransform(newPos, newRot, skelRoot.localScale);
+                    //Quaternion newRot = skelRoot.rotation * Quaternion.Inverse(hPose.bodyRotation);
+
+                    Quaternion orientationToRefRot = rootMotionRefPoint.rotation * Quaternion.Inverse(flooredCenterOfRot);
+                    orientationToRefRot = Quaternion.LookRotation(Vector3.ProjectOnPlane(orientationToRefRot * Vector3.forward, Vector3.up), Vector3.up);
+                    Quaternion newRot = skelRoot.rotation * orientationToRefRot;
+
+                    newRot = Quaternion.FromToRotation(hPose.bodyRotation * Vector3.forward, skelRoot.localRotation * Vector3.forward);
+                    */
+
+                    //create a yaw-only quat to adjust the hips by
+                    /*
+                    Quaternion adjQuat = Quaternion.LookRotation(((rootMotionRefPoint.rotation * Quaternion.Inverse(hPose.bodyRotation)) * Vector3.forward), Vector3.up);
+                    Quaternion newRot = skelRoot.rotation * adjQuat;
+                    */
+
+                    float mag = Mathf.Sqrt(Mathf.Pow(hPose.bodyRotation.w, 2.0f) + Mathf.Pow(hPose.bodyRotation.y, 2.0f));
+                    Quaternion flooredBodyRot = new Quaternion(0.0f,
+                                                               hPose.bodyRotation.y / mag,
+                                                               0.0f,
+                                                               hPose.bodyRotation.w / mag);
+
+                    Quaternion newRot = skelRoot.rotation * Quaternion.Inverse(flooredBodyRot);
+
+
+                    Vector3 rootOffsetPos = skelRoot.transform.position - new Vector3(hPose.bodyPosition.x,
+                                                                                      rootMotionRefPoint.position.y,
+                                                                                      hPose.bodyPosition.z);
+
+                    skeletonRootBonePose.value = new BoneTransform(/*newPos*/ rootOffsetPos, newRot, skelRoot.localScale);
+
+                    //skeletonRootBonePose.value.posX = newPos.x;
+                    //skeletonRootBonePose.value.posY = newPos.y;
+                    //skeletonRootBonePose.value.posZ = newPos.z;
+
+
+                    //skeletonRootBonePose.value.posX = rootOffsetPos.x;
+                    //skeletonRootBonePose.value.posY = rootOffsetPos.y;
+                    //skeletonRootBonePose.value.posZ = rootOffsetPos.z;
+
+
+
+                    Vector3 refPointPos = rootMotionRefPoint.position;
+                    //newPos = 
+
 
                     AnimationMode.EndSampling();
                     AnimationMode.StopAnimationMode();
@@ -351,7 +399,7 @@ namespace AnimationMotionFields {
             HumanPose curHumanPose = new HumanPose();//this will store the current frame's pose
             //poseHandler.GetHumanPose(ref hPose);
 
-
+            Debug.Log(modelRef.cosmeticSkel.rootMotionReferencePoint.rotation);
 
         //HACK: assume that we're using the XZ plane for root motion, flatten out the Y to the Reference Point's Y
             Vector3 projectedCenterOfMass = prevHumanPose.bodyPosition;
@@ -373,14 +421,34 @@ namespace AnimationMotionFields {
             AnimationMode.SampleAnimationClip(modelRef.gameObject, animClip, timestamp);
             poseHandler.GetHumanPose(ref curHumanPose);//store the pose info here
 
-            
+
+            //HACK: get out the body position and rotation for debuggin purposes
+            bool isAlmostOne = Mathf.Approximately(timestamp, 0.1f);
+            if (timestamp == 0.06666667f || isAlmostOne) {
+                Debug.Log("TStamp: " + timestamp);
+
+                Vector3 pos = isAlmostOne ? curHumanPose.bodyPosition : prevHumanPose.bodyPosition;
+                Vector4 rot = isAlmostOne ? curHumanPose.bodyRotation.Ex_VectorValue() : prevHumanPose.bodyRotation.Ex_VectorValue();
+
+
+                Debug.LogFormat("{0}:\nTimestamp {1}: Position: ({2}, {3}, {4})\tRotation: ({5}, {6}, {7}, {8})", motionPose.animName,
+                                                                                     motionPose.timestamp,
+                                                                                     pos.x, pos.y, pos.z,
+                                                                                     rot[0], rot[1], rot[2], rot[3]);
+            }
+
             Quaternion adjustmentQuat = modelRef.cosmeticSkel.rootMotionReferencePoint.rotation * Quaternion.Inverse(prevHumanPose.bodyRotation);
             Vector3 positionMotion = Vector3.ProjectOnPlane(adjustmentQuat * (curHumanPose.bodyPosition - prevHumanPose.bodyPosition), Vector3.up);
-            
 
-            Quaternion rotationMotion = prevHumanPose.bodyRotation * Quaternion.Inverse(curHumanPose.bodyRotation);
+
+            Quaternion curBodyRot_Flat = Quaternion.LookRotation(Vector3.ProjectOnPlane(curHumanPose.bodyRotation * Vector3.forward, Vector3.up));
+            Quaternion prevBodyRot_Flat = Quaternion.LookRotation(Vector3.ProjectOnPlane(prevHumanPose.bodyRotation * Vector3.forward, Vector3.up));
+
+            Quaternion rotationMotion = curBodyRot_Flat * Quaternion.Inverse(prevBodyRot_Flat);
+
+            //Quaternion rotationMotion = curHumanPose.bodyRotation * Quaternion.Inverse(prevHumanPose.bodyRotation); //prevHumanPose.bodyRotation * Quaternion.Inverse(curHumanPose.bodyRotation);
             //project the rotation onto a plane by using it to modify a vector and then generating a quaternion out from that
-            rotationMotion = Quaternion.LookRotation(Vector3.ProjectOnPlane(rotationMotion * Vector3.forward, Vector3.up), Vector3.up);
+            //rotationMotion = Quaternion.LookRotation(Vector3.ProjectOnPlane(rotationMotion * Vector3.forward, Vector3.up), Vector3.up);
 
             motionPose.rootMotionInfo = new BonePose("RootMotion") { value = new BoneTransform(positionMotion, rotationMotion, Vector3.one) };
 
