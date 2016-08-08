@@ -90,7 +90,7 @@ public class BoneTransform {
             this.posY = tf.position.y;
             this.posZ = tf.position.z;
 
-            //HACN: projecting onto the plane of the transform's forward vector may not be the best idea here
+            //HACK: projecting onto the plane of the transform's forward vector may not be the best idea here
             Quaternion quat = new Quaternion(tf.rotation.x, tf.rotation.y, tf.rotation.z, tf.rotation.w);
             Vector3 forVec = quat * Vector3.forward;
             quat = Quaternion.LookRotation(Vector3.ProjectOnPlane(forVec, Vector3.up));
@@ -206,6 +206,46 @@ public class BoneTransform {
         return new BoneTransform(newPos, newRot, newScl);
     }
 
+    public static BoneTransform BlendTransforms(BoneTransform[] trans, float[] weights)
+    {
+        Vector3 avgPos = Vector3.zero;
+        Vector3 avgScl = Vector3.zero;
+        Quaternion avgRot = new Quaternion(0, 0, 0, 0);
+        Quaternion first = trans[0].rotation;
+
+        for (int i = 0; i < trans.Length; ++i)
+        {
+            avgPos += (trans[i].position * weights[i]);
+            avgScl += (trans[i].scale * weights[i]);
+
+            //if the dot product is negaticve, negate quats[i] so that it exists on the same half-sphere. 
+            //This is allowed because q = -q, and is nessesary because the error of aproximation increases the farther apart the quaternions are.
+            if (Quaternion.Dot(trans[i].rotation, first) > 0.0f){
+                avgRot.w += (trans[i].rotation.w * weights[i]);
+                avgRot.x += (trans[i].rotation.x * weights[i]);
+                avgRot.y += (trans[i].rotation.y * weights[i]);
+                avgRot.z += (trans[i].rotation.z * weights[i]);
+            }
+            else{
+                avgRot.w -= (trans[i].rotation.w * weights[i]);
+                avgRot.x -= (trans[i].rotation.x * weights[i]);
+                avgRot.y -= (trans[i].rotation.y * weights[i]);
+                avgRot.z -= (trans[i].rotation.z * weights[i]);
+            }
+        }
+
+        //note: is normalizing avgPos and avgScl nessesary?
+
+        //Normalize the result to a unit Quaternion
+        float D = 1.0f / Mathf.Sqrt(avgRot.w * avgRot.w + avgRot.x * avgRot.x + avgRot.y * avgRot.y + avgRot.z * avgRot.z);
+        avgRot.w *= D;
+        avgRot.x *= D;
+        avgRot.y *= D;
+        avgRot.z *= D;
+
+        return new BoneTransform(avgPos, avgRot, avgScl);
+    }
+
 }
 
 [System.Serializable]
@@ -272,6 +312,36 @@ public class MotionPose {
         if (weights.Length == 0) { Debug.LogError("Supplied Weights Array is of length 0"); return; }
         if (posesToBlend.Length != weights.Length) { Debug.LogError("The number of poses does not match the number of weigts"); return; }
 
+        BoneTransform[] BoneValues = new BoneTransform[posesToBlend.Length];
+        BoneTransform[] BonePosNexts = new BoneTransform[posesToBlend.Length];
+        BoneTransform[] BonePosNextNexts = new BoneTransform[posesToBlend.Length];
+        for (int i = 0; i < posesToBlend.Length; ++i)
+        {
+            BoneValues[i] = posesToBlend[i].rootMotionInfo.value;
+            BonePosNexts[i] = posesToBlend[i].rootMotionInfo.positionNext;
+            BonePosNextNexts[i] = posesToBlend[i].rootMotionInfo.positionNextNext;
+        }
+        BonePose newRootMotion = new BonePose(posesToBlend[0].rootMotionInfo.boneLabel);
+        newRootMotion.value = BoneTransform.BlendTransforms(BoneValues, weights);
+        newRootMotion.positionNext = BoneTransform.BlendTransforms(BonePosNexts, weights);
+        newRootMotion.positionNextNext = BoneTransform.BlendTransforms(BonePosNextNexts, weights);
+
+        BonePose[] newPoseBones = new BonePose[posesToBlend[0].bonePoses.Length];
+        for (int i = 0; i < posesToBlend[0].bonePoses.Length; ++i)
+        {
+            for (int j = 0; j < posesToBlend.Length; ++j)
+            {
+                BoneValues[j] = posesToBlend[j].bonePoses[i].value;
+                BonePosNexts[j] = posesToBlend[j].bonePoses[i].positionNext;
+                BonePosNextNexts[j] = posesToBlend[j].bonePoses[i].positionNextNext;
+            }
+            newPoseBones[i] = new BonePose(posesToBlend[0].bonePoses[i].boneLabel);
+            newPoseBones[i].value = BoneTransform.BlendTransforms(BoneValues, weights);
+            newPoseBones[i].positionNext = BoneTransform.BlendTransforms(BonePosNexts, weights);
+            newPoseBones[i].positionNextNext = BoneTransform.BlendTransforms(BonePosNextNexts, weights);
+        }
+
+        /*
         //set initial bone pose array and rootMotionBone to that of the first pose to blend
         BonePose newRootMotion =new BonePose(posesToBlend[0].rootMotionInfo.boneLabel);
         newRootMotion.value = new BoneTransform(posesToBlend[0].rootMotionInfo.value);
@@ -287,44 +357,27 @@ public class MotionPose {
             newBone.positionNextNext = new BoneTransform(posesToBlend[0].bonePoses[j].positionNextNext);
             newPoseBones[j] = newBone;
         }
-
         //represents the amount we've blended in so far
         float curBoneWeight = weights[0];
 
         for (int i = 1; i < posesToBlend.Length; ++i) {
-
             //create normalized weights for tiered blending
             float bpwNormalized = curBoneWeight / (curBoneWeight + weights[i]);
             //float wiNormalized = weights[i] / (curBoneWeight + weights[i]);
 
-            newRootMotion.value = BoneTransform.BlendTransform(newRootMotion.value,
-                                                    posesToBlend[i].rootMotionInfo.value,
-                                                    bpwNormalized);
-            newRootMotion.positionNext = BoneTransform.BlendTransform(newRootMotion.positionNext,
-                                                           posesToBlend[i].rootMotionInfo.positionNext,
-                                                           bpwNormalized);
-            newRootMotion.positionNextNext = BoneTransform.BlendTransform(newRootMotion.positionNextNext,
-                                                               posesToBlend[i].rootMotionInfo.positionNextNext,
-                                                               bpwNormalized);
+            newRootMotion.value = BoneTransform.BlendTransform(newRootMotion.value, posesToBlend[i].rootMotionInfo.value, bpwNormalized);
+            newRootMotion.positionNext = BoneTransform.BlendTransform(newRootMotion.positionNext, posesToBlend[i].rootMotionInfo.positionNext, bpwNormalized);
+            newRootMotion.positionNextNext = BoneTransform.BlendTransform(newRootMotion.positionNextNext, posesToBlend[i].rootMotionInfo.positionNextNext, bpwNormalized);
 
             for (int j = 0; j < posesToBlend[i].bonePoses.Length; ++j) {
                 //do the blending
-                newPoseBones[j].value = BoneTransform.BlendTransform(newPoseBones[j].value,
-                                                                  posesToBlend[i].bonePoses[j].value, 
-                                                                  bpwNormalized);
-
-                newPoseBones[j].positionNext = BoneTransform.BlendTransform(newPoseBones[j].positionNext,
-                                                                     posesToBlend[i].bonePoses[j].positionNext,
-                                                                     bpwNormalized);
-
-                newPoseBones[j].positionNextNext = BoneTransform.BlendTransform(newPoseBones[j].positionNextNext,
-                                                                         posesToBlend[i].bonePoses[j].positionNextNext,
-                                                                         bpwNormalized);
+                newPoseBones[j].value = BoneTransform.BlendTransform(newPoseBones[j].value, posesToBlend[i].bonePoses[j].value, bpwNormalized);
+                newPoseBones[j].positionNext = BoneTransform.BlendTransform(newPoseBones[j].positionNext, posesToBlend[i].bonePoses[j].positionNext, bpwNormalized);
+                newPoseBones[j].positionNextNext = BoneTransform.BlendTransform(newPoseBones[j].positionNextNext, posesToBlend[i].bonePoses[j].positionNextNext, bpwNormalized);
             }
-
             //add to the weight we iterated so far
             curBoneWeight += weights[i];
-        }
+        }*/
 
         this.bonePoses = newPoseBones;
         this.rootMotionInfo = newRootMotion;
@@ -686,8 +739,10 @@ public class MotionFieldController : ScriptableObject {
         */
         BonePose newBone = new BonePose(currBone.boneLabel);
 
-        newBone.value = new BoneTransform(blendBone.positionNext);
-        newBone.positionNext = new BoneTransform(blendBone.positionNextNext);
+        //newBone.value = new BoneTransform(blendBone.positionNext);
+        //newBone.positionNext = new BoneTransform(blendBone.positionNextNext);
+        newBone.value = BoneTransform.BlendTransform(blendBone.positionNext, closestBone.positionNext, driftCorrection);
+        newBone.positionNext = BoneTransform.BlendTransform(blendBone.positionNextNext, closestBone.positionNextNext, driftCorrection);
 
         return newBone;
     }
