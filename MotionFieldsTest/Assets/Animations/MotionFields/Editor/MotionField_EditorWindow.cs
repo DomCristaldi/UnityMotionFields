@@ -327,6 +327,11 @@ namespace AnimationMotionFields {
                 }
             }
 
+            if(GUILayout.Button("extraction tests"))
+            {
+                ExtractionTest();
+            }
+
             //skinnedMesh = (ModelImporterClipAnimation) EditorGUILayout.ObjectField("skinMesh: ", skinnedMesh, typeof(ModelImporterClipAnimation), false);
             if (GUILayout.Button("Generate Rewards Table")) {
                 if(selectedMotionFieldController.kd == null)
@@ -494,6 +499,84 @@ namespace AnimationMotionFields {
         //CLIP EXTRACTION
         private void DoClipExtractionGUI() {
 
+        }
+
+        private void ExtractionTest()
+        {
+            //data from frame 3 and 4 of WalkBackwardTurnRight_NtrlShort
+
+            Vector3 Anim1HipPos = new Vector3(-0.3777913f, 0.9221899f, -0.5506681f);
+            Quaternion Anim1HipRot = new Quaternion(0.9264047f, 0.03554143f, -0.371581f, -0.04938647f);
+            Vector3 Anim1BodyPos = new Vector3(-0.3340412f, 1.165285f, -0.5276758f);
+            Quaternion Anim1BodyRot = new Quaternion(0.9273599f, 0.01532163f, -0.3729019f, 0.02670267f);
+
+            Vector3 Anim2HipPos = new Vector3(-0.401341f, 0.924288f, -0.5359539f);
+            Quaternion Anim2HipRot = new Quaternion(0.9350371f, 0.03767011f, -0.3487912f, -0.0512968f);
+            Vector3 Anim2BodyPos = new Vector3(-0.3571083f, 1.167358f, -0.5132191f);
+            Quaternion Anim2BodyRot = new Quaternion(0.936076f, 0.01930104f, -0.3503604f, 0.02523528f);
+
+            /*
+            Vector3 Extract1HipPos = new Vector3();
+            Quaternion Extract1HipRot = new Quaternion();
+            Vector3 Extract1BodyPos = new Vector3();
+            Quaternion Extract1BodyRot = new Quaternion();
+            Vector3 Extract1RefPos = new Vector3();
+            Quaternion Extract1RefRot = new Quaternion();
+
+            Vector3 Extract2HipPos = new Vector3();
+            Quaternion Extract2HipRot = new Quaternion();
+            Vector3 Extract2BodyPos = new Vector3();
+            Quaternion Extract2BodyRot = new Quaternion();
+            Vector3 Extract2RefPos = new Vector3();
+            Quaternion Extract2RefRot = new Quaternion();
+            */
+
+            Vector3 Our1HipPos = new Vector3(-0.04375014f, 0.9221899f, -0.02299225f);
+            Quaternion Our1HipRot = new Quaternion(-0.007021381f, 0.00265461f, -0.006545626f, 0.9999504f);
+            Vector3 Our1BodyPos = new Vector3(-0.3093421f, 1.161235f, -0.5405856f);
+            Quaternion Our1BodyRot = new Quaternion(0.00974481f, -0.3973446f, 0.02646581f, 0.917236f);
+            Vector3 Our1RefPos = new Vector3(-0.007449157f, 0.0000f, 0.02661834f);
+            Quaternion Our1RefRot = new Quaternion(0.0000f, 0.02652925f, 0.0000f, 0.999648f);
+
+            Vector3 Our2HipPos = new Vector3(-0.0442327f, 0.924288f, -0.02273476f);
+            Quaternion Our2HipRot = new Quaternion(-0.007331711f, 0.002695813f, - 0.006178242f, 0.9999504f);
+            Vector3 Our2BodyPos = new Vector3(-0.3571083f, 1.167358f, -0.5132191f);
+            Quaternion Our2BodyRot = new Quaternion(0.01930104f, -0.3503604f, 0.02523528f, 0.936076f);
+            Vector3 Our2RefPos = new Vector3(-0.00669281f, 0f, 0.02622292f);
+            Quaternion Our2RefRot = new Quaternion(0f, 0.02417144f, 0f, 0.9997079f);
+
+
+
+            //is the refPos the floored bodyPos??? weve been making this assumption, i believe...
+            //should bodyRot also first be floored on xz plane? does flooring a quaternion even make sense?
+            //hip position has to be rotated relative to the bodyorientation, i think?!?
+
+            //these are all WRONG....
+            Vector3 new2HipPos = Anim2HipPos - floored(Anim2BodyPos); //-0.401341 -0.2430701 -0.5359539
+            Quaternion new2HipRot = Anim2HipRot * Quaternion.Inverse(Anim2BodyRot); //0.07807971 0.0008358167 -0.009559315 0.996901
+            Vector3 new2RefPos = Anim2BodyPos - Anim1BodyPos; //-0.02306709 0.00207305 0.01445669
+            Quaternion new2RefRot = Anim2BodyRot * Quaternion.Inverse(Anim1BodyRot); //0.003422844 -0.02402559 0.003611526 0.9996989
+
+            printVec(new2HipPos, "hipPos");
+            printQuat(new2HipRot, "HipRot");
+            printVec(new2RefPos, "RefPos");
+            printQuat(new2RefRot, "RefRot");
+        }
+
+        private Vector3 floored(Vector3 vec)
+        {
+            //project vector onto xz plane
+            return Vector3.ProjectOnPlane(vec, Vector3.up);
+        }
+
+        private void printVec(Vector3 vec, string name = "")
+        {
+            Debug.Log(name + ":  " + vec.x + " " + vec.y + " " + vec.z);
+        }
+
+        private void printQuat(Quaternion quat, string name = "")
+        {
+            Debug.Log(name + ":  " + quat.x + " " + quat.y + " " + quat.z + " " + quat.w);
         }
 
         /*
