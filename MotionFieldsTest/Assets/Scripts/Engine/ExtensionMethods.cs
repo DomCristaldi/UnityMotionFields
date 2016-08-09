@@ -28,12 +28,9 @@ public static class Quaternion_ExtensionMethods
                 avgRot.z -= (quats[i].z * weights[i]);
             }
         }
+
         //Normalize the result to a unit Quaternion
-        float D = 1.0f / Mathf.Sqrt(avgRot.w * avgRot.w + avgRot.x * avgRot.x + avgRot.y * avgRot.y + avgRot.z * avgRot.z);
-        avgRot.w *= D;
-        avgRot.x *= D;
-        avgRot.y *= D;
-        avgRot.z *= D;
+        avgRot = avgRot.Normalize();
 
         return avgRot;
     }
@@ -46,6 +43,27 @@ public static class Quaternion_ExtensionMethods
     public static Vector4 Ex_VectorValue(this Quaternion value) {
         return new Vector4(value.w, value.x, value.y, value.z);
     }
+
+    /// <summary>
+    /// Does NOT modify the Quaternion passed in, but returns the Normalized Quaternion
+    /// </summary>
+    public static Quaternion Normalize(this Quaternion value)
+    {
+        float invMag = 1.0f / Mathf.Sqrt(value.x * value.x + value.y * value.y + value.z * value.z + value.w * value.w);
+        value.x *= invMag;
+        value.y *= invMag;
+        value.z *= invMag;
+        value.w *= invMag;
+        return value;
+    }
+
+    /// <summary>
+    /// Gives full precision representation of a quaternion formatted as "(x, y, z, w)"
+    /// </summary>
+    public static string debugString(this Quaternion value)
+    {
+        return "(" + value.x.ToString() + ", " + value.y.ToString() + ", " + value.z.ToString() + ", " + value.w.ToString() + ")";
+    } 
 }
 
 public static class Transform_ExtensionMethods {
@@ -175,6 +193,7 @@ public static class BoneTransform_ExtensionMethods {
 
     //TEST ME!!!!!!!!!!!!!!!!!!!!!!!!!!
     //OPTIMIZE (this is bad use of Linq, come back and do it right
+    //this function is deprecated, use BoneTransform.BlendTransforms(BoneTransform[], float[]) instead
     public static BoneTransform AvgPoseValue(this BoneTransform[] thisBoneTransformArray) {
 
         BoneTransform avgBoneTf = new BoneTransform();

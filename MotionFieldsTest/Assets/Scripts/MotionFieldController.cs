@@ -234,14 +234,10 @@ public class BoneTransform {
             }
         }
 
-        //note: is normalizing avgPos and avgScl nessesary?
+        //note: is normalizing avgPos and avgScl nessesary? avgPos is not nessesarily a unit vector, but they should all be the same length, and avgPos may not be that length?
 
         //Normalize the result to a unit Quaternion
-        float D = 1.0f / Mathf.Sqrt(avgRot.w * avgRot.w + avgRot.x * avgRot.x + avgRot.y * avgRot.y + avgRot.z * avgRot.z);
-        avgRot.w *= D;
-        avgRot.x *= D;
-        avgRot.y *= D;
-        avgRot.z *= D;
+        avgRot = avgRot.Normalize();
 
         return new BoneTransform(avgPos, avgRot, avgScl);
     }

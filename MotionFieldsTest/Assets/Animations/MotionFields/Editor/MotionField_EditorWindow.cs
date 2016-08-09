@@ -558,9 +558,9 @@ namespace AnimationMotionFields {
             Quaternion new2RefRot = Anim2BodyRot * Quaternion.Inverse(Anim1BodyRot); //0.003422844 -0.02402559 0.003611526 0.9996989
 
             printVec(new2HipPos, "hipPos");
-            printQuat(new2HipRot, "HipRot");
+            Debug.Log("HipRot: " + new2HipRot.debugString());
             printVec(new2RefPos, "RefPos");
-            printQuat(new2RefRot, "RefRot");
+            Debug.Log("RefPos: " + new2RefRot.debugString());
         }
 
         private Vector3 floored(Vector3 vec)
@@ -572,11 +572,6 @@ namespace AnimationMotionFields {
         private void printVec(Vector3 vec, string name = "")
         {
             Debug.Log(name + ":  " + vec.x + " " + vec.y + " " + vec.z);
-        }
-
-        private void printQuat(Quaternion quat, string name = "")
-        {
-            Debug.Log(name + ":  " + quat.x + " " + quat.y + " " + quat.z + " " + quat.w);
         }
 
         /*

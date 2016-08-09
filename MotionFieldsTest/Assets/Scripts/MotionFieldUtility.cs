@@ -310,11 +310,8 @@ namespace AnimationMotionFields {
                     Quaternion newRot = skelRootTrans.rotation * adjQuat;
                     */
 
-                    float mag = Mathf.Sqrt(Mathf.Pow(hPose.bodyRotation.w, 2.0f) + Mathf.Pow(hPose.bodyRotation.y, 2.0f));
-                    Quaternion flooredBodyRot = new Quaternion(0.0f,
-                                                               hPose.bodyRotation.y / mag,
-                                                               0.0f,
-                                                               hPose.bodyRotation.w / mag);
+                    Quaternion flooredBodyRot = new Quaternion(0.0f, hPose.bodyRotation.y, 0.0f, hPose.bodyRotation.w);
+                    flooredBodyRot = flooredBodyRot.Normalize();
 
                     Quaternion newRot = skelRootTrans.rotation * Quaternion.Inverse(flooredBodyRot);
 
@@ -386,12 +383,12 @@ namespace AnimationMotionFields {
                 Debug.Log("TStamp: " + timestamp);
 
                 Vector3 pos = isAlmostOne ? curHumanPose.bodyPosition : prevHumanPose.bodyPosition;
-                Vector4 rot = isAlmostOne ? curHumanPose.bodyRotation.Ex_VectorValue() : prevHumanPose.bodyRotation.Ex_VectorValue();
+                Quaternion rot = isAlmostOne ? curHumanPose.bodyRotation : prevHumanPose.bodyRotation;
 
-                Debug.LogFormat("{0}:\nTimestamp {1}: Position: ({2}, {3}, {4})\tRotation: ({5}, {6}, {7}, {8})", motionPose.animName,
+                Debug.LogFormat("{0}:\nTimestamp {1}: Position: ({2}, {3}, {4})\tRotation: {5}", motionPose.animName,
                                                                                      motionPose.timestamp,
                                                                                      pos.x, pos.y, pos.z,
-                                                                                     rot[0], rot[1], rot[2], rot[3]);
+                                                                                     rot.debugString());
             }
 
             Quaternion adjustmentQuat = modelRef.cosmeticSkel.rootMotionReferencePoint.rotation * Quaternion.Inverse(prevHumanPose.bodyRotation);
