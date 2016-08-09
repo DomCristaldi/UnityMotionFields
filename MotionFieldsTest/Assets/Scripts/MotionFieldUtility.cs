@@ -272,55 +272,42 @@ namespace AnimationMotionFields {
 
                 case RootMotionCalculationMode.CenterOfMass:
 
-                //RECORD IMPORTANT POINTS FOR READABILITY
+                    //RECORD IMPORTANT POINTS FOR READABILITY
                     //get the Bone Pose associated with the transform assigned as the Skeleton Root Bone
-                    BonePose skeletonRootBonePose = motionPose.GetBonePose(modelRef.cosmeticSkel.GetBone(modelRef.cosmeticSkel.skeletonRoot).boneLabel);
-                    Transform rootMotionRefPoint = modelRef.cosmeticSkel.rootMotionReferencePoint;
-                    Transform skelRoot = modelRef.cosmeticSkel.skeletonRoot;
+                    Transform rootMotionTrans = modelRef.cosmeticSkel.rootMotionReferencePoint;
+                    Transform skelRootTrans = modelRef.cosmeticSkel.skeletonRoot;
+                    BonePose skelRootBone = motionPose.GetBonePose(modelRef.cosmeticSkel.GetBone(skelRootTrans).boneLabel);
 
                     //Debug.Log("Bone Label: " + skeletonRootBonePose.boneLabel);
 
-                    //allocate space to store the human pose of the model during ANIMATION SAMPLING MODE
-                    HumanPoseHandler hPoseHandler = new HumanPoseHandler(modelRef.cosmeticSkel.avatar, modelRef.cosmeticSkel.skeletonRoot);
-                    HumanPose hPose = new HumanPose();
-
-                    //ACTIVATE ANIMATION SAMPLING MODE
-                    if (!AnimationMode.InAnimationMode()) { AnimationMode.StartAnimationMode(); }
-                    AnimationMode.BeginSampling();
-
-                    //sample pose and store in the Human Pose we allocated earlier
-                    AnimationMode.SampleAnimationClip(modelRef.gameObject, animClip, timestamp);
-                    hPoseHandler.GetHumanPose(ref hPose);
-
-
+                    HumanPose hPose = GetHumanPose(modelRef, animClip, timestamp);
 
                     //calculate the distance between refererence point and the root, use that to adjust the hips location
-                    Vector3 newPos = Vector3.ProjectOnPlane( (modelRef.cosmeticSkel.rootMotionReferencePoint.position - hPose.bodyPosition /*modelRef.cosmeticSkel.skeletonRoot.position*/)
-                                     /*+ (hPose.bodyPosition - modelRef.cosmeticSkel.skeletonRoot.position)*/, Vector3.up)
-
-                                     + skelRoot.position;
+                    Vector3 newPos = Vector3.ProjectOnPlane( (rootMotionTrans.position - hPose.bodyPosition /*skelRootTrans.position*/)
+                                     /*+(hPose.bodyPosition-skelRootTrans.position)*/, Vector3.up)
+                                     + skelRootTrans.position;
 
                     //transform the point to the reference point's local space, where the skeleton's root is originally located
-                    newPos = modelRef.cosmeticSkel.rootMotionReferencePoint.InverseTransformPoint(newPos);
+                    newPos = rootMotionTrans.InverseTransformPoint(newPos);
 
-                    //Quaternion newRot = (skelRoot.rotation * (rootMotionRefPoint.rotation * Quaternion.Inverse(skelRoot.rotation))) * (hPose.bodyRotation * Quaternion.Inverse(hPose.bodyRotation));
+                    //Quaternion newRot = (skelRootTrans.rotation * (rootMotionTrans.rotation * Quaternion.Inverse(skelRootTrans.rotation))) * (hPose.bodyRotation * Quaternion.Inverse(hPose.bodyRotation));
                     /*
                     Quaternion flooredCenterOfRot = Quaternion.LookRotation(Vector3.ProjectOnPlane(hPose.bodyRotation * Vector3.forward, Vector3.up), Vector3.up);
-                    //Quaternion newRot = flooredCenterOfRot * Quaternion.Inverse(skelRoot.rotation);
+                    //Quaternion newRot = flooredCenterOfRot * Quaternion.Inverse(skelRootTrans.rotation);
 
-                    //Quaternion newRot = skelRoot.rotation * Quaternion.Inverse(hPose.bodyRotation);
+                    //Quaternion newRot = skelRootTrans.rotation * Quaternion.Inverse(hPose.bodyRotation);
 
-                    Quaternion orientationToRefRot = rootMotionRefPoint.rotation * Quaternion.Inverse(flooredCenterOfRot);
+                    Quaternion orientationToRefRot = rootMotionTrans.rotation * Quaternion.Inverse(flooredCenterOfRot);
                     orientationToRefRot = Quaternion.LookRotation(Vector3.ProjectOnPlane(orientationToRefRot * Vector3.forward, Vector3.up), Vector3.up);
-                    Quaternion newRot = skelRoot.rotation * orientationToRefRot;
+                    Quaternion newRot = skelRootTrans.rotation * orientationToRefRot;
 
-                    newRot = Quaternion.FromToRotation(hPose.bodyRotation * Vector3.forward, skelRoot.localRotation * Vector3.forward);
+                    newRot = Quaternion.FromToRotation(hPose.bodyRotation * Vector3.forward, skelRootTrans.localRotation * Vector3.forward);
                     */
 
                     //create a yaw-only quat to adjust the hips by
                     /*
-                    Quaternion adjQuat = Quaternion.LookRotation(((rootMotionRefPoint.rotation * Quaternion.Inverse(hPose.bodyRotation)) * Vector3.forward), Vector3.up);
-                    Quaternion newRot = skelRoot.rotation * adjQuat;
+                    Quaternion adjQuat = Quaternion.LookRotation(((rootMotionTrans.rotation * Quaternion.Inverse(hPose.bodyRotation)) * Vector3.forward), Vector3.up);
+                    Quaternion newRot = skelRootTrans.rotation * adjQuat;
                     */
 
                     float mag = Mathf.Sqrt(Mathf.Pow(hPose.bodyRotation.w, 2.0f) + Mathf.Pow(hPose.bodyRotation.y, 2.0f));
@@ -329,32 +316,23 @@ namespace AnimationMotionFields {
                                                                0.0f,
                                                                hPose.bodyRotation.w / mag);
 
-                    Quaternion newRot = skelRoot.rotation * Quaternion.Inverse(flooredBodyRot);
+                    Quaternion newRot = skelRootTrans.rotation * Quaternion.Inverse(flooredBodyRot);
 
-
-                    Vector3 rootOffsetPos = skelRoot.transform.position - new Vector3(hPose.bodyPosition.x,
-                                                                                      rootMotionRefPoint.position.y,
+                    Vector3 rootOffsetPos = skelRootTrans.transform.position - new Vector3(hPose.bodyPosition.x,
+                                                                                      rootMotionTrans.position.y,
                                                                                       hPose.bodyPosition.z);
 
-                    skeletonRootBonePose.value = new BoneTransform(/*newPos*/ rootOffsetPos, newRot, skelRoot.localScale);
+                    skelRootBone.value = new BoneTransform(/*newPos*/ rootOffsetPos, newRot, skelRootTrans.localScale);
 
-                    //skeletonRootBonePose.value.posX = newPos.x;
-                    //skeletonRootBonePose.value.posY = newPos.y;
-                    //skeletonRootBonePose.value.posZ = newPos.z;
+                    //skelRootBone.value.posX = newPos.x;
+                    //skelRootBone.value.posY = newPos.y;
+                    //skelRootBone.value.posZ = newPos.z;
 
+                    //skelRootBone.value.posX = rootOffsetPos.x;
+                    //skelRootBone.value.posY = rootOffsetPos.y;
+                    //skelRootBone.value.posZ = rootOffsetPos.z;
 
-                    //skeletonRootBonePose.value.posX = rootOffsetPos.x;
-                    //skeletonRootBonePose.value.posY = rootOffsetPos.y;
-                    //skeletonRootBonePose.value.posZ = rootOffsetPos.z;
-
-
-
-                    Vector3 refPointPos = rootMotionRefPoint.position;
-                    //newPos = 
-
-
-                    AnimationMode.EndSampling();
-                    AnimationMode.StopAnimationMode();
+                    Vector3 refPointPos = rootMotionTrans.position;
 
                     break;
             }
@@ -392,35 +370,15 @@ namespace AnimationMotionFields {
         }
 
         public static void ExtractRootMotion_CenterOfMass(ref MotionPose motionPose, AnimationClip animClip, MotionFieldComponent modelRef, float timestamp, float frameStep, RootMotionFrameHandling frameHandling = RootMotionFrameHandling.SetFirstFrameToZero) {
-
             //set up a pose handler for this model
-            HumanPoseHandler poseHandler = new HumanPoseHandler(modelRef.cosmeticSkel.avatar, modelRef.cosmeticSkel.skeletonRoot);
-            HumanPose prevHumanPose = new HumanPose();//this will store the previous frame's pose
-            HumanPose curHumanPose = new HumanPose();//this will store the current frame's pose
-            //poseHandler.GetHumanPose(ref hPose);
+            HumanPose prevHumanPose = GetHumanPose(modelRef, animClip, timestamp - frameStep);//this will store the previous frame's pose
+            HumanPose curHumanPose = GetHumanPose(modelRef, animClip, timestamp);//this will store the current frame's pose
 
-            Debug.Log(modelRef.cosmeticSkel.rootMotionReferencePoint.rotation);
+            //Debug.Log(modelRef.cosmeticSkel.rootMotionReferencePoint.rotation);
 
         //HACK: assume that we're using the XZ plane for root motion, flatten out the Y to the Reference Point's Y
-            Vector3 projectedCenterOfMass = prevHumanPose.bodyPosition;
-            projectedCenterOfMass.y = modelRef.cosmeticSkel.rootMotionReferencePoint.position.y;
-
-
-        //ACTIVATE ANIMATION SAMPLING MODE
-            if (!AnimationMode.InAnimationMode()) {
-                AnimationMode.StartAnimationMode();
-            }
-            AnimationMode.BeginSampling();
-
-        //GRAB POSES
-            //sample previous pose
-            AnimationMode.SampleAnimationClip(modelRef.gameObject, animClip, timestamp - frameStep);
-            poseHandler.GetHumanPose(ref prevHumanPose);//store the pose info here
-
-            //sample current pose
-            AnimationMode.SampleAnimationClip(modelRef.gameObject, animClip, timestamp);
-            poseHandler.GetHumanPose(ref curHumanPose);//store the pose info here
-
+            //Vector3 projectedCenterOfMass = prevHumanPose.bodyPosition;
+            //projectedCenterOfMass.y = modelRef.cosmeticSkel.rootMotionReferencePoint.position.y;
 
             //HACK: get out the body position and rotation for debuggin purposes
             bool isAlmostOne = Mathf.Approximately(timestamp, 0.1f);
@@ -429,7 +387,6 @@ namespace AnimationMotionFields {
 
                 Vector3 pos = isAlmostOne ? curHumanPose.bodyPosition : prevHumanPose.bodyPosition;
                 Vector4 rot = isAlmostOne ? curHumanPose.bodyRotation.Ex_VectorValue() : prevHumanPose.bodyRotation.Ex_VectorValue();
-
 
                 Debug.LogFormat("{0}:\nTimestamp {1}: Position: ({2}, {3}, {4})\tRotation: ({5}, {6}, {7}, {8})", motionPose.animName,
                                                                                      motionPose.timestamp,
@@ -455,14 +412,27 @@ namespace AnimationMotionFields {
             //if (Mathf.Approximately(timestamp, frameStep)) {
                 //GameObject.Instantiate(modelRef.cosmeticSkel.marker.gameObject, curHumanPose.bodyPosition, curHumanPose.bodyRotation);
             //}
+        }
 
-        //DEACTIVATE ANIMATION SAMPLING MODE
+        public static HumanPose GetHumanPose(MotionFieldComponent modelRef, AnimationClip animClip, float timestamp)
+        {
+            //allocate space to store the human pose of the model during ANIMATION SAMPLING MODE
+            HumanPose hPose = new HumanPose();
+
+            //ACTIVATE ANIMATION SAMPLING MODE
+            if (!AnimationMode.InAnimationMode()) { AnimationMode.StartAnimationMode(); }
+            AnimationMode.BeginSampling();
+
+            //sample pose and store in the Human Pose we allocated earlier
+            HumanPoseHandler hPoseHandler = new HumanPoseHandler(modelRef.cosmeticSkel.avatar, modelRef.cosmeticSkel.skeletonRoot);
+            AnimationMode.SampleAnimationClip(modelRef.gameObject, animClip, timestamp);
+            hPoseHandler.GetHumanPose(ref hPose);
+
             AnimationMode.EndSampling();
             AnimationMode.StopAnimationMode();
 
+            return hPose;
         }
-
-
 
         public static MotionPose[] GenerateMotionPoses(AnimationClip animClip, MotionFieldComponent modelRef, int sampleStepSize = 100, VelocityCalculationMode velCalculationMode = VelocityCalculationMode.DropLastTwoFrames) {
             //Animator modelAnimator = modelRef.GetComponent<Animator>();

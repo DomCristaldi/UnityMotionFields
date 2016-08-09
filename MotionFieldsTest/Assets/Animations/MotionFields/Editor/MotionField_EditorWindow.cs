@@ -505,8 +505,8 @@ namespace AnimationMotionFields {
         {
             //data from frame 3 and 4 of WalkBackwardTurnRight_NtrlShort
 
-            Vector3 Anim1HipPos = new Vector3(-0.3777913f, 0.9221899f, -0.5506681f);
-            Quaternion Anim1HipRot = new Quaternion(0.9264047f, 0.03554143f, -0.371581f, -0.04938647f);
+            /*Vector3 Anim1HipPos = new Vector3(-0.3777913f, 0.9221899f, -0.5506681f);
+            Quaternion Anim1HipRot = new Quaternion(0.9264047f, 0.03554143f, -0.371581f, -0.04938647f);*/
             Vector3 Anim1BodyPos = new Vector3(-0.3340412f, 1.165285f, -0.5276758f);
             Quaternion Anim1BodyRot = new Quaternion(0.9273599f, 0.01532163f, -0.3729019f, 0.02670267f);
 
@@ -531,7 +531,7 @@ namespace AnimationMotionFields {
             Quaternion Extract2RefRot = new Quaternion();
             */
 
-            Vector3 Our1HipPos = new Vector3(-0.04375014f, 0.9221899f, -0.02299225f);
+            /*Vector3 Our1HipPos = new Vector3(-0.04375014f, 0.9221899f, -0.02299225f);
             Quaternion Our1HipRot = new Quaternion(-0.007021381f, 0.00265461f, -0.006545626f, 0.9999504f);
             Vector3 Our1BodyPos = new Vector3(-0.3093421f, 1.161235f, -0.5405856f);
             Quaternion Our1BodyRot = new Quaternion(0.00974481f, -0.3973446f, 0.02646581f, 0.917236f);
@@ -543,7 +543,7 @@ namespace AnimationMotionFields {
             Vector3 Our2BodyPos = new Vector3(-0.3571083f, 1.167358f, -0.5132191f);
             Quaternion Our2BodyRot = new Quaternion(0.01930104f, -0.3503604f, 0.02523528f, 0.936076f);
             Vector3 Our2RefPos = new Vector3(-0.00669281f, 0f, 0.02622292f);
-            Quaternion Our2RefRot = new Quaternion(0f, 0.02417144f, 0f, 0.9997079f);
+            Quaternion Our2RefRot = new Quaternion(0f, 0.02417144f, 0f, 0.9997079f);*/
 
 
 
