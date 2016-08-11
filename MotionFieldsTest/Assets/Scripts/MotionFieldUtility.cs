@@ -282,6 +282,7 @@ namespace AnimationMotionFields {
 
                     HumanPose hPose = GetHumanPose(modelRef, animClip, timestamp);
 
+                    //HACK: newPos is initialized, but never actually used in the current code! why?
                     //calculate the distance between refererence point and the root, use that to adjust the hips location
                     Vector3 newPos = Vector3.ProjectOnPlane( (rootMotionTrans.position - hPose.bodyPosition /*skelRootTrans.position*/)
                                      /*+(hPose.bodyPosition-skelRootTrans.position)*/, Vector3.up)
@@ -319,7 +320,7 @@ namespace AnimationMotionFields {
                                                                                       rootMotionTrans.position.y,
                                                                                       hPose.bodyPosition.z);
 
-                    skelRootBone.value = new BoneTransform(/*newPos*/ rootOffsetPos, newRot, skelRootTrans.localScale);
+                    skelRootBone.value = new BoneTransform(/*newPos*/ rootOffsetPos, newRot);
 
                     //skelRootBone.value.posX = newPos.x;
                     //skelRootBone.value.posY = newPos.y;
@@ -329,7 +330,7 @@ namespace AnimationMotionFields {
                     //skelRootBone.value.posY = rootOffsetPos.y;
                     //skelRootBone.value.posZ = rootOffsetPos.z;
 
-                    Vector3 refPointPos = rootMotionTrans.position;
+                    //Vector3 refPointPos = rootMotionTrans.position;
 
                     break;
             }
@@ -337,7 +338,7 @@ namespace AnimationMotionFields {
 
             //we're setting the root motion for the first frame to zero, just set it here and break out
             if (frameHandling == RootMotionFrameHandling.SetFirstFrameToZero && Mathf.Approximately(timestamp, 0.0f)) {
-                motionPose.rootMotionInfo = new BonePose("RootMotion") { value = new BoneTransform(Vector3.zero, Quaternion.identity, Vector3.zero) };
+                motionPose.rootMotionInfo = new BonePose("RootMotion") { value = new BoneTransform(Vector3.zero, Quaternion.identity) };
                 return;
             }
 
@@ -404,7 +405,7 @@ namespace AnimationMotionFields {
             //project the rotation onto a plane by using it to modify a vector and then generating a quaternion out from that
             //rotationMotion = Quaternion.LookRotation(Vector3.ProjectOnPlane(rotationMotion * Vector3.forward, Vector3.up), Vector3.up);
 
-            motionPose.rootMotionInfo = new BonePose("RootMotion") { value = new BoneTransform(positionMotion, rotationMotion, Vector3.one) };
+            motionPose.rootMotionInfo = new BonePose("RootMotion") { value = new BoneTransform(positionMotion, rotationMotion) };
 
             //if (Mathf.Approximately(timestamp, frameStep)) {
                 //GameObject.Instantiate(modelRef.cosmeticSkel.marker.gameObject, curHumanPose.bodyPosition, curHumanPose.bodyRotation);
@@ -559,7 +560,7 @@ namespace AnimationMotionFields {
 
         public static void GenerateKDTree(ref KDTreeDLL_f.KDTree kdTree, List<AnimClipInfo> animClipInfoList) {
 
-            //make KD Tree w/ number of dimension equal to total number of bone poses * (position * velocity) <- 20
+            //make KD Tree w/ number of dimension equal to total number of bone poses * (position * velocity) <- 14
             int KeyLength = 0;
             for (int i = 0; i < animClipInfoList.Count; i++)
             {
@@ -567,7 +568,7 @@ namespace AnimationMotionFields {
                 {
                     if(animClipInfoList[i].motionPoses.Length != 0)
                     {
-                        KeyLength = animClipInfoList[i].motionPoses[0].bonePoses.Length * 20; //HACK: 20 is the magic number of values in each bonePose that is aded to the kdtree.
+                        KeyLength = animClipInfoList[i].motionPoses[0].bonePoses.Length * 14; //HACK: 14 is the magic number of values in each bonePose that is aded to the kdtree.
                         break;
                     }
                 }
@@ -578,7 +579,7 @@ namespace AnimationMotionFields {
                 return;
             }
 
-            KeyLength += 20; // adding number of fields to store rootMotionInfo.
+            KeyLength += 14; // adding number of fields to store rootMotionInfo.
 
             Debug.Log("Length of kdtree key: " + KeyLength);
             kdTree = new KDTreeDLL_f.KDTree(KeyLength);

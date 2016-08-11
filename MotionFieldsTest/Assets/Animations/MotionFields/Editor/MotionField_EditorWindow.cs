@@ -383,7 +383,6 @@ namespace AnimationMotionFields {
                 taskArr_samples.Add(tasksamples);
             }
             taskArr_samples = selectedMotionFieldController.CartesianProduct(taskArr_samples);
-            Debug.Log("num of task samples: " + taskArr_samples.Count + "\ntask length: " + taskArr_samples[0].Count + "\n task 0 val: " + taskArr_samples[0][0].ToString());
 
             //create initial rewardTable as List<ArrayList>
             //each arraylist has MotionPose in [0], float[] of tasks in [1] and float for reward in [2]
@@ -412,8 +411,7 @@ namespace AnimationMotionFields {
             float p = 0.1f;
             int generations = System.Convert.ToInt32(Mathf.Ceil((Mathf.Log(-p * Mathf.Log(s))) / Mathf.Log(s)));
 
-            Debug.Log("numActions: " + selectedMotionFieldController.numActions.ToString());
-            Debug.Log("running for " + generations.ToString() + " generations");
+            Debug.Log("RewardTable size: " + rewardTable.Count + "\nnum of task samples: " + taskArr_samples.Count + "\nnumActions: " + selectedMotionFieldController.numActions.ToString() + "\nGenerations: " + generations.ToString());
 
             System.Diagnostics.Stopwatch stopWatch = new System.Diagnostics.Stopwatch();
 

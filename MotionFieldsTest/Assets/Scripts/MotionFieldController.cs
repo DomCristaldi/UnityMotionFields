@@ -34,16 +34,15 @@ public enum RootMotionFrameHandling {
 [System.Serializable]
 public class BoneTransform {
     public float posX, posY, posZ,
-                 rotW, rotX, rotY, rotZ,
-                 sclX, sclY, sclZ;
+                 rotW, rotX, rotY, rotZ;
 
     //Initialize everyting to default values
     public BoneTransform() {
         this.posX = this.posY = this.posZ = this.rotX = this.rotY = this.rotZ = 0.0f;
-        this.rotW = this.sclX = this.sclY = this.sclZ = 1.0f;
+        this.rotW = 1.0f;
     }
 
-    public BoneTransform(Vector3 position, Quaternion rotation, Vector3 scale) {
+    public BoneTransform(Vector3 position, Quaternion rotation) {
         this.posX = position.x;
         this.posY = position.y;
         this.posZ = position.z;
@@ -52,17 +51,12 @@ public class BoneTransform {
         this.rotX = rotation.x;
         this.rotY = rotation.y;
         this.rotZ = rotation.z;
-
-        this.sclX = scale.x;
-        this.sclY = scale.y;
-        this.sclZ = scale.z;
     }
 
     //Initialize everything to the same constant value (useful for setting velocity to 0)
     public BoneTransform(float constant) {
         this.posX = this.posY = this.posZ
       = this.rotW = this.rotX = this.rotY = this.rotZ
-      = this.sclX = this.sclY = this.sclZ
       = constant;
     }
 
@@ -78,10 +72,6 @@ public class BoneTransform {
             this.rotX = tf.localRotation.x;
             this.rotY = tf.localRotation.y;
             this.rotZ = tf.localRotation.z;
-
-            this.sclX = tf.localScale.x;
-            this.sclY = tf.localScale.y;
-            this.sclZ = tf.localScale.z;
         }
         else {//ASSUME WORLD
             //Debug.Log("world");
@@ -106,10 +96,6 @@ public class BoneTransform {
             rotY = tf.rotation.y;
             rotZ = tf.rotation.z;
             */
-
-            this.sclX = tf.lossyScale.x;
-            this.sclY = tf.lossyScale.y;
-            this.sclZ = tf.lossyScale.z;
         }
     }
 
@@ -123,10 +109,6 @@ public class BoneTransform {
         this.rotX = copy.rotX;
         this.rotY = copy.rotY;
         this.rotZ = copy.rotZ;
-
-        this.sclX = copy.sclX;
-        this.sclY = copy.sclY;
-        this.sclZ = copy.sclZ;
     }
 
     /// <summary>
@@ -135,7 +117,7 @@ public class BoneTransform {
     /// </summary>
     public static BoneTransform Subtract(BoneTransform b2, BoneTransform b1)
     {
-        return new BoneTransform(b2.position - b1.position, b2.rotation * Quaternion.Inverse(b1.rotation), b2.scale - b1.scale);
+        return new BoneTransform(b2.position - b1.position, b2.rotation * Quaternion.Inverse(b1.rotation));
     }
 
     /// <summary>
@@ -144,14 +126,13 @@ public class BoneTransform {
     /// </summary>
     public static BoneTransform Add(BoneTransform b1, BoneTransform b2)
     {
-        return new BoneTransform(b1.position + b2.position, b1.rotation * b2.rotation, b1.scale + b2.scale);
+        return new BoneTransform(b1.position + b2.position, b1.rotation * b2.rotation);
     }
 
     public float[] flattenedTransform {
         get {
             return new float[] {posX, posY, posZ,
-                                rotW, rotX, rotY, rotZ,
-                                sclX, sclY, sclZ };
+                                rotW, rotX, rotY, rotZ};
         }
     }
 
@@ -168,14 +149,6 @@ public class BoneTransform {
         get
         {
             return new Quaternion(rotX, rotY, rotZ, rotW);
-        }
-    }
-
-    public Vector3 scale
-    {
-        get
-        {
-            return new Vector3(sclX, sclY, sclZ);
         }
     }
 
@@ -201,22 +174,19 @@ public class BoneTransform {
         return retBoneTf;*/
         Vector3 newPos = Vector3.Lerp(tf1.position, tf2.position, alpha);
         Quaternion newRot = Quaternion.Slerp(tf1.rotation, tf2.rotation, alpha);
-        Vector3 newScl = Vector3.Lerp(tf1.scale, tf2.position, alpha);
 
-        return new BoneTransform(newPos, newRot, newScl);
+        return new BoneTransform(newPos, newRot);
     }
 
     public static BoneTransform BlendTransforms(BoneTransform[] trans, float[] weights)
     {
         Vector3 avgPos = Vector3.zero;
-        Vector3 avgScl = Vector3.zero;
         Quaternion avgRot = new Quaternion(0, 0, 0, 0);
         Quaternion first = trans[0].rotation;
 
         for (int i = 0; i < trans.Length; ++i)
         {
             avgPos += (trans[i].position * weights[i]);
-            avgScl += (trans[i].scale * weights[i]);
 
             //if the dot product is negaticve, negate quats[i] so that it exists on the same half-sphere. 
             //This is allowed because q = -q, and is nessesary because the error of aproximation increases the farther apart the quaternions are.
@@ -239,7 +209,7 @@ public class BoneTransform {
         //Normalize the result to a unit Quaternion
         avgRot = avgRot.Normalize();
 
-        return new BoneTransform(avgPos, avgRot, avgScl);
+        return new BoneTransform(avgPos, avgRot);
     }
 
 }
@@ -387,8 +357,6 @@ public class MotionPose {
             {
                 retArray = retArray.Concat<float>(bonePoses[i].flattenedValue.Concat<float>(bonePoses[i].flattenedVelocity));
             }
-
-            //return retArray.ToArray<float>();
             return retArray.ToArray();
         }
     }
@@ -479,7 +447,7 @@ public class MotionFieldController : ScriptableObject {
         //Debug.Log("Move One Frame pose after GenCandActions: " + string.Join(" ", currentPose.flattenedMotionPose.Select(d => d.ToString()).ToArray()));
         int chosenAction = PickCandidate(currentPose, candidateActions, taskArr, ref reward);
 
-        Debug.Log("Candidate Chosen! best fitness is " + reward.ToString() + " from Action " + chosenAction.ToString() + ", whose main influnce is " + candidateActions[chosenAction].animName + " at time " + candidateActions[chosenAction].timestamp.ToString());
+        //Debug.Log("Candidate Chosen! best fitness is " + reward.ToString() + " from Action " + chosenAction.ToString() + ", whose main influnce is " + candidateActions[chosenAction].animName + " at time " + candidateActions[chosenAction].timestamp.ToString());
         return candidateActions[chosenAction];
          
     }
@@ -664,9 +632,6 @@ public class MotionFieldController : ScriptableObject {
         sqDist += ((b1.rotY - b2.rotY) * (b1.rotY - b2.rotY));
         sqDist += ((b1.rotZ - b2.rotZ) * (b1.rotZ - b2.rotZ));
         sqDist += ((b1.rotW - b2.rotW) * (b1.rotW - b2.rotW));
-        sqDist += ((b1.sclX - b2.sclX) * (b1.sclX - b2.sclX));
-        sqDist += ((b1.sclY - b2.sclY) * (b1.sclY - b2.sclY));
-        sqDist += ((b1.sclZ - b2.sclZ) * (b1.sclZ - b2.sclZ));
         return sqDist;
     }
 

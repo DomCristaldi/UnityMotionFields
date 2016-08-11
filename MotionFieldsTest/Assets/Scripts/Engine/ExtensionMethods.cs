@@ -221,16 +221,6 @@ public static class BoneTransform_ExtensionMethods {
         avgBoneTf.rotZ = (from tf in thisBoneTransformArray
                           select tf.rotZ).Average();
 
-
-        avgBoneTf.sclX = (from tf in thisBoneTransformArray
-                          select tf.sclX).Average();
-
-        avgBoneTf.sclY = (from tf in thisBoneTransformArray
-                          select tf.sclY).Average();
-
-        avgBoneTf.sclZ = (from tf in thisBoneTransformArray
-                          select tf.sclZ).Average();
-
         return avgBoneTf;
     }
 
