@@ -274,7 +274,7 @@ namespace AnimationMotionFields {
 
                     //RECORD IMPORTANT POINTS FOR READABILITY
                     //get the Bone Pose associated with the transform assigned as the Skeleton Root Bone
-                    Transform rootMotionTrans = modelRef.cosmeticSkel.rootMotionReferencePoint;
+                    Transform refPointTf = modelRef.cosmeticSkel.rootMotionReferencePoint;
                     Transform skelRootTrans = modelRef.cosmeticSkel.skeletonRoot;
                     BonePose skelRootBone = motionPose.GetBonePose(modelRef.cosmeticSkel.GetBone(skelRootTrans).boneLabel);
 
@@ -282,13 +282,64 @@ namespace AnimationMotionFields {
 
                     HumanPose hPose = GetHumanPose(modelRef, animClip, timestamp);
 
+
                     //calculate the distance between refererence point and the root, use that to adjust the hips location
-                    Vector3 newPos = Vector3.ProjectOnPlane( (rootMotionTrans.position - hPose.bodyPosition /*skelRootTrans.position*/)
+                    Vector3 newPos = Vector3.ProjectOnPlane((refPointTf.position - hPose.bodyPosition /*skelRootTrans.position*/)
                                      /*+(hPose.bodyPosition-skelRootTrans.position)*/, Vector3.up)
                                      + skelRootTrans.position;
 
                     //transform the point to the reference point's local space, where the skeleton's root is originally located
-                    newPos = rootMotionTrans.InverseTransformPoint(newPos);
+                    newPos = refPointTf.InverseTransformPoint(newPos);
+
+                    //TRANSLATE HIPS POSITION
+                    /*
+                    Vector3 rootOffsetPos = new Vector3(hPose.bodyPosition.x,
+                                                                  refPointTf.position.y,
+                                                                  hPose.bodyPosition.z);
+                    */
+                    Vector3 flooredCenterOfMass = new Vector3(hPose.bodyPosition.x,
+                                                              refPointTf.position.y,
+                                                              hPose.bodyPosition.z);
+                    Vector3 adjustmentDirec = refPointTf.position - flooredCenterOfMass;
+
+                    newPos = skelRootTrans.position + adjustmentDirec;
+
+/*
+                //ADJUST HIPS ROTATION
+                    Quaternion flooredBodyRot = Quaternion.LookRotation(Vector3.ProjectOnPlane(hPose.bodyRotation * Vector3.forward, Vector3.up).normalized, Vector3.up);
+                    Quaternion flooredRefRot = Quaternion.LookRotation(Vector3.ProjectOnPlane(refPointTf.rotation * Vector3.forward, Vector3.up).normalized, Vector3.up);
+
+                    Quaternion adjRot = flooredRefRot * Quaternion.Inverse(flooredBodyRot);
+
+
+                    float adjustmentAngle = Quaternion.Angle(flooredBodyRot, flooredRefRot);
+                    Plane testPlane = new Plane(hPose.bodyPosition, refPointTf.position);
+
+                    if(testPlane.GetSide(flooredBodyRot * Vector3.forward)) { adjustmentAngle *= -1.0f; }
+
+                    Vector3 originalLocalPos = skelRootTrans.localPosition;
+                    Quaternion originalLocalRot = skelRootTrans.localRotation;
+                    Vector3 originalLocalScale = skelRootTrans.localScale;
+
+                    skelRootTrans.RotateAround(skelRootTrans.position,
+                                               Vector3.up,
+                                               adjustmentAngle);
+
+                    Quaternion newRot = skelRootTrans.localRotation;
+
+                    skelRootTrans.localPosition = originalLocalPos;
+                    skelRootTrans.localRotation = originalLocalRot;
+                    skelRootTrans.localScale = originalLocalScale;
+                    */
+
+
+                    skelRootBone.value = new BoneTransform(skelRootTrans.localPosition,
+                                                           //newRot,
+                                                           skelRootTrans.localRotation,
+                                                           skelRootTrans.localScale);
+
+                    break;
+
 
                     //Quaternion newRot = (skelRootTrans.rotation * (rootMotionTrans.rotation * Quaternion.Inverse(skelRootTrans.rotation))) * (hPose.bodyRotation * Quaternion.Inverse(hPose.bodyRotation));
                     /*
@@ -310,6 +361,8 @@ namespace AnimationMotionFields {
                     Quaternion newRot = skelRootTrans.rotation * adjQuat;
                     */
 
+
+                    /*
                     Quaternion flooredBodyRot = new Quaternion(0.0f, hPose.bodyRotation.y, 0.0f, hPose.bodyRotation.w);
                     flooredBodyRot = flooredBodyRot.Normalize();
 
@@ -319,7 +372,9 @@ namespace AnimationMotionFields {
                                                                                       rootMotionTrans.position.y,
                                                                                       hPose.bodyPosition.z);
 
-                    skelRootBone.value = new BoneTransform(/*newPos*/ rootOffsetPos, newRot, skelRootTrans.localScale);
+                    skelRootBone.value = new BoneTransform(
+                                                            //newPos 
+                                                            rootOffsetPos, newRot, skelRootTrans.localScale);
 
                     //skelRootBone.value.posX = newPos.x;
                     //skelRootBone.value.posY = newPos.y;
@@ -332,6 +387,7 @@ namespace AnimationMotionFields {
                     Vector3 refPointPos = rootMotionTrans.position;
 
                     break;
+                    */
             }
             
 
