@@ -129,25 +129,27 @@ public class BoneTransform {
         return new BoneTransform(b1.position + b2.position, b1.rotation * b2.rotation);
     }
 
-    public float[] flattenedTransform {
-        get {
-            return new float[] {posX, posY, posZ,
-                                rotW, rotX, rotY, rotZ};
-        }
+    public float[] flattenedTransform(float sqrtBonelength) {
+            Vector3 vec = rotation * Vector3.forward;
+            return new float[] { vec.x * sqrtBonelength, vec.y * sqrtBonelength, vec.z * sqrtBonelength };
     }
 
     public Vector3 position
     {
-        get
-        {
+        get{
             return new Vector3(posX, posY, posZ);
         }
     }
 
+    public float[] positionArray()
+    {
+        return new float[] { posX, posY, posZ };
+    }
+
+
     public Quaternion rotation
     {
-        get
-        {
+        get{
             return new Quaternion(rotX, rotY, rotZ, rotW);
         }
     }
@@ -217,7 +219,7 @@ public class BoneTransform {
 [System.Serializable]
 public class BonePose {
     public string boneLabel;
-    public float boneLength;
+    public float sqrtBoneLength;
 
     public BoneTransform value;
     public BoneTransform positionNext;
@@ -227,16 +229,14 @@ public class BonePose {
         this.boneLabel = boneLabel;
     }
 
-    public float[] flattenedValue {
-        get {
-            return value.flattenedTransform;
-        }
+    public float[] flattenedValue()
+    {
+        return value.flattenedTransform(sqrtBoneLength);
     }
 
-    public float[] flattenedVelocity {
-        get {
-            return positionNext.flattenedTransform;
-        }
+    public float[] flattenedPositionNext()
+    {
+        return positionNext.flattenedTransform(sqrtBoneLength);
     }
 }
 
@@ -350,12 +350,13 @@ public class MotionPose {
     }
 
     public float[] flattenedMotionPose {
+        //the initial 'position' of the rootmotion is not factored in, just the velocity from value(position 1) to positionnext(position 2), which is currently stored as the values for the root in positionnext
         get {
-            var retArray = rootMotionInfo.flattenedValue.Concat<float>(bonePoses[0].flattenedVelocity);
+            var retArray = rootMotionInfo.positionNext.positionArray().Concat<float>(rootMotionInfo.flattenedPositionNext());
             int length = bonePoses.Length;
             for (int i = 0; i < length; ++i)
             {
-                retArray = retArray.Concat<float>(bonePoses[i].flattenedValue.Concat<float>(bonePoses[i].flattenedVelocity));
+                retArray = retArray.Concat<float>(bonePoses[i].flattenedValue().Concat<float>(bonePoses[i].flattenedPositionNext()));
             }
             return retArray.ToArray();
         }
@@ -531,7 +532,7 @@ public class MotionFieldController : ScriptableObject {
     }
 
 
-	private float[] GenerateWeights(float[] pose, float[][] neighbors){
+	private float[] GenerateWeights(float[] ideal, float[][] neighbors){
 
 		float[] weights = new float[neighbors.Length];
         float diff;
@@ -541,24 +542,22 @@ public class MotionFieldController : ScriptableObject {
 		//weights[i] = 1/distance(neighbors[i] , floatpos) ^2 
 		for(i = 0; i < neighbors.Length; i++){
 			weights [i] = 0.0f;
-			for(j = 0; j < pose.Length; j++){
-                diff = pose[j] - neighbors[i][j];
+			for(j = 0; j < ideal.Length; j++){
+                diff = ideal[j] - neighbors[i][j];
 				weights [i] += diff*diff;
 			}
 			weights [i] = 1.0f / weights [i];
             weightsSum += weights[i];
-            if (float.IsInfinity(weights[i]))
-            {
-                for (j = 0; j < weights.Length; j++)
-                {
-                    if (j == i){
+
+            if (float.IsInfinity(weights[i])) { //special case where a neighbor is identical to ideal.
+                for (j = 0; j < weights.Length; j++) {
+                    if (j == i) {
                         weights[j] = 1.0f;
                     }
                     else {
                         weights[j] = 0.0f;
                     }
                 }
-
                 return weights;
             }
         }
@@ -567,9 +566,7 @@ public class MotionFieldController : ScriptableObject {
         for (i = 0; i < weights.Length; i++) {
             weights[i] = weights[i] / weightsSum;
         }
-
         //Debug.Log("weights: " + string.Join(" ", weights.Select(w => w.ToString()).ToArray()));
-
         return weights;
 	}
 
@@ -589,13 +586,12 @@ public class MotionFieldController : ScriptableObject {
             weights[i] = 0.0f;
             for (j = 0; j < pose.bonePoses.Length; ++j)
             {
-                weights[i] += sqDist(Bones[j].value, neighborBones[j].value);
-                weights[i] += sqDist(Bones[j].positionNext, neighborBones[j].positionNext);
+                weights[i] += BoneDist(Bones[j].value, neighborBones[j].value, Bones[j].sqrtBoneLength);
+                weights[i] += BoneDist(Bones[j].positionNext, neighborBones[j].positionNext, Bones[j].sqrtBoneLength);
             }
-            weights[i] += sqDist(pose.rootMotionInfo.value, neighbors[i].rootMotionInfo.value);
-            weights[i] += sqDist(pose.rootMotionInfo.positionNext, neighbors[i].rootMotionInfo.positionNext);
+            weights[i] += RootBoneDist(pose.rootMotionInfo.positionNext, neighbors[i].rootMotionInfo.positionNext, pose.rootMotionInfo.sqrtBoneLength); //only velocity of root is considered, not the position.
 
-            weights[i] = 1.0f / weights[i];
+            weights[i] = 1.0f / Mathf.Sqrt(weights[i]);
             weightsSum += weights[i];
 
             if (float.IsInfinity(weights[i])){
@@ -614,24 +610,43 @@ public class MotionFieldController : ScriptableObject {
         }
 
         //now normalize weights so that they sum to 1
-        for (i = 0; i < weights.Length; i++)
-        {
+        for (i = 0; i < weights.Length; i++){
             weights[i] = weights[i] / weightsSum;
         }
 
         return weights;
     }
 
-    private float sqDist(BoneTransform b1, BoneTransform b2)
+    private float BoneDist(BoneTransform b1, BoneTransform b2, float sqrtBonelength)
     {
         float sqDist = 0.0f;
-        sqDist += ((b1.posX - b2.posX) * (b1.posX - b2.posX));
-        sqDist += ((b1.posY - b2.posY) * (b1.posY - b2.posY));
-        sqDist += ((b1.posZ - b2.posZ) * (b1.posZ - b2.posZ));
-        sqDist += ((b1.rotX - b2.rotX) * (b1.rotX - b2.rotX));
-        sqDist += ((b1.rotY - b2.rotY) * (b1.rotY - b2.rotY));
-        sqDist += ((b1.rotZ - b2.rotZ) * (b1.rotZ - b2.rotZ));
-        sqDist += ((b1.rotW - b2.rotW) * (b1.rotW - b2.rotW));
+
+        float[] b1Arr = b1.flattenedTransform(sqrtBonelength);
+        float[] b2Arr = b2.flattenedTransform(sqrtBonelength);
+        for(int i = 0; i < b1Arr.Length; ++i)
+        {
+            sqDist += ((b1Arr[i] - b2Arr[i]) * (b1Arr[i] - b2Arr[i]));
+        }
+
+        return sqDist;
+    }
+
+    private float RootBoneDist(BoneTransform b1, BoneTransform b2, float sqrtBonelength)
+    {
+        //rootBone is calculated differently as the difference in position is also factored in along eith difference in the rotation.
+        float sqDist = 0.0f;
+
+        float[] b1Arr = b1.flattenedTransform(sqrtBonelength);
+        float[] b2Arr = b2.flattenedTransform(sqrtBonelength);
+        for (int i = 0; i < b1Arr.Length; ++i)
+        {
+            sqDist += ((b1Arr[i] - b2Arr[i]) * (b1Arr[i] - b2Arr[i]));
+        }
+
+        sqDist += ((b1.posX - b2.posX) * (b1.posX - b2.posX)) * sqrtBonelength * sqrtBonelength;
+        sqDist += ((b1.posY - b2.posY) * (b1.posY - b2.posY)) * sqrtBonelength * sqrtBonelength;
+        sqDist += ((b1.posZ - b2.posZ) * (b1.posZ - b2.posZ)) * sqrtBonelength * sqrtBonelength;
+
         return sqDist;
     }
 

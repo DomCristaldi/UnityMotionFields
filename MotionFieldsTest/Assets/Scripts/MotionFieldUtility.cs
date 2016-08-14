@@ -62,11 +62,11 @@ namespace AnimationMotionFields {
                 //ENCODE BONE LENGTHS
                 if (modelRef.cosmeticSkel.skeletonRoot == cosBone.boneTf) {
                     //HACK: predefine bone length of the root of the Skeleton to 0.5f meters
-                    bonePoses[i].boneLength = 0.5f;
+                    bonePoses[i].sqrtBoneLength = Mathf.Sqrt(0.5f);
                 }
                 else {
                     //bone length should be the magnitude of the local position
-                    bonePoses[i].boneLength = cosBone.boneTf.localPosition.magnitude;
+                    bonePoses[i].sqrtBoneLength = Mathf.Sqrt(cosBone.boneTf.localPosition.magnitude);
                 }
 
             }
@@ -568,7 +568,7 @@ namespace AnimationMotionFields {
                 {
                     if(animClipInfoList[i].motionPoses.Length != 0)
                     {
-                        KeyLength = animClipInfoList[i].motionPoses[0].bonePoses.Length * 14; //HACK: 14 is the magic number of values in each bonePose that is aded to the kdtree.
+                        KeyLength = animClipInfoList[i].motionPoses[0].bonePoses.Length * 6; //HACK: 6 is the magic number of values in flattened bonePose. Its the directed rotation of value and positionNext.
                         break;
                     }
                 }
@@ -579,7 +579,7 @@ namespace AnimationMotionFields {
                 return;
             }
 
-            KeyLength += 14; // adding number of fields to store rootMotionInfo.
+            KeyLength += 6; //HACK: adding magic number of flattened rootMotionInfo. Its the position and directed rotation of PositionNext, unlike other bones.
 
             Debug.Log("Length of kdtree key: " + KeyLength);
             kdTree = new KDTreeDLL_f.KDTree(KeyLength);
