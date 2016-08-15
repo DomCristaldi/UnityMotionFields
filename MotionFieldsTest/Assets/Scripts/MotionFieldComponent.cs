@@ -414,7 +414,7 @@ namespace AnimationMotionFields {
                             hPose.bodyPosition + (hPose.bodyRotation * Vector3.forward * 12.0f));
 
 
-            Debug.Log(hPose.bodyPosition);
+            //Debug.LogFormat("Body Position: {0}", hPose.bodyPosition);
 
             Gizmos.color = g_hipsOrientationVecColor;
 
