@@ -398,6 +398,7 @@ namespace AnimationMotionFields {
         //CALCULATE MOTION OF MODEL
             switch (calculationMode) {
                 case RootMotionCalculationMode.ReferencePoint:
+                    //TODO: Make this actually call the refrence point and not the Center Of Mass calculation method
                     ExtractRootMotion_CenterOfMass(ref motionPose, animClip, modelRef, timestamp, frameStep, frameHandling);
                     break;
 
@@ -502,7 +503,7 @@ namespace AnimationMotionFields {
 
                 MotionPose newPose = new MotionPose(extractedBonePoses, animClip.name, currentFrameTimePointer);
 
-                ExtractRootMotion(ref newPose, animClip, modelRef, currentFrameTimePointer, frameStep);
+                ExtractRootMotion(ref newPose, animClip, modelRef, currentFrameTimePointer, frameStep * sampleStepSize);
 
                 motionPoses.Add(newPose);
 
