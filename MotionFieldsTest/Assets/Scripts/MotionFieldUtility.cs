@@ -303,18 +303,11 @@ namespace AnimationMotionFields {
                                                               localBodyPos.z);
 
 
-                    Vector3 flooredCenterOfMass = new Vector3(hPose.bodyPosition.x,
+                    Vector3 centerOfMass_Floored = new Vector3(hPose.bodyPosition.x,
                                                               refPointTf.position.y,
                                                               hPose.bodyPosition.z);
 
-                    Vector3 adjustmentDirec = refPointTf.position - flooredCenterOfMass;
-
-                    //selfScript.transform.position += adjustmentDirec;
-
-                    //newLocalPos = skelRootTf.localPosition + skelRootTf.InverseTransformDirection(adjustmentDirec); //skelRootTf.localPosition;
-                    newLocalPos = refPointTf.InverseTransformPoint(skelRootTf.position + adjustmentDirec);
-
-
+                  
                 //ADJUST FOR ROTATION OFFSET
 
                     //floor out the two rotations to get only Yaw (XZ Plane) component
@@ -329,14 +322,33 @@ namespace AnimationMotionFields {
                     Plane testPlane = new Plane(rightOfFlooredRefRot, hPose.bodyPosition);
 
                     //use plane to determine direction of rotation (if we're oriented to the positive side, we need to rotate left, so we multiply by -1.0f)
-                    if(!testPlane.GetSide(flooredCenterOfMass + (bodyRot_Floored * Vector3.forward))) { adjustmentAngle *= -1.0f; }
+                    if(!testPlane.GetSide(centerOfMass_Floored + (bodyRot_Floored * Vector3.forward))) { adjustmentAngle *= -1.0f; }
 
                     //HACK: This may break other calculatoins b/c it makes things dirty
-                    skelRootTf.RotateAround(hPose.bodyPosition,
+                    skelRootTf.RotateAround(skelRootTf.position, //hPose.bodyPosition,
                                             Vector3.up,
                                             adjustmentAngle);
 
+                    //************************************
                     newLocalRot = skelRootTf.localRotation;
+
+                    Vector3 centerOfMassToHips = skelRootTf.position - hPose.bodyPosition;
+
+
+                    Vector3 adjustmentDirec = refPointTf.position - centerOfMass_Floored;
+
+                    //selfScript.transform.position += adjustmentDirec;
+
+                    //newLocalPos = skelRootTf.localPosition + skelRootTf.InverseTransformDirection(adjustmentDirec); //skelRootTf.localPosition;
+                    //newLocalPos = refPointTf.InverseTransformPoint(skelRootTf.position + adjustmentDirec);
+                    //skelRootTf.position += adjustmentDirec;
+                    //newLocalPos = skelRootTf.localPosition;
+
+                    newLocalPos = new Vector3(centerOfMassToHips.x,
+                                              skelRootTf.position.y,
+                                              centerOfMassToHips.z);
+
+                    //skelRootTf.localPosition = new Vector3(centerofmass)
 
                     //Quaternion adjRot = flooredRefRot * Quaternion.Inverse(flooredBodyRot);
 
