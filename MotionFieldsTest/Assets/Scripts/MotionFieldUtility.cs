@@ -284,15 +284,20 @@ namespace AnimationMotionFields {
 
                     HumanPose hPose = GetHumanPose(modelRef, animClip, timestamp);
 
-                    Vector3 newLocalPos = Vector3.zero;
-                    Quaternion newLocalRot = Quaternion.identity;
+
+
 
                     if (!AnimationMode.InAnimationMode()) { AnimationMode.StartAnimationMode(); }
                     AnimationMode.BeginSampling();
                     AnimationMode.SampleAnimationClip(modelRef.gameObject, animClip, timestamp);
 
+                    Vector3 newLocalPos = skelRootTf.localPosition;
+                    Quaternion newLocalRot = skelRootTf.localRotation;
+
                     Vector3 localBodyPos = skelRootTf.InverseTransformPoint(hPose.bodyPosition);
                     Vector3 localRefPos = skelRootTf.InverseTransformPoint(refPointTf.position);
+
+                    //HACK: Duplicate of Floored Center of Mass??
                     Vector3 flooredLocalBodyPos = new Vector3(localBodyPos.x,
                                                               localRefPos.y,
                                                               localBodyPos.z);
@@ -301,6 +306,7 @@ namespace AnimationMotionFields {
                     Vector3 flooredCenterOfMass = new Vector3(hPose.bodyPosition.x,
                                                               refPointTf.position.y,
                                                               hPose.bodyPosition.z);
+
                     Vector3 adjustmentDirec = refPointTf.position - flooredCenterOfMass;
 
                     //selfScript.transform.position += adjustmentDirec;
@@ -309,13 +315,30 @@ namespace AnimationMotionFields {
                     newLocalPos = refPointTf.InverseTransformPoint(skelRootTf.position + adjustmentDirec);
 
 
+                //ADJUST FOR ROTATION OFFSET
 
+                    //floor out the two rotations to get only Yaw (XZ Plane) component
+                    Quaternion bodyRot_Floored = Quaternion.LookRotation(Vector3.ProjectOnPlane(hPose.bodyRotation * Vector3.forward, Vector3.up).normalized, Vector3.up);
+                    Quaternion refRot_Floored = Quaternion.LookRotation(Vector3.ProjectOnPlane(refPointTf.rotation * Vector3.forward, Vector3.up).normalized, Vector3.up);
 
+                    //raw angle between two floored rotatoins (this is always positive)
+                    float adjustmentAngle = Quaternion.Angle(bodyRot_Floored, refRot_Floored);
 
-                    Quaternion flooredBodyRot = Quaternion.LookRotation(Vector3.ProjectOnPlane(hPose.bodyRotation * Vector3.forward, Vector3.up).normalized, Vector3.up);
-                    Quaternion flooredRefRot = Quaternion.LookRotation(Vector3.ProjectOnPlane(refPointTf.rotation * Vector3.forward, Vector3.up).normalized, Vector3.up);
+                    //calculate a plane that uses the floored reference point's rotation's right vector as the normal
+                    Vector3 rightOfFlooredRefRot = Vector3.Cross(refRot_Floored * Vector3.forward, Vector3.up);
+                    Plane testPlane = new Plane(rightOfFlooredRefRot, hPose.bodyPosition);
 
-                    Quaternion adjRot = flooredRefRot * Quaternion.Inverse(flooredBodyRot);
+                    //use plane to determine direction of rotation (if we're oriented to the positive side, we need to rotate left, so we multiply by -1.0f)
+                    if(!testPlane.GetSide(flooredCenterOfMass + (bodyRot_Floored * Vector3.forward))) { adjustmentAngle *= -1.0f; }
+
+                    //HACK: This may break other calculatoins b/c it makes things dirty
+                    skelRootTf.RotateAround(hPose.bodyPosition,
+                                            Vector3.up,
+                                            adjustmentAngle);
+
+                    newLocalRot = skelRootTf.localRotation;
+
+                    //Quaternion adjRot = flooredRefRot * Quaternion.Inverse(flooredBodyRot);
 
                     //selfScript.transform.rotation = adjRot; 
 
@@ -330,21 +353,21 @@ namespace AnimationMotionFields {
 
                     //Quaternion originalBodyRot 
 
-                    float adjustmentAngle = Quaternion.Angle(flooredBodyRot, flooredRefRot);
-                    Plane testPlane = new Plane(hPose.bodyPosition, refPointTf.position);
+                    //Plane testPlane = new Plane(hPose.bodyPosition, refPointTf.position);
 
-                    if(testPlane.GetSide(flooredBodyRot * Vector3.forward)) { adjustmentAngle *= -1.0f; }
+                    //if(testPlane.GetSide(flooredBodyRot * Vector3.forward)) { adjustmentAngle *= -1.0f; }
 
-                    //HACK: This may break other calculatoins b/c it makes things dirty
-                    skelRootTf.RotateAround(hPose.bodyPosition,
-                                            Vector3.up,
-                                            adjustmentAngle);
+                    ////HACK: This may break other calculatoins b/c it makes things dirty
+                    //skelRootTf.RotateAround(hPose.bodyPosition,
+                    //                        Vector3.up,
+                    //                        adjustmentAngle);
 
 
-                    newLocalRot = skelRootTf.localRotation;
+                    //newLocalRot = skelRootTf.localRotation;
 
-                    AnimationMode.EndSampling();
-                    AnimationMode.StopAnimationMode();
+                    //AnimationMode.EndSampling();
+                    //AnimationMode.StopAnimationMode();
+
 
                     skelRootBone.value = new BoneTransform(newLocalPos, newLocalRot, skelRootTf.localScale);
 

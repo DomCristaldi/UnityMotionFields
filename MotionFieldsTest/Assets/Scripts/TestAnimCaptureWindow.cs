@@ -70,12 +70,12 @@ public class SampleClipTool : EditorWindow {
     void Update() {
 
         if (go == null) {
-            Debug.Log("Blammo");
+            //Debug.Log("Blammo");
             return;
         }
 
         if (animationClip == null) {
-            Debug.Log("boom");
+            //Debug.Log("boom");
             return;
         }
 
