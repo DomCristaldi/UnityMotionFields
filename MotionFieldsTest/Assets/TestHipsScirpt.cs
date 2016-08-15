@@ -26,7 +26,7 @@ public class TestHipsScirpt : MonoBehaviour {
 	}
 }
 
-
+#if UNITY_EDITOR
 [CustomEditor(typeof(TestHipsScirpt))]
 public class TestHipsScirpt_Editor : Editor{
 
@@ -71,30 +71,38 @@ public class TestHipsScirpt_Editor : Editor{
         }
 
         if(GUILayout.Button("Adjust Rotation")) {
-            Quaternion flooredBodyRot = Quaternion.LookRotation(Vector3.ProjectOnPlane(hPose.bodyRotation * Vector3.forward, Vector3.up).normalized, Vector3.up);
-            Quaternion flooredRefRot = Quaternion.LookRotation(Vector3.ProjectOnPlane(selfScript.rootMotionRefPoint.rotation * Vector3.forward, Vector3.up).normalized, Vector3.up);
 
-            Quaternion adjRot = flooredRefRot * Quaternion.Inverse(flooredBodyRot);
+            Vector3 flooredCenterOfMass = new Vector3(hPose.bodyPosition.x,
+                                          selfScript.rootMotionRefPoint.position.y,
+                                          hPose.bodyPosition.z);
 
-            //selfScript.transform.rotation = adjRot;
+            //floor out the two rotations to get only Yaw (XZ Plane) component
+            Quaternion bodyRot_Floored = Quaternion.LookRotation(Vector3.ProjectOnPlane(hPose.bodyRotation * Vector3.forward, Vector3.up).normalized, Vector3.up);
+            Quaternion refRot_Floored = Quaternion.LookRotation(Vector3.ProjectOnPlane(selfScript.rootMotionRefPoint.rotation * Vector3.forward, Vector3.up).normalized, Vector3.up);
 
+            //Quaternion adjRot = refRot_Floored * Quaternion.Inverse(bodyRot_Floored);
 
-            //selfScript.transform.rotation = flooredBodyRot;
+            //raw angle between two floored rotatoins (this is always positive)
+            float adjustmentAngle = Quaternion.Angle(bodyRot_Floored, refRot_Floored);
 
+            //calculate a plane that uses the floored reference point's rotation's right vector as the normal
+            Vector3 rightOfFlooredRefRot = Vector3.Cross(refRot_Floored * Vector3.forward, Vector3.up);
+            Plane testPlane = new Plane(rightOfFlooredRefRot, hPose.bodyPosition);
 
-            //Quaternion newHipsRot = selfScript.transform.rotation * Quaternion.Inverse(flooredBodyRot);
-            //Quaternion newHipsRot = flooredBodyRot * Quaternion.Inverse(selfScript.transform.rotation);
+            //debugs for seeing that plane
+            Debug.DrawRay(flooredCenterOfMass, testPlane.normal * 20.0f, Color.magenta, 5.0f);
+            Debug.DrawRay(flooredCenterOfMass, refRot_Floored * Vector3.forward * 20.0f, Color.green, 5.0f);
+            Debug.DrawRay(flooredCenterOfMass, bodyRot_Floored * Vector3.forward * 20.0f, Color.yellow, 5.0f);
+            Debug.LogFormat("Positive Side: {0}", testPlane.GetSide(flooredCenterOfMass + (bodyRot_Floored * Vector3.forward)));
 
-            //selfScript.transform.rotation = newHipsRot;
+            //use plane to determine direction of rotation (if we're oriented to the positive side, we need to rotate left, so we multiply by -1.0f)
+            if (!testPlane.GetSide(flooredCenterOfMass + (bodyRot_Floored * Vector3.forward))) { adjustmentAngle *= -1.0f; }
 
-            //Quaternion originalBodyRot
+            //final debug for determining that our math is correct
+            Debug.LogFormat("Adjustment Angle: {0}", adjustmentAngle);
 
-            float adjustmentAngle = Quaternion.Angle(flooredBodyRot, flooredRefRot);
-            Plane testPlane = new Plane(hPose.bodyPosition, selfScript.rootMotionRefPoint.position);
-
-            if(testPlane.GetSide(flooredBodyRot * Vector3.forward)) { adjustmentAngle *= -1.0f; }
-
-            selfScript.transform.RotateAround(selfScript.transform.position,
+            //rotate the hips transform around the up axis by the angle we just calculated
+            selfScript.transform.RotateAround(selfScript.transform.position, //hpose.bodyPosition -> TODO: DO WE WANT TO USE THIS INSTEAD?
                                               Vector3.up,
                                               adjustmentAngle);
 
@@ -102,3 +110,4 @@ public class TestHipsScirpt_Editor : Editor{
     }
 
 }
+#endif
