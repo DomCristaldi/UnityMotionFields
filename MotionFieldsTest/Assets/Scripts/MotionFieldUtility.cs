@@ -381,7 +381,7 @@ namespace AnimationMotionFields {
                     //AnimationMode.StopAnimationMode();
 
 
-                    skelRootBone.value = new BoneTransform(newLocalPos, newLocalRot, skelRootTf.localScale);
+                    skelRootBone.value = new BoneTransform(newLocalPos, newLocalRot);
 
                     break;
             }
