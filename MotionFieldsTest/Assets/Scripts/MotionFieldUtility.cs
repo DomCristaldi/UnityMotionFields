@@ -272,7 +272,7 @@ namespace AnimationMotionFields {
 //ROOT MOTION EXTRACTION
         //TODO: restructure so looping is more intelligently implemented (maybe use deleagate functions? or more clever case checking? log position (center of mass / reference point) in hte umbrella function and pass that throught?)
         //TODO: add back in hip displacement
-        public static void ExtractRootMotion(ref MotionPose motionPose, 
+        public static void ExtractRootMotion(MotionPose motionPose, 
                                              AnimationClip animClip,
                                              MotionFieldComponent modelRef, 
                                              float timestamp,
@@ -281,15 +281,19 @@ namespace AnimationMotionFields {
                                              RootMotionFrameHandling frameHandling = RootMotionFrameHandling.SetFirstFrameToZero)
         {
 
-        //ADJUST FOR HIP OFFSET
+        //ADJUST FOR SKELETON ROOT OFFSET
             switch (calculationMode) {
+
+            //REFERENCE POINT
                 case RootMotionCalculationMode.ReferencePoint:
-                    //ExtractRootMotion_SkeletonRootOffset_ReferencePoint(motionPose, animClip, modelRef, timestamp);
+
                     throw new System.NotImplementedException();
 
-                    break;
+                    //break;
 
+            //CENTER OF MASS
                 case RootMotionCalculationMode.CenterOfMass:
+                    //get the center of mass and body orientation out of the human pose
                     HumanPose hPose = GetHumanPose(modelRef, animClip, timestamp);
 
                     ExtractRootMotion_SkeletonRootOffset(motionPose,
@@ -300,6 +304,10 @@ namespace AnimationMotionFields {
                                                          hPose.bodyRotation);
 
                     break;
+            
+            //DEFAULT: CENTER OF MASS
+                default:
+                    goto case RootMotionCalculationMode.CenterOfMass;
             }
 
             //we're setting the root motion for the first frame to zero, just set it here and break out
@@ -311,45 +319,41 @@ namespace AnimationMotionFields {
 
         //CALCULATE MOTION OF MODEL
             switch (calculationMode) {
-                case RootMotionCalculationMode.ReferencePoint:
-                    //TODO: Make this actually call the refrence point and not the Center Of Mass calculation method
-                    ExtractRootMotion_MovementExtraction_ReferencePoint(ref motionPose,
-                                                                        animClip, 
-                                                                        modelRef, 
-                                                                        timestamp,
-                                                                        frameStep,
-                                                                        frameHandling);
-                    break;
 
+            //CENTER OF MASS
                 case RootMotionCalculationMode.CenterOfMass:
-                    ExtractRootMotion_MovementExtraction_CenterOfMass(ref motionPose,
+
+                    HumanPose prevHumanPose = GetHumanPose(modelRef, animClip, timestamp - frameStep);//this stores the previous frame's pose
+                    HumanPose curHumanPose = GetHumanPose(modelRef, animClip, timestamp);//this stores the current frame's pose
+
+                    ExtractRootMotion_MovementExtraction(ref motionPose,
                                                                       animClip,
                                                                       modelRef,
-                                                                      timestamp,
-                                                                      frameStep,
+                                                                      prevHumanPose.bodyPosition, prevHumanPose.bodyRotation,
+                                                                      curHumanPose.bodyPosition, curHumanPose.bodyRotation,
                                                                       frameHandling);
                     break;
 
+            //REFERENCE POINT
+                case RootMotionCalculationMode.ReferencePoint:
+                    //TODO: Make this actually call the refrence point and not the Center Of Mass calculation method
+                    throw new System.NotImplementedException();
+
+                    //break;
+
+            //DEFAULT: CENTER OF MASS
                 default:
-                    goto case RootMotionCalculationMode.ReferencePoint;
+                    goto case RootMotionCalculationMode.CenterOfMass;
                     
             }
         }
 
-        private static void ExtractRootMotion_SkeletonRootOffset_ReferencePoint(MotionPose motionPose,
-                                                                                AnimationClip animClip,
-                                                                                MotionFieldComponent modelRef,
-                                                                                float timestamp)
-        {
-            throw new System.NotImplementedException();
-        }
-
         private static void ExtractRootMotion_SkeletonRootOffset(MotionPose motionPose,
-                                                                              AnimationClip animClip,
-                                                                              MotionFieldComponent modelRef,
-                                                                              float timestamp,
-                                                                              Vector3 rootMotionReferencePos,
-                                                                              Quaternion rootMotionReferenceRot)
+                                                                 AnimationClip animClip,
+                                                                 MotionFieldComponent modelRef,
+                                                                 float timestamp,
+                                                                 Vector3 rootMotionReferencePos,
+                                                                 Quaternion rootMotionReferenceRot)
         {
 
         //RECORD IMPORTANT POINTS FOR READABILITY
@@ -416,35 +420,20 @@ namespace AnimationMotionFields {
         }
 
 
-        private static void ExtractRootMotion_MovementExtraction_ReferencePoint(ref MotionPose motionPose,
-                                                                                AnimationClip animClip,
-                                                                                MotionFieldComponent modelRef,
-                                                                                float timestamp,
-                                                                                float frameStep, 
-                                                                                RootMotionFrameHandling frameHandling = RootMotionFrameHandling.SetFirstFrameToZero)
+        public static void ExtractRootMotion_MovementExtraction(ref MotionPose motionPose,
+                                                                AnimationClip animClip,
+                                                                MotionFieldComponent modelRef,
+                                                                Vector3 prevPos, Quaternion prevRot,
+                                                                Vector3 curPos, Quaternion curRot,
+                                                                RootMotionFrameHandling frameHandling = RootMotionFrameHandling.SetFirstFrameToZero)
         {
-            //TODO: Implement - Reference Point Root Motion
-            throw new System.NotImplementedException();
-        }
-
-        public static void ExtractRootMotion_MovementExtraction_CenterOfMass(ref MotionPose motionPose,
-                                                                             AnimationClip animClip,
-                                                                             MotionFieldComponent modelRef,
-                                                                             float timestamp, 
-                                                                             float frameStep,
-                                                                             RootMotionFrameHandling frameHandling = RootMotionFrameHandling.SetFirstFrameToZero)
-        {
-            //set up a pose handler for this model
-            HumanPose prevHumanPose = GetHumanPose(modelRef, animClip, timestamp - frameStep);//this will store the previous frame's pose
-            HumanPose curHumanPose = GetHumanPose(modelRef, animClip, timestamp);//this will store the current frame's pose
-
         
-            Quaternion adjustmentQuat = modelRef.cosmeticSkel.rootMotionReferencePoint.rotation * Quaternion.Inverse(prevHumanPose.bodyRotation);
-            Vector3 positionMotion = Vector3.ProjectOnPlane(adjustmentQuat * (curHumanPose.bodyPosition - prevHumanPose.bodyPosition), Vector3.up);
+            Quaternion prevRotToAnchorRot = modelRef.cosmeticSkel.rootMotionReferencePoint.rotation * Quaternion.Inverse(prevRot);
 
+            Vector3 positionMotion = Vector3.ProjectOnPlane(prevRotToAnchorRot * (curPos - prevPos), Vector3.up);
 
-            Quaternion curBodyRot_Flat = Quaternion.LookRotation(Vector3.ProjectOnPlane(curHumanPose.bodyRotation * Vector3.forward, Vector3.up));
-            Quaternion prevBodyRot_Flat = Quaternion.LookRotation(Vector3.ProjectOnPlane(prevHumanPose.bodyRotation * Vector3.forward, Vector3.up));
+            Quaternion curBodyRot_Flat = Quaternion.LookRotation(Vector3.ProjectOnPlane(curRot * Vector3.forward, Vector3.up));
+            Quaternion prevBodyRot_Flat = Quaternion.LookRotation(Vector3.ProjectOnPlane(prevRot * Vector3.forward, Vector3.up));
 
             Quaternion rotationMotion = curBodyRot_Flat * Quaternion.Inverse(prevBodyRot_Flat);
 
@@ -474,7 +463,9 @@ namespace AnimationMotionFields {
         public static MotionPose[] GenerateMotionPoses(AnimationClip animClip,
                                                        MotionFieldComponent modelRef, 
                                                        int sampleStepSize = 100,
-                                                       VelocityCalculationMode velCalculationMode = VelocityCalculationMode.DropLastTwoFrames)
+                                                       VelocityCalculationMode velCalculationMode = VelocityCalculationMode.DropLastTwoFrames,
+                                                       RootMotionCalculationMode motionCalcMode = RootMotionCalculationMode.CenterOfMass,
+                                                       RootMotionFrameHandling motionFrameHandling = RootMotionFrameHandling.SetFirstFrameToZero)
         {
             //Animator modelAnimator = modelRef.GetComponent<Animator>();
 
@@ -489,12 +480,18 @@ namespace AnimationMotionFields {
             //MOVE ACROSS ANIMATION CLIP FRAME BY FRAME
             while (currentFrameTimePointer <= ((animClip.length * animClip.frameRate) - frameStep) / animClip.frameRate) {
 
+
+                if (motionFrameHandling == RootMotionFrameHandling.DropFirstFrame && Mathf.Approximately(currentFrameTimePointer, 0.0f)) {
+                    currentFrameTimePointer += frameStep * sampleStepSize;
+                }
+
+
                 //float[] motionPoseKeyframes = ExtractKeyframe(animClip, currentFrameTimePointer, totalUniquePaths);
                 BonePose[] extractedBonePoses = ExtractBonePoses(animClip, modelRef, currentFrameTimePointer);
 
                 MotionPose newPose = new MotionPose(extractedBonePoses, animClip.name, currentFrameTimePointer);
 
-                ExtractRootMotion(ref newPose, animClip, modelRef, currentFrameTimePointer, frameStep * sampleStepSize);
+                ExtractRootMotion(newPose, animClip, modelRef, currentFrameTimePointer, frameStep * sampleStepSize);
 
                 motionPoses.Add(newPose);
 
@@ -538,7 +535,9 @@ namespace AnimationMotionFields {
                     animClipInfos[i].motionPoses = MotionFieldUtility.GenerateMotionPoses(animClipInfos[i].animClip,
                                                                                   modelRef,
                                                                                   samplingRate,
-                                                                                  animClipInfos[i].velocityCalculationMode);
+                                                                                  animClipInfos[i].velocityCalculationMode,
+                                                                                  animClipInfos[i].rootMotionCalculationMode,
+                                                                                  animClipInfos[i].rootMotionFrameHandling);
                 }
             }
 

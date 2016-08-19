@@ -20,14 +20,14 @@ public enum VelocityCalculationMode {
 }
 
 public enum RootMotionCalculationMode {
-    ReferencePoint = 0,
-    CenterOfMass = 1,
+    CenterOfMass = 0,
+    ReferencePoint = 1,
 }
 
 public enum RootMotionFrameHandling {
-    DropFirstFrame = 0,
-    LoopToFirstFrame = 1,
-    SetFirstFrameToZero = 2,
+    SetFirstFrameToZero = 0,
+    DropFirstFrame = 1,
+    LoopToFirstFrame = 2,
 }
 
 
@@ -382,7 +382,8 @@ public class MotionPose {
 public class AnimClipInfo {
     public bool useClip = true;
     public VelocityCalculationMode velocityCalculationMode;
-    public RootMotionCalculationMode rootMotionMode;
+    public RootMotionCalculationMode rootMotionCalculationMode;
+    public RootMotionFrameHandling rootMotionFrameHandling;
     public bool looping = false;
     public AnimationClip animClip;
 
