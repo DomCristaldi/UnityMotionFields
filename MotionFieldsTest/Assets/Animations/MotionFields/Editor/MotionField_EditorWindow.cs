@@ -418,10 +418,8 @@ namespace AnimationMotionFields {
 
             float numcycles = generations * rewardTable.Count;
 
-            rewardTableThreadPasser threadArg1 = new rewardTableThreadPasser(selectedMotionFieldController, rewardTable, 1);
-            rewardTableThreadPasser threadArg2 = new rewardTableThreadPasser(selectedMotionFieldController, rewardTable, 2);
-            rewardTableThreadPasser threadArg3 = new rewardTableThreadPasser(selectedMotionFieldController, rewardTable, 3);
-            rewardTableThreadPasser threadArg4 = new rewardTableThreadPasser(selectedMotionFieldController, rewardTable, 4);
+            GenerateRewardsTableThreadHandler threadHandler = new GenerateRewardsTableThreadHandler { MFController = selectedMotionFieldController, rewardTable = rewardTable };
+
             long before, after;
             for (int i = 0; i < generations; ++i)
             {
@@ -453,22 +451,20 @@ namespace AnimationMotionFields {
                 }
                 else
                 {
-                    Thread t1 = new Thread(MotionField_EditorWindow.rewardTableThread);
-                    Thread t2 = new Thread(MotionField_EditorWindow.rewardTableThread);
-                    Thread t3 = new Thread(MotionField_EditorWindow.rewardTableThread);
-                    Thread t4 = new Thread(MotionField_EditorWindow.rewardTableThread);
+                    Thread t1 = new Thread(threadHandler.StartThread);
+                    Thread t2 = new Thread(threadHandler.StartThread);
+                    Thread t3 = new Thread(threadHandler.StartThread);
+                    Thread t4 = new Thread(threadHandler.StartThread);
 
-                    t1.Start(threadArg1);
-                    t2.Start(threadArg2);
-                    t3.Start(threadArg3);
-                    t4.Start(threadArg4);
+                    t1.Start(0);
+                    t2.Start(1);
+                    t3.Start(2);
+                    t4.Start(3);
 
                     t1.Join();
                     t2.Join();
                     t3.Join();
                     t4.Join();
-
-                    t1.
                 }
 
                 after = System.Diagnostics.Stopwatch.GetTimestamp();
@@ -491,24 +487,6 @@ namespace AnimationMotionFields {
                     reward = (float)arrList[2]
                 };
                 selectedMotionFieldController.precomputedRewards_Initializer.Add(newElem);
-            }
-        }
-
-        private static void rewardTableThread(object data)
-        {
-            rewardTableThreadPasser args = (rewardTableThreadPasser)data;
-            int min = ((args.i - 1) * args.rewardTable.Count) / 4;
-            int max = (args.i * args.rewardTable.Count) / 4;
-
-            for (int j = min; j < max; ++j)
-            {
-                MotionPose pose = (MotionPose)args.rewardTable[j][0];
-                float[] taskarr = (float[])args.rewardTable[j][1];
-                float reward = float.MinValue;
-
-                args.MFController.MoveOneFrame(pose, taskarr, ref reward);
-
-                args.rewardTable[j][2] = reward;
             }
         }
 
@@ -617,17 +595,22 @@ namespace AnimationMotionFields {
 
     }
 
-    public struct rewardTableThreadPasser
+    public class GenerateRewardsTableThreadHandler
     {
         public MotionFieldController MFController;
         public List<ArrayList> rewardTable;
-        public int i;
-        
-        public rewardTableThreadPasser(MotionFieldController MFCont, List<ArrayList> rewardTable, int i)
+
+        public void StartThread(object start)
         {
-            this.MFController = MFCont;
-            this.rewardTable = rewardTable;
-            this.i = i;
+            for (int i = (int)start; i < rewardTable.Count; i += 4) {
+                MotionPose pose = (MotionPose)rewardTable[i][0];
+                float[] taskarr = (float[])rewardTable[i][1];
+                float reward = float.MinValue;
+
+                MFController.MoveOneFrame(pose, taskarr, ref reward);
+
+                rewardTable[i][2] = reward;
+            }
         }
     }
 }
