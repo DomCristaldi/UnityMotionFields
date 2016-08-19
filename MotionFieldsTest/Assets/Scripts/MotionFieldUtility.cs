@@ -284,12 +284,20 @@ namespace AnimationMotionFields {
         //ADJUST FOR HIP OFFSET
             switch (calculationMode) {
                 case RootMotionCalculationMode.ReferencePoint:
-                    ExtractRootMotion_SkeletonRootOffset_ReferencePoint(motionPose, animClip, modelRef, timestamp);
+                    //ExtractRootMotion_SkeletonRootOffset_ReferencePoint(motionPose, animClip, modelRef, timestamp);
+                    throw new System.NotImplementedException();
 
                     break;
 
                 case RootMotionCalculationMode.CenterOfMass:
-                    ExtractRootMotion_SkeletonRootOffset_CenterOfMass(motionPose, animClip, modelRef, timestamp);
+                    HumanPose hPose = GetHumanPose(modelRef, animClip, timestamp);
+
+                    ExtractRootMotion_SkeletonRootOffset(motionPose,
+                                                         animClip,
+                                                         modelRef, 
+                                                         timestamp,
+                                                         hPose.bodyPosition, 
+                                                         hPose.bodyRotation);
 
                     break;
             }
@@ -305,11 +313,21 @@ namespace AnimationMotionFields {
             switch (calculationMode) {
                 case RootMotionCalculationMode.ReferencePoint:
                     //TODO: Make this actually call the refrence point and not the Center Of Mass calculation method
-                    ExtractRootMotion_MovementExtraction_ReferencePoint(ref motionPose, animClip, modelRef, timestamp, frameStep, frameHandling);
+                    ExtractRootMotion_MovementExtraction_ReferencePoint(ref motionPose,
+                                                                        animClip, 
+                                                                        modelRef, 
+                                                                        timestamp,
+                                                                        frameStep,
+                                                                        frameHandling);
                     break;
 
                 case RootMotionCalculationMode.CenterOfMass:
-                    ExtractRootMotion_MovementExtraction_CenterOfMass(ref motionPose, animClip, modelRef, timestamp, frameStep, frameHandling);
+                    ExtractRootMotion_MovementExtraction_CenterOfMass(ref motionPose,
+                                                                      animClip,
+                                                                      modelRef,
+                                                                      timestamp,
+                                                                      frameStep,
+                                                                      frameHandling);
                     break;
 
                 default:
@@ -326,10 +344,12 @@ namespace AnimationMotionFields {
             throw new System.NotImplementedException();
         }
 
-        private static void ExtractRootMotion_SkeletonRootOffset_CenterOfMass(MotionPose motionPose,
+        private static void ExtractRootMotion_SkeletonRootOffset(MotionPose motionPose,
                                                                               AnimationClip animClip,
                                                                               MotionFieldComponent modelRef,
-                                                                              float timestamp)
+                                                                              float timestamp,
+                                                                              Vector3 rootMotionReferencePos,
+                                                                              Quaternion rootMotionReferenceRot)
         {
 
         //RECORD IMPORTANT POINTS FOR READABILITY
@@ -340,7 +360,7 @@ namespace AnimationMotionFields {
             BonePose skelRootBone = motionPose.GetBonePose(modelRef.cosmeticSkel.GetBone(skelRootTf).boneLabel);
 
 
-            HumanPose hPose = GetHumanPose(modelRef, animClip, timestamp);
+            //HumanPose hPose = GetHumanPose(modelRef, animClip, timestamp);
 
 
             if(!AnimationMode.InAnimationMode()) { AnimationMode.StartAnimationMode(); }
@@ -350,15 +370,15 @@ namespace AnimationMotionFields {
             Vector3 newLocalPos = skelRootTf.localPosition;
             Quaternion newLocalRot = skelRootTf.localRotation;
 
-            Vector3 centerOfMass_Floored = new Vector3(hPose.bodyPosition.x,
-                                                      anchorPointTf.position.y,
-                                                      hPose.bodyPosition.z);
+            Vector3 referencePos_Floored = new Vector3(rootMotionReferencePos.x,
+                                                       anchorPointTf.position.y,
+                                                       rootMotionReferencePos.z);
 
 
         //ADJUST FOR ROTATION OFFSET
 
             //floor out the two rotations to get only Yaw (XZ Plane) component
-            Quaternion bodyRot_Floored = Quaternion.LookRotation(Vector3.ProjectOnPlane(hPose.bodyRotation * Vector3.forward, Vector3.up).normalized, Vector3.up);
+            Quaternion bodyRot_Floored = Quaternion.LookRotation(Vector3.ProjectOnPlane(rootMotionReferenceRot * Vector3.forward, Vector3.up).normalized, Vector3.up);
             Quaternion anchorRot_Floored = Quaternion.LookRotation(Vector3.ProjectOnPlane(anchorPointTf.rotation * Vector3.forward, Vector3.up).normalized, Vector3.up);
 
             //raw angle between two floored rotatoins (this is always positive)
@@ -366,10 +386,10 @@ namespace AnimationMotionFields {
 
             //calculate a plane that uses the floored reference point's rotation's right vector as the normal
             Vector3 rightOfFlooredRefRot = Vector3.Cross(anchorRot_Floored * Vector3.forward, Vector3.up);
-            Plane testPlane = new Plane(rightOfFlooredRefRot, hPose.bodyPosition);
+            Plane testPlane = new Plane(rightOfFlooredRefRot, rootMotionReferencePos);
 
             //use plane to determine direction of rotation (if we're oriented to the positive side, we need to rotate left, so we multiply by -1.0f)
-            if(!testPlane.GetSide(centerOfMass_Floored + (bodyRot_Floored * Vector3.forward))) { adjustmentAngle *= -1.0f; }
+            if(!testPlane.GetSide(referencePos_Floored + (bodyRot_Floored * Vector3.forward))) { adjustmentAngle *= -1.0f; }
 
             //HACK: This may break other calculatoins b/c it makes things dirty
             skelRootTf.RotateAround(skelRootTf.position, //hPose.bodyPosition,
@@ -380,10 +400,10 @@ namespace AnimationMotionFields {
 
         
         //ADJUST FOR POSITION OFFSET
-            Vector3 centerOfMassToHips = skelRootTf.position - hPose.bodyPosition;
+            Vector3 centerOfMassToHips = skelRootTf.position - rootMotionReferencePos;
 
 
-            Vector3 adjustmentDirec = anchorPointTf.position - centerOfMass_Floored;
+            Vector3 adjustmentDirec = anchorPointTf.position - referencePos_Floored;
 
             newLocalPos = new Vector3(centerOfMassToHips.x,
                                       skelRootTf.position.y,
