@@ -5,6 +5,7 @@ using UnityEditorInternal;
 using System.Collections.Generic;
 using System.Collections;
 using System.Linq;
+using System.Threading;
 
 namespace AnimationMotionFields {
 
@@ -338,9 +339,20 @@ namespace AnimationMotionFields {
                 {
                     Debug.LogError("KDTree is not initialized! Generate Poses first.");
                 }
+                else if (selectedMotionFieldController.TArrayInfo == null)
+                {
+                    Debug.LogError("You must assign a TaskArray to the MotionField");
+                    return;
+                }
+                else if (selectedMotionFieldController.numActions <= 0)
+                {
+                    Debug.LogError("The numActions variable in the MotionField must be a positive int");
+                    return;
+                }
                 else
                 {
                     GenerateRewardsTable();
+                    Debug.Log(selectedMotionFieldController.precomputedRewards_Initializer.Count.ToString());
                 }
             }
 
@@ -351,15 +363,6 @@ namespace AnimationMotionFields {
 
         private void GenerateRewardsTable()
         {
-            if(selectedMotionFieldController.TArrayInfo == null){
-                Debug.LogError("You must assign a TaskArray to the MotionField");
-                return;
-            }
-            if(selectedMotionFieldController.numActions <= 0)
-            {
-                Debug.LogError("The numActions variable in the MotionField must be a positive int");
-                return;
-            }
             //create precomputed table of reward lookups at (every pose in kdtree)*(range of potential task values)
 
             //get list of task arrays to sample reward at
@@ -413,74 +416,99 @@ namespace AnimationMotionFields {
 
             Debug.Log("RewardTable size: " + rewardTable.Count + "\nnum of task samples: " + taskArr_samples.Count + "\nnumActions: " + selectedMotionFieldController.numActions.ToString() + "\nGenerations: " + generations.ToString());
 
-            System.Diagnostics.Stopwatch stopWatch = new System.Diagnostics.Stopwatch();
-
             float numcycles = generations * rewardTable.Count;
-            float averagetime = 0.0f;
-            int maxtime = 0;
-            int mintime = 1000;
 
-            for (int i = 0; i < generations; i++)
+            rewardTableThreadPasser threadArg1 = new rewardTableThreadPasser(selectedMotionFieldController, rewardTable, 1);
+            rewardTableThreadPasser threadArg2 = new rewardTableThreadPasser(selectedMotionFieldController, rewardTable, 2);
+            rewardTableThreadPasser threadArg3 = new rewardTableThreadPasser(selectedMotionFieldController, rewardTable, 3);
+            rewardTableThreadPasser threadArg4 = new rewardTableThreadPasser(selectedMotionFieldController, rewardTable, 4);
+            long before, after;
+            for (int i = 0; i < generations; ++i)
             {
                 selectedMotionFieldController.makeDictfromList(rewardTable);
 
-                int genstart = i * rewardTable.Count;
-                for (int j = 0; j < rewardTable.Count; j++)
+                if (EditorUtility.DisplayCancelableProgressBar("Generating Rewards", "generation " + (i + 1).ToString() + " of " + generations.ToString() + "... ", i / (float)generations))
                 {
-                    if (EditorUtility.DisplayCancelableProgressBar("Generating Rewards", "generation " + (i + 1).ToString() + " of " + generations.ToString() + "... ", ((genstart + j) / numcycles)))
-                    {
-                        Debug.Log("Gen Rewards Canceled");
-                        EditorUtility.ClearProgressBar();
-                        return;
-                    }
-
-                    //TODO: note that the precomputedRewards table is only updated between generations.
-                    //therefore, the order points are run to find there rewards does not matter, making this section easy to parallelize.
-                    //could be very beneficial, as generating the rewards table is likely to be rather slow.
-
-                    //also, if in need of more performance, could perhaps only calucate reward for every 'x' points, and other nearby points are extrapolated.
-                    //dont know how negatively this would effect accuracy, but if negligible could provide large speed boost.
-                    MotionPose pose = (MotionPose)rewardTable[j][0];
-                    float[] taskarr = (float[])rewardTable[j][1];
-                    float reward = float.MinValue;
-
-                    stopWatch.Start();
-
-                    selectedMotionFieldController.MoveOneFrame(pose, taskarr, ref reward);
-
-                    stopWatch.Stop();
-                    System.TimeSpan ts = stopWatch.Elapsed;
-                    averagetime += ts.Milliseconds;
-                    if(maxtime < ts.Milliseconds){
-                        maxtime = ts.Milliseconds;
-                    }
-                    if(mintime > ts.Milliseconds){
-                        mintime = ts.Milliseconds;
-                    }
-                    stopWatch.Reset();
-
-                    rewardTable[j][2] = reward;
+                    Debug.Log("Gen Rewards Canceled");
+                    EditorUtility.ClearProgressBar();
+                    return;
                 }
+
+                before = System.Diagnostics.Stopwatch.GetTimestamp();
+
+                if (rewardTable.Count < 4) //too few to multithread
+                {
+                    for (int j = 0; j < rewardTable.Count; ++j)
+                    {
+                        //also, if in need of more performance, could perhaps only calucate reward for every 'x' points, and other nearby points are extrapolated.
+                        //dont know how negatively this would effect accuracy, but if negligible could provide large speed boost.
+                        MotionPose pose = (MotionPose)rewardTable[j][0];
+                        float[] taskarr = (float[])rewardTable[j][1];
+                        float reward = float.MinValue;
+
+                        selectedMotionFieldController.MoveOneFrame(pose, taskarr, ref reward);
+
+                        rewardTable[j][2] = reward;
+                    }
+                }
+                else
+                {
+                    Thread t1 = new Thread(MotionField_EditorWindow.rewardTableThread);
+                    Thread t2 = new Thread(MotionField_EditorWindow.rewardTableThread);
+                    Thread t3 = new Thread(MotionField_EditorWindow.rewardTableThread);
+                    Thread t4 = new Thread(MotionField_EditorWindow.rewardTableThread);
+
+                    t1.Start(threadArg1);
+                    t2.Start(threadArg2);
+                    t3.Start(threadArg3);
+                    t4.Start(threadArg4);
+
+                    t1.Join();
+                    t2.Join();
+                    t3.Join();
+                    t4.Join();
+
+                    t1.
+                }
+
+                after = System.Diagnostics.Stopwatch.GetTimestamp();
+                Debug.Log("gen " + i.ToString() + " time: " + ((after - before) / 10000).ToString() + " ms");
             }
 
             EditorUtility.ClearProgressBar();
-
-            averagetime = averagetime / numcycles;
-            Debug.Log("Move One Frame Timings:     avg: " + averagetime.ToString() + "     max: " + maxtime.ToString() + "     min: " + mintime.ToString());
+            Debug.Log("Done, " + rewardTable[0][2].ToString() + "  " + rewardTable[20][2].ToString() + " " + rewardTable[55][2].ToString());
 
             //finally, set to the initializer in selectedMotionFieldController.
             //at runtime, this is converted to a dictionary
             selectedMotionFieldController.precomputedRewards_Initializer = new List<precomputedRewards_Initializer_Element>();
-            foreach(ArrayList arrList in rewardTable)
+            foreach (ArrayList arrList in rewardTable)
             {
                 precomputedRewards_Initializer_Element newElem = new precomputedRewards_Initializer_Element
-                                                                {
-                                                                    animName = ((MotionPose)arrList[0]).animName,
-                                                                    timestamp = ((MotionPose)arrList[0]).timestamp,
-                                                                    taskArr = (float[])arrList[1],
-                                                                    reward = (float)arrList[2]
-                                                                };
+                {
+                    animName = ((MotionPose)arrList[0]).animName,
+                    timestamp = ((MotionPose)arrList[0]).timestamp,
+                    taskArr = (float[])arrList[1],
+                    reward = (float)arrList[2]
+                };
                 selectedMotionFieldController.precomputedRewards_Initializer.Add(newElem);
+            }
+        }
+
+        private static void rewardTableThread(object data)
+        {
+            rewardTableThreadPasser args = (rewardTableThreadPasser)data;
+            int min = ((args.i - 1) * args.rewardTable.Count) / 4;
+            int max = (args.i * args.rewardTable.Count) / 4;
+
+            for (int j = min; j < max; ++j)
+            {
+                MotionPose pose = (MotionPose)args.rewardTable[j][0];
+                float[] taskarr = (float[])args.rewardTable[j][1];
+                float reward = float.MinValue;
+
+                args.MFController.MoveOneFrame(pose, taskarr, ref reward);
+
+                args.rewardTable[j][2] = reward;
             }
         }
 
@@ -587,7 +615,19 @@ namespace AnimationMotionFields {
             }
             */
 
+    }
 
-
+    public struct rewardTableThreadPasser
+    {
+        public MotionFieldController MFController;
+        public List<ArrayList> rewardTable;
+        public int i;
+        
+        public rewardTableThreadPasser(MotionFieldController MFCont, List<ArrayList> rewardTable, int i)
+        {
+            this.MFController = MFCont;
+            this.rewardTable = rewardTable;
+            this.i = i;
+        }
     }
 }
