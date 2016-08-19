@@ -281,7 +281,9 @@ public class MotionPose {
         BoneTransform[] BoneValues = new BoneTransform[posesToBlend.Length];
         BoneTransform[] BonePosNexts = new BoneTransform[posesToBlend.Length];
         BoneTransform[] BonePosNextNexts = new BoneTransform[posesToBlend.Length];
-        for (int i = 0; i < posesToBlend.Length; ++i)
+        int i, j;
+
+        for (i = 0; i < posesToBlend.Length; ++i)
         {
             BoneValues[i] = posesToBlend[i].rootMotionInfo.value;
             BonePosNexts[i] = posesToBlend[i].rootMotionInfo.positionNext;
@@ -293,9 +295,9 @@ public class MotionPose {
         newRootMotion.positionNextNext = BoneTransform.BlendTransforms(BonePosNextNexts, weights);
 
         BonePose[] newPoseBones = new BonePose[posesToBlend[0].bonePoses.Length];
-        for (int i = 0; i < posesToBlend[0].bonePoses.Length; ++i)
+        for (i = 0; i < posesToBlend[0].bonePoses.Length; ++i)
         {
-            for (int j = 0; j < posesToBlend.Length; ++j)
+            for (j = 0; j < posesToBlend.Length; ++j)
             {
                 BoneValues[j] = posesToBlend[j].bonePoses[i].value;
                 BonePosNexts[j] = posesToBlend[j].bonePoses[i].positionNext;
@@ -456,22 +458,18 @@ public class MotionFieldController : ScriptableObject {
     private MotionPose[] GenerateCandidateActions(MotionPose currentPose)
     {
         //generate candidate states to move to by finding closest poses in kdtree
+        int i;
+
         float[] currentPoseArr = currentPose.flattenedMotionPose;
 
         MotionPose[] neighbors = NearestNeighbor(currentPoseArr);
-
-        /*string StrNeighbors = "Neighbor Poses: ";
-        for (int i = 0; i < neighbors.Count(); i++){
-            StrNeighbors += "\n\n" + string.Join(" ", neighbors[i].flattenedMotionPose.Select(d => d.ToString()).ToArray());
-        }
-        Debug.Log(StrNeighbors);*/
 
         float[] weights = GenerateWeights(currentPose, neighbors);
 
         float[][] actionWeights = GenerateActionWeights(weights);
 
         MotionPose[] candidateActions = new MotionPose[actionWeights.Length];
-        for(int i = 0; i < actionWeights.Length; ++i)
+        for(i = 0; i < actionWeights.Length; ++i)
         {
             candidateActions[i] = GeneratePose(currentPose, neighbors, 0,  actionWeights[i]); //0 is the index in neighbors of the neighbor which is closest to the current pose. Because of how the kdtree works, the closest neighbor pose will ALWAYS be at index 0, hence the magic number. sorry.
             candidateActions[i].animName = neighbors[i].animName;
@@ -773,18 +771,19 @@ public class MotionFieldController : ScriptableObject {
         //reward is weighted blend of closest values in lookup table.
         //get closest poses from kdtree, and closest tasks from cartesian product
         //then get weighted rewards from lookup table for each pose+task combo
-
+        int i, j;
         //get closest poses.
 
         float[] poseArr = pose.flattenedMotionPose;
 
         MotionPose[] neighbors = NearestNeighbor (poseArr);
-		float[] neighbors_weights = GenerateWeights(pose, neighbors);
+
+        float[] neighbors_weights = GenerateWeights(pose, neighbors);
 
 		//get closest tasks.
 		List<List<float>> nearest_vals = new List<List<float>> ();
         float min, max, numSamples, interval;
-		for(int i=0; i < Tasks.Length; i++){
+		for(i=0; i < Tasks.Length; i++){
 
             List<float> nearest_val = new List<float> ();
 
@@ -822,8 +821,8 @@ public class MotionFieldController : ScriptableObject {
 		//get matrix of neighbors x tasks. The corresponding weight matrix should sum to 1.
 		List<vfKey> dictKeys = new List<vfKey> ();
 		List<float> dictKeys_weights = new List<float> ();
-		for (int i = 0; i < neighbors.Length; i++){
-			for (int j = 0; j < nearestTasksArr.Length; j++){
+		for (i = 0; i < neighbors.Length; i++){
+			for (j = 0; j < nearestTasksArr.Length; j++){
 				dictKeys.Add (new vfKey(neighbors[i].animName, neighbors[i].timestamp, nearestTasksArr[j]));
 				dictKeys_weights.Add (neighbors_weights [i] * nearestTasks_weights [j]);
 			}
@@ -831,7 +830,7 @@ public class MotionFieldController : ScriptableObject {
 
 		//do lookups in precomputed table, get weighted sum
 		float continuousReward = 0.0f;
-		for(int i = 0; i < dictKeys.Count; i++){
+		for(i = 0; i < dictKeys.Count; i++){
             //Debug.Log("lookup table vfkey:\nclipname: " + dictKeys[i].clipId + "\ntimestamp: " + dictKeys[i].timeStamp.ToString() + "\ntasks: " + string.Join(" ", dictKeys[i].tasks.Select(w => w.ToString()).ToArray()) + "\nhashcode: " + dictKeys[i].GetHashCode() + "\ncomponent hashcodes: " + dictKeys[i].clipId.GetHashCode() + "  " + dictKeys[i].timeStamp.GetHashCode() + "  (" + string.Join(" ", dictKeys[i].tasks.Select(w => w.GetHashCode().ToString()).ToArray()) + ")");
             try
             {

@@ -562,7 +562,8 @@ namespace AnimationMotionFields {
 
             //make KD Tree w/ number of dimension equal to total number of bone poses * (position * velocity) <- 14
             int KeyLength = 0;
-            for (int i = 0; i < animClipInfoList.Count; i++)
+            int i;
+            for (i = 0; i < animClipInfoList.Count; i++)
             {
                 if(animClipInfoList[i].useClip == true)
                 {
@@ -585,7 +586,7 @@ namespace AnimationMotionFields {
             kdTree = new KDTreeDLL_f.KDTree(KeyLength);
 
             int numPts = 0;
-            for (int i = 0; i < animClipInfoList.Count; i++) {
+            for (i = 0; i < animClipInfoList.Count; i++) {
 
                 EditorUtility.DisplayProgressBar("Generating Poses", "generating ke tree... ", ((float)i / (float)animClipInfoList.Count));
 
