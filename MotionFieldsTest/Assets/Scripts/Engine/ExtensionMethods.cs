@@ -3,6 +3,8 @@ using System.Linq;
 
 public static class Quaternion_ExtensionMethods
 {
+
+//QUATERNION
     public static Quaternion AverageQuaternions(Quaternion[] quats, float[] weights)
     {
         if (quats.Length != weights.Length) { Debug.LogError("number of quaternions to average does not equal th number of weights."); return Quaternion.identity; }
