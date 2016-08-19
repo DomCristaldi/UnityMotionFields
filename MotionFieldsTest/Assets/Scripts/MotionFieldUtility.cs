@@ -332,13 +332,13 @@ namespace AnimationMotionFields {
                                                                               float timestamp)
         {
 
-            //RECORD IMPORTANT POINTS FOR READABILITY
-            //get the Bone Pose associated with the transform assigned as the Skeleton Root Bone
-            Transform refPointTf = modelRef.cosmeticSkel.rootMotionReferencePoint;
+        //RECORD IMPORTANT POINTS FOR READABILITY
+            Transform anchorPointTf = modelRef.cosmeticSkel.rootMotionReferencePoint;
             Transform skelRootTf = modelRef.cosmeticSkel.skeletonRoot;
+
+            //record a reference to the Bone Pose for the Skeleton Root so it's easier to read
             BonePose skelRootBone = motionPose.GetBonePose(modelRef.cosmeticSkel.GetBone(skelRootTf).boneLabel);
 
-            //Debug.Log("Bone Label: " + skeletonRootBonePose.boneLabel);
 
             HumanPose hPose = GetHumanPose(modelRef, animClip, timestamp);
 
@@ -350,31 +350,22 @@ namespace AnimationMotionFields {
             Vector3 newLocalPos = skelRootTf.localPosition;
             Quaternion newLocalRot = skelRootTf.localRotation;
 
-            Vector3 localBodyPos = skelRootTf.InverseTransformPoint(hPose.bodyPosition);
-            Vector3 localRefPos = skelRootTf.InverseTransformPoint(refPointTf.position);
-
-            //HACK: Duplicate of Floored Center of Mass??
-            Vector3 flooredLocalBodyPos = new Vector3(localBodyPos.x,
-                                                      localRefPos.y,
-                                                      localBodyPos.z);
-
-
             Vector3 centerOfMass_Floored = new Vector3(hPose.bodyPosition.x,
-                                                      refPointTf.position.y,
+                                                      anchorPointTf.position.y,
                                                       hPose.bodyPosition.z);
 
 
-            //ADJUST FOR ROTATION OFFSET
+        //ADJUST FOR ROTATION OFFSET
 
             //floor out the two rotations to get only Yaw (XZ Plane) component
             Quaternion bodyRot_Floored = Quaternion.LookRotation(Vector3.ProjectOnPlane(hPose.bodyRotation * Vector3.forward, Vector3.up).normalized, Vector3.up);
-            Quaternion refRot_Floored = Quaternion.LookRotation(Vector3.ProjectOnPlane(refPointTf.rotation * Vector3.forward, Vector3.up).normalized, Vector3.up);
+            Quaternion anchorRot_Floored = Quaternion.LookRotation(Vector3.ProjectOnPlane(anchorPointTf.rotation * Vector3.forward, Vector3.up).normalized, Vector3.up);
 
             //raw angle between two floored rotatoins (this is always positive)
-            float adjustmentAngle = Quaternion.Angle(bodyRot_Floored, refRot_Floored);
+            float adjustmentAngle = Quaternion.Angle(bodyRot_Floored, anchorRot_Floored);
 
             //calculate a plane that uses the floored reference point's rotation's right vector as the normal
-            Vector3 rightOfFlooredRefRot = Vector3.Cross(refRot_Floored * Vector3.forward, Vector3.up);
+            Vector3 rightOfFlooredRefRot = Vector3.Cross(anchorRot_Floored * Vector3.forward, Vector3.up);
             Plane testPlane = new Plane(rightOfFlooredRefRot, hPose.bodyPosition);
 
             //use plane to determine direction of rotation (if we're oriented to the positive side, we need to rotate left, so we multiply by -1.0f)
@@ -385,13 +376,14 @@ namespace AnimationMotionFields {
                                     Vector3.up,
                                     adjustmentAngle);
 
-            //************************************
             newLocalRot = skelRootTf.localRotation;
 
+        
+        //ADJUST FOR POSITION OFFSET
             Vector3 centerOfMassToHips = skelRootTf.position - hPose.bodyPosition;
 
 
-            Vector3 adjustmentDirec = refPointTf.position - centerOfMass_Floored;
+            Vector3 adjustmentDirec = anchorPointTf.position - centerOfMass_Floored;
 
             newLocalPos = new Vector3(centerOfMassToHips.x,
                                       skelRootTf.position.y,
@@ -399,7 +391,8 @@ namespace AnimationMotionFields {
 
             skelRootBone.value = new BoneTransform(newLocalPos, newLocalRot);
 
-
+            AnimationMode.EndSampling();
+            AnimationMode.StopAnimationMode();
         }
 
 
@@ -562,7 +555,9 @@ namespace AnimationMotionFields {
             MotionFieldUtility.GenerateKDTree(ref mfController.kd, mfController.animClipInfoList, uniquePaths, rootComponents, uniquePaths.Length * 2);
         }*/
 
-        public static void GenerateKDTree(ref KDTreeDLL_f.KDTree kdTree, List<AnimClipInfo> animClipInfoList) {
+        public static void GenerateKDTree(ref KDTreeDLL_f.KDTree kdTree,
+                                          List<AnimClipInfo> animClipInfoList)
+        {
 
             //make KD Tree w/ number of dimension equal to total number of bone poses * (position * velocity) <- 14
             int KeyLength = 0;
