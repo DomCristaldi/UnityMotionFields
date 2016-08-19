@@ -364,11 +364,11 @@ namespace AnimationMotionFields {
         private void GenerateRewardsTable()
         {
             //create precomputed table of reward lookups at (every pose in kdtree)*(range of potential task values)
-
+            int i, j;
             //get list of task arrays to sample reward at
             int taskSize = selectedMotionFieldController.TArrayInfo.TaskArray.Count();
             List<List<float>> taskArr_samples = new List<List<float>>();
-            for (int i = 0; i < taskSize; i++)
+            for (i = 0; i < taskSize; i++)
             {
                 //dont change math on how tasks are sampled unless you know what your doing. must make equivalent changes when accessing dict in MFController
                 List<float> tasksamples = new List<float>();
@@ -378,7 +378,7 @@ namespace AnimationMotionFields {
 
                 //min + ((max-min)*i)/(numSamples-1);
                 float interval = (max - min) / (numSamples - 1);
-                for (int j = 0; j < numSamples; ++j)
+                for (j = 0; j < numSamples; ++j)
                 {
                     float sample = j * interval + min;
                     tasksamples.Add(sample);
@@ -418,10 +418,11 @@ namespace AnimationMotionFields {
 
             float numcycles = generations * rewardTable.Count;
 
-            GenerateRewardsTableThreadHandler threadHandler = new GenerateRewardsTableThreadHandler { MFController = selectedMotionFieldController, rewardTable = rewardTable };
-
+            int numThreads = 4;
+            GenerateRewardsTableThreadHandler threadHandler = new GenerateRewardsTableThreadHandler { MFController = selectedMotionFieldController, rewardTable = rewardTable, numThreads = numThreads };
+            
             long before, after;
-            for (int i = 0; i < generations; ++i)
+            for (i = 0; i < generations; ++i)
             {
                 selectedMotionFieldController.makeDictfromList(rewardTable);
 
@@ -434,9 +435,9 @@ namespace AnimationMotionFields {
 
                 before = System.Diagnostics.Stopwatch.GetTimestamp();
 
-                if (rewardTable.Count < 4) //too few to multithread
+                if (rewardTable.Count < numThreads) //too few to multithread
                 {
-                    for (int j = 0; j < rewardTable.Count; ++j)
+                    for (j = 0; j < rewardTable.Count; ++j)
                     {
                         //also, if in need of more performance, could perhaps only calucate reward for every 'x' points, and other nearby points are extrapolated.
                         //dont know how negatively this would effect accuracy, but if negligible could provide large speed boost.
@@ -451,20 +452,15 @@ namespace AnimationMotionFields {
                 }
                 else
                 {
-                    Thread t1 = new Thread(threadHandler.StartThread);
-                    Thread t2 = new Thread(threadHandler.StartThread);
-                    Thread t3 = new Thread(threadHandler.StartThread);
-                    Thread t4 = new Thread(threadHandler.StartThread);
+                    Thread[] threads = new Thread[numThreads];
+                    for(j = 0; j < numThreads; ++j) {
+                        threads[j] = new Thread(threadHandler.StartThread);
+                        threads[j].Start(j);
+                    }
 
-                    t1.Start(0);
-                    t2.Start(1);
-                    t3.Start(2);
-                    t4.Start(3);
-
-                    t1.Join();
-                    t2.Join();
-                    t3.Join();
-                    t4.Join();
+                    for(j = 0; j < numThreads; ++j) {
+                        threads[j].Join();
+                    }
                 }
 
                 after = System.Diagnostics.Stopwatch.GetTimestamp();
@@ -599,10 +595,11 @@ namespace AnimationMotionFields {
     {
         public MotionFieldController MFController;
         public List<ArrayList> rewardTable;
+        public int numThreads;
 
         public void StartThread(object start)
         {
-            for (int i = (int)start; i < rewardTable.Count; i += 4) {
+            for (int i = (int)start; i < rewardTable.Count; i += numThreads) {
                 MotionPose pose = (MotionPose)rewardTable[i][0];
                 float[] taskarr = (float[])rewardTable[i][1];
                 float reward = float.MinValue;
