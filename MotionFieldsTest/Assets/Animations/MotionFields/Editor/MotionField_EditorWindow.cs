@@ -412,7 +412,13 @@ namespace AnimationMotionFields {
 
             float s = selectedMotionFieldController.scale;
             float p = 0.1f;
-            int generations = System.Convert.ToInt32(Mathf.Ceil((Mathf.Log(-p * Mathf.Log(s))) / Mathf.Log(s)));
+            int generations;
+            if(s == 0.0f) {
+                generations = 1;
+            }
+            else {
+                generations = System.Convert.ToInt32(Mathf.Ceil((Mathf.Log(-p * Mathf.Log(s))) / Mathf.Log(s)));
+            }
 
             Debug.Log("RewardTable size: " + rewardTable.Count + "\nnum of task samples: " + taskArr_samples.Count + "\nnumActions: " + selectedMotionFieldController.numActions.ToString() + "\nGenerations: " + generations.ToString());
 

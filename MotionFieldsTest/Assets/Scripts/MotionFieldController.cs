@@ -422,7 +422,7 @@ public class MotionFieldController : ScriptableObject {
     //reward = r(firstframe) + scale*r(secondframe) + scale^2*r(thirdframe) + ... ect
     //close to 0 has higher preference on early reward. closer to 1 has higher preference on later reward
     //closer to 1 also asymptotically increases time to generate precomputed rewards, so its recommended you dont set it too high. 
-    [Range(0.0f,1.0f)]
+    [Range(0.0f,0.999f)]
     public float scale = 0.5f; 
 
     public int numActions = 1;
