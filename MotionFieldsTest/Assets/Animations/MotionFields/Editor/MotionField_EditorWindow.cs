@@ -416,22 +416,17 @@ namespace AnimationMotionFields {
 
             Debug.Log("RewardTable size: " + rewardTable.Count + "\nnum of task samples: " + taskArr_samples.Count + "\nnumActions: " + selectedMotionFieldController.numActions.ToString() + "\nGenerations: " + generations.ToString());
 
-            float numcycles = generations * rewardTable.Count;
-
             int numThreads = 4;
-            GenerateRewardsTableThreadHandler threadHandler = new GenerateRewardsTableThreadHandler { MFController = selectedMotionFieldController, rewardTable = rewardTable, numThreads = numThreads };
+            GenerateRewardsTableThreadHandler threadHandler = new GenerateRewardsTableThreadHandler (selectedMotionFieldController, 
+                                                                                                     rewardTable,
+                                                                                                     numThreads,
+                                                                                                     generations);
             
             long before, after;
             for (i = 0; i < generations; ++i)
             {
+                threadHandler.currentGen = i;
                 selectedMotionFieldController.makeDictfromList(rewardTable);
-
-                if (EditorUtility.DisplayCancelableProgressBar("Generating Rewards", "generation " + (i + 1).ToString() + " of " + generations.ToString() + "... ", i / (float)generations))
-                {
-                    Debug.Log("Gen Rewards Canceled");
-                    EditorUtility.ClearProgressBar();
-                    return;
-                }
 
                 before = System.Diagnostics.Stopwatch.GetTimestamp();
 
@@ -453,14 +448,20 @@ namespace AnimationMotionFields {
                 else
                 {
                     Thread[] threads = new Thread[numThreads];
-                    for(j = 0; j < numThreads; ++j) {
+                    
+                    for(j = 1; j < numThreads; ++j) {
                         threads[j] = new Thread(threadHandler.StartThread);
                         threads[j].Start(j);
                     }
+                    threadHandler.StartThread(0); //0 runs on the main thread, handles progressbar
 
-                    for(j = 0; j < numThreads; ++j) {
+                    for(j = 1; j < numThreads; ++j) {
                         threads[j].Join();
                     }
+                }
+
+                if (threadHandler.stopThreads) {
+                    return;
                 }
 
                 after = System.Diagnostics.Stopwatch.GetTimestamp();
@@ -596,10 +597,44 @@ namespace AnimationMotionFields {
         public MotionFieldController MFController;
         public List<ArrayList> rewardTable;
         public int numThreads;
+        public int generations;
+        public int currentGen;
+        public int totalCycles;
+
+        public bool stopThreads = false;
+        private int genstart;
+
+        public GenerateRewardsTableThreadHandler(MotionFieldController MFController,
+                                                      List<ArrayList> rewardTable,
+                                                      int numThreads,
+                                                      int generations)
+        {
+            this.MFController = MFController;
+            this.rewardTable = rewardTable;
+            this.numThreads = numThreads;
+            this.generations = generations;
+            this.totalCycles = generations * rewardTable.Count;
+        }
 
         public void StartThread(object start)
         {
+            int threadId = (int)start;
+            if(threadId == 0) { // 0 is the 'main' thread
+                genstart = currentGen * rewardTable.Count;
+            }
             for (int i = (int)start; i < rewardTable.Count; i += numThreads) {
+                if(threadId == 0) {
+                    if (EditorUtility.DisplayCancelableProgressBar("Generating Rewards", "generation " + (currentGen + 1).ToString() + " of " + generations.ToString() + "... ", (genstart + i) / (float)totalCycles)) {
+                        Debug.Log("Gen Rewards Canceled");
+                        EditorUtility.ClearProgressBar();
+                        stopThreads = true;
+                        return;
+                    }
+                }
+                if (stopThreads) {
+                    return;
+                }
+
                 MotionPose pose = (MotionPose)rewardTable[i][0];
                 float[] taskarr = (float[])rewardTable[i][1];
                 float reward = float.MinValue;
