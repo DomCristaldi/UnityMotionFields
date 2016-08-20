@@ -23,7 +23,7 @@ namespace AnimationMotionFields {
         public GameObject selectedGO;
 
 
-        MotionSkeleton selectedMotionSkeleton;
+        //MotionSkeleton selectedMotionSkeleton;
         SerializedObject serializedSelectedMotoinSkeleton;
 
 
@@ -145,27 +145,27 @@ namespace AnimationMotionFields {
                 return;
             }
 
-            EditorGUILayout.BeginHorizontal();
-            selectedMotionSkeleton = (MotionSkeleton) EditorGUILayout.ObjectField("Motion Skeleton: ", selectedMotionSkeleton, typeof(MotionSkeleton), false);
-            EditorGUILayout.EndHorizontal();
+            //EditorGUILayout.BeginHorizontal();
+            //selectedMotionSkeleton = (MotionSkeleton) EditorGUILayout.ObjectField("Motion Skeleton: ", selectedMotionSkeleton, typeof(MotionSkeleton), false);
+            //EditorGUILayout.EndHorizontal();
 
-            if (selectedMotionSkeleton == null) {
-                EditorGUILayout.HelpBox("Please Select a Motion Skeleton to Modify", MessageType.Info);
-                EditorGUILayout.EndVertical();
-                return;
-            }
+            //if (selectedMotionSkeleton == null) {
+            //    EditorGUILayout.HelpBox("Please Select a Motion Skeleton to Modify", MessageType.Info);
+            //    EditorGUILayout.EndVertical();
+            //    return;
+            //}
 
-            if (selectedMotionSkeleton.rootDeserializedBone == null) {
-                if (GUILayout.Button("Assign Root Bone")) {
-                    selectedMotionSkeleton.rootDeserializedBone = new MotionSkeleton.MSBoneDeserialized() { boneLabel = selectedGO.transform.name };
+            //if (selectedMotionSkeleton.rootDeserializedBone == null) {
+            //    if (GUILayout.Button("Assign Root Bone")) {
+            //        selectedMotionSkeleton.rootDeserializedBone = new MotionSkeleton.MSBoneDeserialized() { boneLabel = selectedGO.transform.name };
 
-                    EditorUtility.SetDirty(selectedMotionSkeleton);
-                    //AssetDatabase.SaveAssets();
-                }
-            }
-            else {
-                DisplayMotionSkeletonHierarchy(selectedMotionSkeleton.rootDeserializedBone);
-            }
+            //        EditorUtility.SetDirty(selectedMotionSkeleton);
+            //        //AssetDatabase.SaveAssets();
+            //    }
+            //}
+            //else {
+            //    DisplayMotionSkeletonHierarchy(selectedMotionSkeleton.rootDeserializedBone);
+            //}
             
 
             /*
@@ -190,23 +190,23 @@ namespace AnimationMotionFields {
 
         }
 
-        private void DisplayMotionSkeletonHierarchy(MotionSkeleton.MSBoneDeserialized rootBone) {
-            EditorGUILayout.BeginVertical();
+        //private void DisplayMotionSkeletonHierarchy(MotionSkeleton.MSBoneDeserialized rootBone) {
+        //    EditorGUILayout.BeginVertical();
 
-            ++EditorGUI.indentLevel;
+        //    ++EditorGUI.indentLevel;
 
-            EditorGUILayout.LabelField(rootBone.boneLabel);
+        //    EditorGUILayout.LabelField(rootBone.boneLabel);
 
-            if (rootBone.children.Count > 0) {
-                foreach (MotionSkeleton.MSBoneDeserialized child in rootBone.children) {
-                    DisplayMotionSkeletonHierarchy(child);
-                }   
-            }
+        //    if (rootBone.children.Count > 0) {
+        //        foreach (MotionSkeleton.MSBoneDeserialized child in rootBone.children) {
+        //            DisplayMotionSkeletonHierarchy(child);
+        //        }   
+        //    }
 
-            --EditorGUI.indentLevel;
+        //    --EditorGUI.indentLevel;
 
-            EditorGUILayout.EndVertical();
-        }
+        //    EditorGUILayout.EndVertical();
+        //}
 
         /*
         private void DisplayMotionSkeletonHierarchy(MotionSkeletonBone skeletonRoot) {

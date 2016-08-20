@@ -30,7 +30,8 @@ public class VisualizeBodyPosition : MonoBehaviour {
 	}
 
     private void UpdateHumanPose() {
-
+        poseHanlder = new HumanPoseHandler(avatar, skeletonRoot);
+        hPose = new HumanPose();
 
         poseHanlder.GetHumanPose(ref hPose);
     }
@@ -60,13 +61,13 @@ public class VisualizeBodyPosition : MonoBehaviour {
 
     private void Gizmo_DrawPoseConnection() {
         Gizmos.color = g_rootColor;
-        Gizmos.DrawSphere(hPose.bodyPosition, g_rootSize);
+        Gizmos.DrawSphere(hPose.bodyPosition + referencePoint.position, g_rootSize);
 
         Gizmos.color = g_refColor;
         Gizmos.DrawSphere(referencePoint.position, g_refSize);
 
         Gizmos.color = g_connectionColor;
-        Gizmos.DrawLine(hPose.bodyPosition, referencePoint.transform.position);
+        Gizmos.DrawLine(hPose.bodyPosition + referencePoint.position, referencePoint.transform.position);
 
     }
 

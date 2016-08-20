@@ -486,7 +486,7 @@ namespace AnimationMotionFields {
             EditorGUILayout.Vector3Field("Angular Vel:", animControl.angularVelocity);
             EditorGUILayout.Vector3Field("Vel: ", animControl.velocity);
             EditorGUILayout.Vector3Field("DeltaPos: ", animControl.deltaPosition);
-            EditorGUILayout.Vector3Field("Center of Mass: ", animControl.bodyPosition);
+            //EditorGUILayout.Vector3Field("Center of Mass: ", animControl.bodyPosition);
         }
 
         private void TranscribeBoneLabelsFromControllerTool() {
