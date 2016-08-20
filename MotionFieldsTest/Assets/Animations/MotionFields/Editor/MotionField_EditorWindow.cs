@@ -361,16 +361,18 @@ namespace AnimationMotionFields {
 
         }
 
+        /// <summary>
+        /// create precomputed table of reward lookups at (every pose in kdtree)*(range of potential task values)
+        /// </summary>
         private void GenerateRewardsTable()
         {
-            //create precomputed table of reward lookups at (every pose in kdtree)*(range of potential task values)
+            int i, j;
 
             //get list of task arrays to sample reward at
             int taskSize = selectedMotionFieldController.TArrayInfo.TaskArray.Count();
             List<List<float>> taskArr_samples = new List<List<float>>();
-            for (int i = 0; i < taskSize; i++)
-            {
-                //dont change math on how tasks are sampled unless you know what your doing. must make equivalent changes when accessing dict in MFController
+            for (i = 0; i < taskSize; i++) {
+                //dont change math on how tasks are sampled unless you know what your doing. must make equivalent changes when accessing dict in MFController so that each calculated task sample is EXACTLY the same (NO floating point error differences!)
                 List<float> tasksamples = new List<float>();
                 float min = selectedMotionFieldController.TArrayInfo.TaskArray[i].min;
                 float max = selectedMotionFieldController.TArrayInfo.TaskArray[i].max;
@@ -378,8 +380,7 @@ namespace AnimationMotionFields {
 
                 //min + ((max-min)*i)/(numSamples-1);
                 float interval = (max - min) / (numSamples - 1);
-                for (int j = 0; j < numSamples; ++j)
-                {
+                for (j = 0; j < numSamples; ++j) {
                     float sample = j * interval + min;
                     tasksamples.Add(sample);
                 }
@@ -390,12 +391,9 @@ namespace AnimationMotionFields {
             //create initial rewardTable as List<ArrayList>
             //each arraylist has MotionPose in [0], float[] of tasks in [1] and float for reward in [2]
             List<ArrayList> rewardTable = new List<ArrayList>();
-            foreach (AnimClipInfo animclip in selectedMotionFieldController.animClipInfoList)
-            {
-                foreach (MotionPose pose in animclip.motionPoses)
-                {
-                    foreach (List<float> taskArr in taskArr_samples)
-                    {
+            foreach (AnimClipInfo animclip in selectedMotionFieldController.animClipInfoList) {
+                foreach (MotionPose pose in animclip.motionPoses) {
+                    foreach (List<float> taskArr in taskArr_samples) {
                         ArrayList arr = new ArrayList();
                         arr.Add(pose);
                         arr.Add(taskArr.ToArray());
@@ -405,85 +403,28 @@ namespace AnimationMotionFields {
                 }
             }
 
-            //now recursively update fitness values to get the future reward
-            //to guarantee calculated future reward is within p*(immediateReward) of 'the future reward after infinite generations', 
+            Debug.Log("RewardTable size: " + rewardTable.Count + "\nnum of task samples: " + taskArr_samples.Count);
+
+            //now that we know all the points to sample the reward at, we recursively update the reward at each point
+            //to guarantee the calculated reward is within p*(immediateReward) of 'the reward after infinite generations', 
             //with a scaling of s (the nth gen has scaled reward of reward*s^(n-1), so with 0<s<1, this will approach a limit) number of gens to run is
             //ceil (ln(-p ln(S)) / ln(S))
-
             float s = selectedMotionFieldController.scale;
             float p = 0.1f;
-            int generations = System.Convert.ToInt32(Mathf.Ceil((Mathf.Log(-p * Mathf.Log(s))) / Mathf.Log(s)));
+            int generations = ( (s == 0.0f) ? 1 : System.Convert.ToInt32( Mathf.Ceil( Mathf.Log(-p * Mathf.Log(s)) / Mathf.Log(s) ) ) );
 
-            Debug.Log("RewardTable size: " + rewardTable.Count + "\nnum of task samples: " + taskArr_samples.Count + "\nnumActions: " + selectedMotionFieldController.numActions.ToString() + "\nGenerations: " + generations.ToString());
+            //since each point can have its reward calculated independently of other points during the same generation, each generation is multithreaded.
+            int numThreads = 4;
+            ThreadedRewardsTableUpdater threadedUpdater = new ThreadedRewardsTableUpdater (selectedMotionFieldController, rewardTable, generations, numThreads);
+            threadedUpdater.Update();
 
-            float numcycles = generations * rewardTable.Count;
+            Debug.Log("Done, " + rewardTable[0][2] + "  " + rewardTable[1][2] + " " + rewardTable[2][2] + " " + rewardTable[3][2] + " " + rewardTable[rewardTable.Count - 1][2]);
 
-            rewardTableThreadPasser threadArg1 = new rewardTableThreadPasser(selectedMotionFieldController, rewardTable, 1);
-            rewardTableThreadPasser threadArg2 = new rewardTableThreadPasser(selectedMotionFieldController, rewardTable, 2);
-            rewardTableThreadPasser threadArg3 = new rewardTableThreadPasser(selectedMotionFieldController, rewardTable, 3);
-            rewardTableThreadPasser threadArg4 = new rewardTableThreadPasser(selectedMotionFieldController, rewardTable, 4);
-            long before, after;
-            for (int i = 0; i < generations; ++i)
-            {
-                selectedMotionFieldController.makeDictfromList(rewardTable);
-
-                if (EditorUtility.DisplayCancelableProgressBar("Generating Rewards", "generation " + (i + 1).ToString() + " of " + generations.ToString() + "... ", i / (float)generations))
-                {
-                    Debug.Log("Gen Rewards Canceled");
-                    EditorUtility.ClearProgressBar();
-                    return;
-                }
-
-                before = System.Diagnostics.Stopwatch.GetTimestamp();
-
-                if (rewardTable.Count < 4) //too few to multithread
-                {
-                    for (int j = 0; j < rewardTable.Count; ++j)
-                    {
-                        //also, if in need of more performance, could perhaps only calucate reward for every 'x' points, and other nearby points are extrapolated.
-                        //dont know how negatively this would effect accuracy, but if negligible could provide large speed boost.
-                        MotionPose pose = (MotionPose)rewardTable[j][0];
-                        float[] taskarr = (float[])rewardTable[j][1];
-                        float reward = float.MinValue;
-
-                        selectedMotionFieldController.MoveOneFrame(pose, taskarr, ref reward);
-
-                        rewardTable[j][2] = reward;
-                    }
-                }
-                else
-                {
-                    Thread t1 = new Thread(MotionField_EditorWindow.rewardTableThread);
-                    Thread t2 = new Thread(MotionField_EditorWindow.rewardTableThread);
-                    Thread t3 = new Thread(MotionField_EditorWindow.rewardTableThread);
-                    Thread t4 = new Thread(MotionField_EditorWindow.rewardTableThread);
-
-                    t1.Start(threadArg1);
-                    t2.Start(threadArg2);
-                    t3.Start(threadArg3);
-                    t4.Start(threadArg4);
-
-                    t1.Join();
-                    t2.Join();
-                    t3.Join();
-                    t4.Join();
-
-                }
-
-                after = System.Diagnostics.Stopwatch.GetTimestamp();
-                Debug.Log("gen " + i.ToString() + " time: " + ((after - before) / 10000).ToString() + " ms");
-            }
-
-            EditorUtility.ClearProgressBar();
-            Debug.Log("Done, " + rewardTable[0][2].ToString() + "  " + rewardTable[20][2].ToString() + " " + rewardTable[55][2].ToString());
-
-            //finally, set to the initializer in selectedMotionFieldController.
+            //now that the rewards are calculated, set the initializer in selectedMotionFieldController.
             //at runtime, this is converted to a dictionary
             selectedMotionFieldController.precomputedRewards_Initializer = new List<precomputedRewards_Initializer_Element>();
-            foreach (ArrayList arrList in rewardTable)
-            {
-                precomputedRewards_Initializer_Element newElem = new precomputedRewards_Initializer_Element
-                {
+            foreach (ArrayList arrList in rewardTable){
+                precomputedRewards_Initializer_Element newElem = new precomputedRewards_Initializer_Element {
                     animName = ((MotionPose)arrList[0]).animName,
                     timestamp = ((MotionPose)arrList[0]).timestamp,
                     taskArr = (float[])arrList[1],
@@ -493,30 +434,11 @@ namespace AnimationMotionFields {
             }
         }
 
-        private static void rewardTableThread(object data)
-        {
-            rewardTableThreadPasser args = (rewardTableThreadPasser)data;
-            int min = ((args.i - 1) * args.rewardTable.Count) / 4;
-            int max = (args.i * args.rewardTable.Count) / 4;
-
-            for (int j = min; j < max; ++j)
-            {
-                MotionPose pose = (MotionPose)args.rewardTable[j][0];
-                float[] taskarr = (float[])args.rewardTable[j][1];
-                float reward = float.MinValue;
-
-                args.MFController.MoveOneFrame(pose, taskarr, ref reward);
-
-                args.rewardTable[j][2] = reward;
-            }
-        }
-
         private void BuildMotionField() {
             if (selectedMotionFieldController != null) {
                 MotionFieldUtility.GenerateMotionField(ref selectedMotionFieldController, selectedMotionFieldComponent, frameResolution);
             }
-            else
-            {
+            else {
                 Debug.LogError("selectedMFController is null. No kdtree generation occurred.");
             }
         }
@@ -616,17 +538,81 @@ namespace AnimationMotionFields {
 
     }
 
-    public struct rewardTableThreadPasser
+    public class ThreadedRewardsTableUpdater
     {
-        public MotionFieldController MFController;
+        public MotionFieldController selectedMotionFieldController;
         public List<ArrayList> rewardTable;
-        public int i;
-        
-        public rewardTableThreadPasser(MotionFieldController MFCont, List<ArrayList> rewardTable, int i)
+        public int generations;
+        public int totalCycles;
+        public int numThreads;
+
+        public int currentGen;
+        public bool stopThreads = false;
+        private int genstart;
+
+        public ThreadedRewardsTableUpdater(MotionFieldController MFCont, List<ArrayList> rTable, int gens, int numThreads)
         {
-            this.MFController = MFCont;
-            this.rewardTable = rewardTable;
-            this.i = i;
+            selectedMotionFieldController = MFCont;
+            rewardTable = rTable;
+            generations = gens;
+            totalCycles = generations * rewardTable.Count;
+            this.numThreads = numThreads;
+        }
+
+        public void StartThread(object start)
+        {
+            int threadId = (int)start;
+            if(threadId == 0) { // 0 is the 'main' thread
+                genstart = currentGen * rewardTable.Count;
+            }
+            for (int i = (int)start; i < rewardTable.Count; i += numThreads) {
+                if(threadId == 0) {
+                    if (EditorUtility.DisplayCancelableProgressBar("Generating Rewards", "generation " + (currentGen + 1).ToString() + " of " + generations.ToString() + "... ", (genstart + i) / (float)totalCycles)) {
+                        Debug.Log("Gen Rewards Canceled");
+                        EditorUtility.ClearProgressBar();
+                        stopThreads = true;
+                    }
+                }
+                if (stopThreads) { //if cancel was hit on the progressbar
+                    return;
+                }
+
+                //rewardTable[i][0] is the MotionPose at that point, rewardTable[i][1] is the TaskArray at that point
+                float reward = float.MinValue;
+                selectedMotionFieldController.MoveOneFrame((MotionPose)rewardTable[i][0], (float[])rewardTable[i][1], ref reward);
+                rewardTable[i][2] = reward;
+            }
+        }
+
+        public void Update()
+        {
+            long before, after;
+
+            for (currentGen = 0; currentGen < generations; ++currentGen) {
+                selectedMotionFieldController.makeDictfromList(rewardTable);
+
+                before = System.Diagnostics.Stopwatch.GetTimestamp();
+
+                Thread[] threads = new Thread[numThreads - 1];
+
+                for (int j = 0; j < threads.Length; ++j) {
+                    threads[j] = new Thread(StartThread);
+                    threads[j].Start(j + 1);
+                }
+                StartThread(0); //0 runs on the main thread, handles progressbar
+
+                for (int j = 0; j < threads.Length; ++j) {
+                    threads[j].Join();
+                }
+
+                if (stopThreads) { //if cancel was hit on the progressbar
+                    return;
+                }
+
+                after = System.Diagnostics.Stopwatch.GetTimestamp();
+                Debug.Log("gen " + currentGen.ToString() + " time: " + ((after - before) / 10000).ToString() + " ms");
+            }
+            EditorUtility.ClearProgressBar();
         }
     }
 }
