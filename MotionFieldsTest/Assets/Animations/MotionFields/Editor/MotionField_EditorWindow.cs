@@ -468,7 +468,6 @@ namespace AnimationMotionFields {
                     t3.Join();
                     t4.Join();
 
-                    t1.
                 }
 
                 after = System.Diagnostics.Stopwatch.GetTimestamp();
