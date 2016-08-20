@@ -396,24 +396,28 @@ namespace AnimationMotionFields {
             if(!testPlane.GetSide(referencePos_Floored + (bodyRot_Floored * Vector3.forward))) { adjustmentAngle *= -1.0f; }
 
             //HACK: This may break other calculatoins b/c it makes things dirty
-            skelRootTf.RotateAround(skelRootTf.position, //hPose.bodyPosition,
+            skelRootTf.RotateAround(/*skelRootTf.position,*/ rootMotionReferencePos,
                                     Vector3.up,
                                     adjustmentAngle);
 
             newLocalRot = skelRootTf.localRotation;
 
-        
-        //ADJUST FOR POSITION OFFSET
+            
+            //ADJUST FOR POSITION OFFSET
+            Vector3 newPos = Vector3.ProjectOnPlane((anchorPointTf.position - skelRootTf.position), Vector3.up)
+                            + skelRootTf.position;
+
+            //transform the point to the reference point's local space, where the skeleton's root is originally located 
+            newPos = modelRef.cosmeticSkel.rootMotionReferencePoint.InverseTransformPoint(newPos);
+            
+
             Vector3 centerOfMassToHips = skelRootTf.position - rootMotionReferencePos;
-
-
-            Vector3 adjustmentDirec = anchorPointTf.position - referencePos_Floored;
 
             newLocalPos = new Vector3(centerOfMassToHips.x,
                                       skelRootTf.position.y,
                                       centerOfMassToHips.z);
 
-            skelRootBone.value = new BoneTransform(newLocalPos, newLocalRot);
+            skelRootBone.value = new BoneTransform(/*newLocalPos*/ newPos, newLocalRot);
 
             AnimationMode.EndSampling();
             AnimationMode.StopAnimationMode();
@@ -427,7 +431,7 @@ namespace AnimationMotionFields {
                                                                 Vector3 curPos, Quaternion curRot,
                                                                 RootMotionFrameHandling frameHandling = RootMotionFrameHandling.SetFirstFrameToZero)
         {
-        
+
             Quaternion prevRotToAnchorRot = modelRef.cosmeticSkel.rootMotionReferencePoint.rotation * Quaternion.Inverse(prevRot);
 
             Vector3 positionMotion = Vector3.ProjectOnPlane(prevRotToAnchorRot * (curPos - prevPos), Vector3.up);
