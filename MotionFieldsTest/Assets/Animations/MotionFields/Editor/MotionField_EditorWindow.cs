@@ -312,22 +312,6 @@ namespace AnimationMotionFields {
                 selectedMotionFieldController.animClipInfoList[0].PrintPathTest();
             }
 
-
-            if (GUILayout.Button("test point 0")) {
-                int length = selectedMotionFieldController.animClipInfoList[0].motionPoses[0].flattenedMotionPose.Length;
-                float[] queryPoint = new float[length];
-
-                for(int i = 0; i < length; ++i){
-                    queryPoint[i] = 0;
-                }
-                MotionPose[] poses = selectedMotionFieldController.NearestNeighbor(queryPoint);
-
-                foreach(MotionPose pose in poses)
-                {
-                    Debug.Log("AnimName: " + pose.animName + ", Timestamp: " + pose.timestamp + "\n");
-                }
-            }
-
             if(GUILayout.Button("extraction tests"))
             {
                 ExtractionTest();
