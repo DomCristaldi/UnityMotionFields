@@ -427,8 +427,11 @@ public class MotionFieldController : ScriptableObject {
 
     public int numActions = 1;
 
+    /*
+    //legacy from motion fields
     [Range(0.0f, 1.0f)]
     public float driftCorrection = 0.1f;
+    */
 
 	public MotionPose OneTick(MotionPose currentPose){
 
@@ -459,25 +462,23 @@ public class MotionFieldController : ScriptableObject {
     private MotionPose[] GenerateCandidateActions(MotionPose currentPose)
     {
         //generate candidate states to move to by finding closest poses in kdtree
-        int i;
-
         float[] currentPoseArr = currentPose.flattenedMotionPose;
 
+        return NearestNeighbor(currentPoseArr);
+
+        /*
+        //legacy from motion fields
         MotionPose[] neighbors = NearestNeighbor(currentPoseArr);
-
         float[] weights = GenerateWeights(currentPose, neighbors);
-
         float[][] actionWeights = GenerateActionWeights(weights);
-
         MotionPose[] candidateActions = new MotionPose[actionWeights.Length];
-        for(i = 0; i < actionWeights.Length; ++i)
-        {
+        for(int i = 0; i < actionWeights.Length; ++i){
             candidateActions[i] = GeneratePose(currentPose, neighbors, 0,  actionWeights[i]); //0 is the index in neighbors of the neighbor which is closest to the current pose. Because of how the kdtree works, the closest neighbor pose will ALWAYS be at index 0, hence the magic number. sorry.
             candidateActions[i].animName = neighbors[i].animName;
             candidateActions[i].timestamp = neighbors[i].timestamp;
         }
-
         return candidateActions;
+        */
     }
 
     private int PickCandidate(MotionPose currentPose, MotionPose[] candidateActions, float[] taskArr, ref float bestReward) {
@@ -495,7 +496,7 @@ public class MotionFieldController : ScriptableObject {
         return chosenAction;
     }
 
-    public MotionPose[] NearestNeighbor(float[] pose){
+    private MotionPose[] NearestNeighbor(float[] pose){
         object[] nn_data = kd.nearest (pose, numActions);
         
         MotionPose[] data = new MotionPose[nn_data.Length];
@@ -506,6 +507,8 @@ public class MotionFieldController : ScriptableObject {
         return data;
     }
 
+    /*
+    //legacy from motion fields
     private float[][] GenerateActionWeights(float[] weights){
         int i, j;
         float[][] actions = new float[numActions][];
@@ -529,6 +532,7 @@ public class MotionFieldController : ScriptableObject {
         }
         return actions;
     }
+    */
 
 
 	private float[] GenerateWeights(float[] ideal, float[][] neighbors){
@@ -569,6 +573,8 @@ public class MotionFieldController : ScriptableObject {
         return weights;
 	}
 
+    /*
+    //legacy from motion fields
     private float[] GenerateWeights(MotionPose pose, MotionPose[] neighbors)
     {
         //note: neighbors.Length == numActions
@@ -615,7 +621,9 @@ public class MotionFieldController : ScriptableObject {
 
         return weights;
     }
-
+    */
+    /*
+    //legacy from motion fields
     private float BoneDist(BoneTransform b1, BoneTransform b2, float sqrtBonelength)
     {
         float sqDist = 0.0f;
@@ -629,7 +637,9 @@ public class MotionFieldController : ScriptableObject {
 
         return sqDist;
     }
-
+    */
+    /*
+    //legacy from motion fields
     private float RootBoneDist(BoneTransform b1, BoneTransform b2, float sqrtBonelength)
     {
         //rootBone is calculated differently as the difference in position is also factored in along eith difference in the rotation.
@@ -648,7 +658,9 @@ public class MotionFieldController : ScriptableObject {
 
         return sqDist;
     }
-
+    */
+    /*
+    //legacy from motion fields
     private MotionPose GeneratePose(MotionPose currentPose, MotionPose[] neighbors, int closestNeighborIndex, float[] action){
         if(action[0] == 0.0f || action[0] == -0.0f)
         {
@@ -669,22 +681,24 @@ public class MotionFieldController : ScriptableObject {
         MotionPose newPose = new MotionPose(newPoseBones, newRootBone);
         return newPose;
     }
-
+    */
+    /*
+    //legacy from motion fields
     public BonePose GenerateBone(BonePose currBone, BonePose blendBone, BonePose closestBone)
     {
         //TODO: add drift correction with closestbone
 
         //note about quaternion math: v = x2 * x1^-1,     x2 = x1 * v,     x1 * v != v * x1  (quaternion math is not commutative)
         //b * (a * b^-1) == a, i believe
-        /*
-        OLD broken logic:
-        new_position = currentPose.position + blendedNeighbors.positionNext - blendedNeighbors.position
-        new_positionNext = currentPose.position + blendedNeighbors.position + blendedNeighbors.positionNextNext - 2(blendedNeighbors.positionNext)
         
-        NEW logic: 
-        new_position = currentPose.position + (blendedNeighbors.positionNext - blendedNeighbors.position)
-        new_positionNext = new_position + (blendedNeighbors.positionNextNext - blendedNeighbors.positionNext)  
-        */
+        //OLD broken logic:
+        //new_position = currentPose.position + blendedNeighbors.positionNext - blendedNeighbors.position
+        //new_positionNext = currentPose.position + blendedNeighbors.position + blendedNeighbors.positionNextNext - 2(blendedNeighbors.positionNext)
+        
+        //NEW logic: 
+        //new_position = currentPose.position + (blendedNeighbors.positionNext - blendedNeighbors.position)
+        //new_positionNext = new_position + (blendedNeighbors.positionNextNext - blendedNeighbors.positionNext)  
+        
         BoneTransform V1 = BoneTransform.Subtract(blendBone.positionNext, blendBone.value);
         BoneTransform V2 = BoneTransform.Subtract(closestBone.positionNext, currBone.value);
         BoneTransform V = BoneTransform.BlendTransform(V1, V2, driftCorrection);
@@ -701,17 +715,19 @@ public class MotionFieldController : ScriptableObject {
 
         return newBone;
     }
-
+    */
+    /*
+    //legacy from motion fields
     public BonePose GenerateRootBone(BonePose currBone, BonePose blendBone, BonePose closestBone)
     {
         //TODO: add drift correction with closestbone
 
         //note about quaternion math: v = x2 * x1^-1,     x2 = x1 * v,     x1 * v != v * x1  (quaternion math is not commutative)
         //b * (a * b^-1) == a, i believe
-        /*root bone must be handled differently because it is stored as a displacement, not a position!
-        new_position = blendBone.positionNext  //note this works if currBone.value is either a velocity from previous frame or a value of 0, which are the current two modes for root calculation. If, somehow, currBone.value contains a non-zero position for root, change this to currBone.Value + blendBone.PositionNext
-        new_positionNext = blendBone.positionNextNext  
-        */
+        //root bone must be handled differently because it is stored as a displacement, not a position!
+        //new_position = blendBone.positionNext  //note this works if currBone.value is either a velocity from previous frame or a value of 0, which are the current two modes for root calculation. If, somehow, currBone.value contains a non-zero position for root, change this to currBone.Value + blendBone.PositionNext
+        //new_positionNext = blendBone.positionNextNext  
+        
         BonePose newBone = new BonePose(currBone.boneLabel);
 
         //newBone.value = new BoneTransform(blendBone.positionNext);
@@ -721,7 +737,7 @@ public class MotionFieldController : ScriptableObject {
 
         return newBone;
     }
-
+    */
 
     public List<List<float>> CartesianProduct( List<List<float>> sequences){
 		// base case: 
@@ -773,13 +789,14 @@ public class MotionFieldController : ScriptableObject {
         //get closest poses from kdtree, and closest tasks from cartesian product
         //then get weighted rewards from lookup table for each pose+task combo
         int i, j;
-        //get closest poses.
 
+        /*
+        //legacy from motion fields
+        //get closest poses (now with pose matching, pose is already an existing pose, rather than a blend of poses, so getting nearest existing poses is no longer nessesary.)
         float[] poseArr = pose.flattenedMotionPose;
-
         MotionPose[] neighbors = NearestNeighbor (poseArr);
-
         float[] neighbors_weights = GenerateWeights(pose, neighbors);
+        */
 
 		//get closest tasks.
 		List<List<float>> nearest_vals = new List<List<float>> ();
@@ -817,10 +834,18 @@ public class MotionFieldController : ScriptableObject {
         Debug.Log(StrSampleTasks);
         */
         
-        float[] nearestTasks_weights = GenerateWeights(Tasks, nearestTasksArr);
+        float[] dictKeys_weights = GenerateWeights(Tasks, nearestTasksArr);
 
 		//get matrix of neighbors x tasks. The corresponding weight matrix should sum to 1.
-		List<vfKey> dictKeys = new List<vfKey> ();
+		vfKey[] dictKeys = new vfKey[nearestTasksArr.Length];
+        for (j = 0; j < nearestTasksArr.Length; j++) {
+            dictKeys[j] = new vfKey(pose.animName, pose.timestamp, nearestTasksArr[j]);
+        }
+
+        /*
+        legacy from motionfields
+        float[] nearestTasks_weights = GenerateWeights(Tasks, nearestTasksArr);
+        List<vfKey> dictKeys = new List<vfKey> ();
 		List<float> dictKeys_weights = new List<float> ();
 		for (i = 0; i < neighbors.Length; i++){
 			for (j = 0; j < nearestTasksArr.Length; j++){
@@ -828,10 +853,11 @@ public class MotionFieldController : ScriptableObject {
 				dictKeys_weights.Add (neighbors_weights [i] * nearestTasks_weights [j]);
 			}
 		}
+        */
 
-		//do lookups in precomputed table, get weighted sum
-		float continuousReward = 0.0f;
-		for(i = 0; i < dictKeys.Count; i++){
+        //do lookups in precomputed table, get weighted sum
+        float continuousReward = 0.0f;
+		for(i = 0; i < dictKeys.Length; i++){
             //Debug.Log("lookup table vfkey:\nclipname: " + dictKeys[i].clipId + "\ntimestamp: " + dictKeys[i].timeStamp.ToString() + "\ntasks: " + string.Join(" ", dictKeys[i].tasks.Select(w => w.ToString()).ToArray()) + "\nhashcode: " + dictKeys[i].GetHashCode() + "\ncomponent hashcodes: " + dictKeys[i].clipId.GetHashCode() + "  " + dictKeys[i].timeStamp.GetHashCode() + "  (" + string.Join(" ", dictKeys[i].tasks.Select(w => w.GetHashCode().ToString()).ToArray()) + ")");
             try
             {
