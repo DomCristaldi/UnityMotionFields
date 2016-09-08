@@ -1,9 +1,106 @@
-﻿//using UnityEngine;
-//using UnityEngine.Experimental.Director;
-//using System.Collections.Generic;
+﻿using UnityEngine;
+using UnityEngine.Experimental.Director;
+using System.Collections.Generic;
 
-//namespace AnimationMotionFields {
+namespace AnimationMotionFields {
 
+    public class BlendFromToPlayable : CustomAnimationPlayable
+    {
+        public AnimationMixerPlayable mixer;
+
+        public float transitionTime;
+        private float timeSpentTransitioning;
+        public float transitionPercentage { get { return timeSpentTransitioning / transitionTime; } }
+
+    //CONSTRUCTOR
+        public BlendFromToPlayable()
+        {
+            //initialize the mixer
+            this.mixer = AnimationMixerPlayable.Create();
+
+            //add it as an input to this custom playable
+            AddInput(mixer);
+
+        }
+
+        public void SetTransitionInputs(AnimationPlayable from,
+                                        AnimationPlayable to,
+                                        float transitionTime)
+        {
+            mixer.AddInput(from);
+            mixer.SetInputWeight(0, 1.0f);
+
+            mixer.AddInput(to);
+            mixer.SetInputWeight(1, 0.0f);
+
+
+            //setup timer
+            this.transitionTime = transitionTime;
+            this.timeSpentTransitioning = 0.0f;
+        }
+
+    //UPDATE
+        public override void PrepareFrame(FrameData info)
+        {
+            //calculate a clamped (0 - 1) weight
+            timeSpentTransitioning += info.deltaTime;
+            timeSpentTransitioning = Mathf.Clamp(timeSpentTransitioning, 0.0f, transitionTime);
+
+            //set the weights on the mixer so they transition from one to the other
+            mixer.SetInputWeight(0, 1.0f - transitionPercentage);
+            mixer.SetInputWeight(1, transitionPercentage);
+        }
+
+    }
+
+
+    public class PoseMixerPlayable : CustomAnimationPlayable
+    {
+
+        AnimationPlayable root;
+
+        public PoseMixerPlayable()
+        {
+            this.root = AnimationPlayable.Null;
+            AddInput(root);
+        }
+
+        public void InitPlayable(AnimationClipPlayable startingClip) {
+            RemoveAllInputs();
+            root = startingClip;
+            AddInput(startingClip);
+
+            /*
+            if (root != AnimationPlayable.Null) { root.Destroy(); }
+            root = AnimationPlayable.Null;
+            root = startingClip;
+            */
+            //root.AddInput(startingClip);
+        }
+
+
+        public void BlendToAnim(AnimationClipPlayable blendToClip,
+                                float blendInTime)
+        {
+
+            //AnimationPlayable rootNode = root.GetInput(0).CastTo<AnimationPlayable>();
+            RemoveAllInputs();
+
+            BlendFromToPlayable newBlending = Playable.Create<BlendFromToPlayable>();
+
+            AnimationPlayable oldRoot = root;
+            root = AnimationPlayable.Null;
+
+            newBlending.SetTransitionInputs(oldRoot,
+                                            blendToClip,
+                                            blendInTime);
+            
+            root = newBlending;
+            AddInput(newBlending);
+        }
+
+
+    }
 
 //    [System.Serializable]
 //    public class MotionFieldClipPlayableBinding {
@@ -138,4 +235,4 @@
 //            (GetInput(mixerMappings[clipName]) as MotionFieldClipMixer).SetNextAvailableWeight(weight);
 //        }
 //    }
-//}
+}

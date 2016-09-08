@@ -4,6 +4,8 @@ using System.Collections.Generic;
 using System.Reflection;
 using System;
 
+using UnityEngine.Experimental.Director;
+
 
 public class GraphRenderer : ITreeRenderer
 {
@@ -90,7 +92,7 @@ public class GraphRenderer : ITreeRenderer
     {
         foreach (var v in vertices)
         {
-            var nodeType = v.payload.GetType();
+            var nodeType = Playable.GetTypeOf(v.payload);
 
             if (m_LegendForType.ContainsKey(nodeType))
                 continue;
@@ -99,7 +101,8 @@ public class GraphRenderer : ITreeRenderer
 
             NodeTypeLegend legend;
             char[] separators = {'.'};
-            string[] typeElements = v.payload.GetType().ToString().Split(separators);
+	        var playableType = Playable.GetTypeOf(v.payload);
+            string[] typeElements = playableType.ToString().Split(separators);
             legend.label = typeElements[typeElements.Length - 1];
 
             if (nextStyleIndex < k_PredefinedNodeStyles.Length)
@@ -298,7 +301,7 @@ public class GraphRenderer : ITreeRenderer
 
     private void DrawNode(Vertex v, Vector2 nodeCenter, Vector2 nodeSize, string name)
     {
-        var nodeType = v.payload.GetType();
+        var nodeType = Playable.GetTypeOf(v.payload);
         var nodeRect = new Rect(nodeCenter.x, nodeCenter.y, nodeSize.x, nodeSize.y);
 
         if (m_UseCustomDrawingMethods && m_CustomDrawingMethodForType.ContainsKey(nodeType))
