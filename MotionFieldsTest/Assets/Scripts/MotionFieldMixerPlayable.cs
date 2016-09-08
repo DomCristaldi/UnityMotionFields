@@ -8,6 +8,9 @@ namespace AnimationMotionFields {
     {
         public AnimationMixerPlayable mixer;
 
+        public AnimationPlayable fromClip { get { return mixer.GetInput(0).CastTo<AnimationPlayable>(); } }
+        public AnimationPlayable toClip { get { return mixer.GetInput(1).CastTo<AnimationPlayable>(); } }
+
         public float transitionTime;
         private float timeSpentTransitioning;
         public float transitionPercentage { get { return timeSpentTransitioning / transitionTime; } }
@@ -46,11 +49,38 @@ namespace AnimationMotionFields {
             timeSpentTransitioning += info.deltaTime;
             timeSpentTransitioning = Mathf.Clamp(timeSpentTransitioning, 0.0f, transitionTime);
 
+            //IF WE'RE FULLY TRANSITIONED
+            if (Mathf.Approximately(transitionPercentage, 1.0f)) {
+                //Prune();
+                return;
+            }
+
             //set the weights on the mixer so they transition from one to the other
             mixer.SetInputWeight(0, 1.0f - transitionPercentage);
             mixer.SetInputWeight(1, transitionPercentage);
         }
 
+        public void Prune()
+        {
+            Playable outputNodeRef = GetOutput(0);
+            //for(int i = 0; i < outputNodeRef.outputCount; ++i) {
+            //    if (outputNodeRef.GetOutput(i) == this) { Debug.Log("we good"); }
+            //}
+
+            AnimationPlayable toNode = toClip;
+
+            //outputNodeRef.SetInput(toClip, 0);
+            Playable.Disconnect(outputNodeRef, 0);
+            Playable.Disconnect(mixer, 1);
+            
+            Playable.Connect(toNode, outputNodeRef,
+                             0, 0);
+
+            
+            //mixer.RemoveAllInputs();
+            //mixer.Destroy();
+            //Destroy();
+        }
     }
 
 
@@ -78,6 +108,13 @@ namespace AnimationMotionFields {
             //root.AddInput(startingClip);
         }
 
+        public void TearDown()
+        {
+
+            RemoveAllInputs();
+            root.Destroy();
+            Destroy();
+        }
 
         public void BlendToAnim(AnimationClipPlayable blendToClip,
                                 float blendInTime)

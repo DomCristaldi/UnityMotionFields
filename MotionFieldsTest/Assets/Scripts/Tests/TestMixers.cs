@@ -11,7 +11,9 @@ using AnimationMotionFields;
 [RequireComponent(typeof(Animator))]
 public class TestMixers : MonoBehaviour {
 
-    Animator animControl;
+    public Animator animControl;
+
+    public PoseMixerPlayable testClip;
 
     BlendFromToPlayable blender;
     BlendFromToPlayable blender2;
@@ -30,53 +32,47 @@ public class TestMixers : MonoBehaviour {
 
 
     void Awake() {
+
         animControl = GetComponent<Animator>();
+
+        //testClip = Playable.Create<PoseMixerPlayable>();
 
         AnimationClipPlayable clipPlayable1 = AnimationClipPlayable.Create(clip1);
         clipPlayable1.time = time1;
-
+        /*
         AnimationClipPlayable clipPlayable2 = AnimationClipPlayable.Create(clip2);
         clipPlayable2.time = time2;
 
         AnimationClipPlayable clipPlayable3 = AnimationClipPlayable.Create(clip2);
         clipPlayable3.time = time2;
-
+        */
         poseMixer = Playable.Create<PoseMixerPlayable>();
         poseMixer.InitPlayable(clipPlayable1);
-        poseMixer.BlendToAnim(clipPlayable2, tranTime);
-        poseMixer.BlendToAnim(clipPlayable3, tranTime);
+        //poseMixer.BlendToAnim(clipPlayable2, tranTime);
+        //poseMixer.BlendToAnim(clipPlayable3, tranTime);
 
-        //blender = Playable.Create<BlendFromToPlayable>();
-        //blender2 = Playable.Create<BlendFromToPlayable>();
-
-        //blender.SetTransitionInputs(clipPlayable1,
-        //                             clipPlayable2,
-        //                             tranTime);
-
-        //blender2.SetTransitionInputs(blender,
-        //                             clipPlayable3,
-        //                             tranTime);
-
-        //animControl.Play(blender);
-        //animControl.Play(blender2);
         animControl.Play(poseMixer);
     }
 
 
 	// Use this for initialization
 	void Start () {
-        //AnimationClipPlayable clipPlayable2 = AnimationClipPlayable.Create(clip2);
-        //clipPlayable2.time = time2;
 
-        //poseMixer.BlendToAnim(clipPlayable2, tranTime);
+    }
+
+    void OnDestroy()
+    {
 
     }
 
     // Update is called once per frame
     void Update () {
-        //GraphVisualizerClient.Show(poseMixer, "Pose Mixer");
-        //GraphVisualizerClient.Show(blender2, "Blender");
-        GraphVisualizerClient.Show(poseMixer, "Pose Mixer");
+        if (poseMixer != null) {
+            GraphVisualizerClient.Show(poseMixer, "Pose Mixer");
+        }
+        else {
+            Debug.Log("Pose Matcher is Null");
+        }
     }
 }
 
@@ -109,6 +105,12 @@ public class TestMixers_Editor : Editor
 
                 AnimationClipPlayable newNode = AnimationClipPlayable.Create(selfScript.clip1);
                 selfScript.poseMixer.BlendToAnim(newNode, selfScript.tranTime);
+            }
+
+            if (GUILayout.Button("Destroy")) {
+                selfScript.animControl.Stop();
+                selfScript.poseMixer.TearDown();
+                //selfScript.testClip.Destroy();
             }
         }
     }

@@ -40,7 +40,14 @@ namespace UnityEngine.Experimental.Director
             public float    weight;
             public float    propagatedWeight;
 
-            public Playable[] children { get { return playable.GetInputs(); } }
+            public Playable[] children {
+                get {
+
+                    if (!playable.IsValid()) { return new Playable[] { }; }
+
+                    return playable.GetInputs();
+                }
+            }
         }
 
         // by convention, all graph layout algorithms should have a minimum distance of 1 unit between nodes
@@ -139,6 +146,8 @@ namespace UnityEngine.Experimental.Director
             info.vertexId = m_Nodes.Keys.Count;
             m_Nodes.Add(node, info);
 
+            if (!node.IsValid()) { return; }
+
             Playable[] inputs = node.GetInputs();
             int nbInputs = inputs.Length;
 
@@ -176,6 +185,8 @@ namespace UnityEngine.Experimental.Director
         // Traverse the graph and place all nodes according to the algorithm
         private void RecursiveTraverse(Playable root)
         {
+            if (!root.IsValid()) { return; }
+
             foreach (var c in root.GetInputs())
             {
                 if (c.IsValid())
