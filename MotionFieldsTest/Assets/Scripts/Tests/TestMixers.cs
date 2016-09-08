@@ -108,7 +108,7 @@ public class TestMixers_Editor : Editor
             if (GUILayout.Button("Add Node")) {
 
                 AnimationClipPlayable newNode = AnimationClipPlayable.Create(selfScript.clip1);
-                selfScript.poseMixer.BlendToAnim(newNode, 500.0f);
+                selfScript.poseMixer.BlendToAnim(newNode, selfScript.tranTime);
             }
         }
     }
