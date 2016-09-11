@@ -13,12 +13,9 @@ public class TestMixers : MonoBehaviour {
 
     public Animator animControl;
 
-    public PoseMixerPlayable testClip;
-
-    BlendFromToPlayable blender;
-    BlendFromToPlayable blender2;
 
     public PoseMixerPlayable poseMixer;
+    public BlendSwitcherPlayable blendSwitcher;
 
     public AnimationClip clip1;
     public float time1;
@@ -35,23 +32,17 @@ public class TestMixers : MonoBehaviour {
 
         animControl = GetComponent<Animator>();
 
-        //testClip = Playable.Create<PoseMixerPlayable>();
 
         AnimationClipPlayable clipPlayable1 = AnimationClipPlayable.Create(clip1);
         clipPlayable1.time = time1;
-        /*
-        AnimationClipPlayable clipPlayable2 = AnimationClipPlayable.Create(clip2);
-        clipPlayable2.time = time2;
-
-        AnimationClipPlayable clipPlayable3 = AnimationClipPlayable.Create(clip2);
-        clipPlayable3.time = time2;
-        */
         poseMixer = Playable.Create<PoseMixerPlayable>();
         poseMixer.InitPlayable(clipPlayable1);
-        //poseMixer.BlendToAnim(clipPlayable2, tranTime);
-        //poseMixer.BlendToAnim(clipPlayable3, tranTime);
 
-        animControl.Play(poseMixer);
+        blendSwitcher = Playable.Create<BlendSwitcherPlayable>();
+        blendSwitcher.InitBlendSwitcher(clip1, 0.0f);
+
+        //animControl.Play(poseMixer);
+        animControl.Play(blendSwitcher);
     }
 
 
@@ -67,12 +58,17 @@ public class TestMixers : MonoBehaviour {
 
     // Update is called once per frame
     void Update () {
+
+        GraphVisualizerClient.Show(blendSwitcher, "Blend Switcher");
+
+        /*
         if (poseMixer != null) {
             GraphVisualizerClient.Show(poseMixer, "Pose Mixer");
         }
         else {
             Debug.Log("Pose Matcher is Null");
         }
+        */
     }
 }
 
@@ -104,13 +100,14 @@ public class TestMixers_Editor : Editor
             if (GUILayout.Button("Add Node")) {
 
                 AnimationClipPlayable newNode = AnimationClipPlayable.Create(selfScript.clip1);
-                selfScript.poseMixer.BlendToAnim(newNode, selfScript.tranTime);
+                //selfScript.poseMixer.BlendToAnim(newNode, selfScript.tranTime);
+                selfScript.blendSwitcher.BlendToAnim(selfScript.clip1, 0.0f, selfScript.tranTime);
             }
 
             if (GUILayout.Button("Destroy")) {
+                //MUST STOP PLAYER TO AVOID CRASH
                 selfScript.animControl.Stop();
                 selfScript.poseMixer.TearDown();
-                //selfScript.testClip.Destroy();
             }
         }
     }

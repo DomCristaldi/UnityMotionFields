@@ -4,16 +4,110 @@ using System.Collections.Generic;
 
 namespace AnimationMotionFields {
 
+    public class BlendSwitcherPlayable : CustomAnimationPlayable
+    {
+        public AnimationMixerPlayable mixer;
+
+        public AnimationClipPlayable fromClip;
+        public AnimationClipPlayable toClip;
+
+        private float transitionDuration;
+        private float timeSpentTransitioning;
+        public float transitionPercentage {get { return timeSpentTransitioning / transitionDuration; }}
+
+        public BlendSwitcherPlayable()
+        {
+            this.mixer = AnimationMixerPlayable.Create();
+            AddInput(mixer);
+        }
+
+        //CALL THIS TO SET UP THE BLEND SWICHER AFTER IT'S CREATED
+        public void InitBlendSwitcher(AnimationClip startingClip, float timestamp) {
+            AnimationClipPlayable startingClipPlayable = AnimationClipPlayable.Create(startingClip);
+            startingClipPlayable.time = timestamp;
+
+            //allocate the starting clip to the proper index (needs to be in index 1 b/c it's starting at its destination, and we transition from 0 -> 1)
+            mixer.AddInput(AnimationPlayable.Null);//index 0
+            mixer.AddInput(startingClipPlayable);//index 1
+        }
+
+        public override void PrepareFrame(FrameData info)
+        {
+
+            timeSpentTransitioning = Mathf.Clamp(timeSpentTransitioning += info.deltaTime,
+                                                 0.0f,
+                                                 transitionDuration);
+
+            mixer.SetInputWeight(0, 1.0f - transitionPercentage);
+            mixer.SetInputWeight(1, transitionPercentage);
+
+        }
+
+        //COME BACK HERE <<<----------------
+        //IMPLEMENT THE SWITCH BLENDER
+        //HAVE IT ALWAYS RUN, JUST SWAP OUT WHEN YOU WANNA BLEND AGAIN
+
+        public void BlendToAnim(AnimationClip clip, float timestamp, float transitionDuration = 0.25f)
+        {
+            Playable prevPlayable = mixer.GetInput(0);
+            Playable currentPlayable = mixer.GetInput(1);
+
+            AnimationClipPlayable nextClipPlayable = AnimationClipPlayable.Create(clip);
+            nextClipPlayable.time = timestamp;
+
+            mixer.RemoveAllInputs();
+            if (prevPlayable.IsValid()) {
+                prevPlayable.Destroy();
+            }
+            mixer.SetInput(currentPlayable, 0);
+            mixer.SetInput(nextClipPlayable, 1);
+
+            mixer.SetInputWeight(0, 1.0f);
+            mixer.SetInputWeight(1, 0.0f);
+
+            this.transitionDuration = transitionDuration;
+            timeSpentTransitioning = 0.0f;
+        }
+    }
+
+    [System.Serializable]
+    //public class MotionFieldClipPlayableBinding
+    public class AnimationPlayableBinding
+    {
+        public AnimationPlayable animPlayable;
+        public int index;
+
+        public AnimationPlayableBinding(AnimationPlayable animPlayable)
+        {
+            this.animPlayable = animPlayable;
+        }
+    }
+
+    public class AnimationClipPlayableBinding
+    {
+        public AnimationClipPlayable animClipPlayable;
+        public int index;   
+
+        public AnimationClipPlayableBinding(AnimationClip animClip, float timestamp = 0.0f)
+        {
+            animClipPlayable = AnimationClipPlayable.Create(animClip);
+            animClipPlayable.time = timestamp;
+        }
+    }
+
+
     public class BlendFromToPlayable : CustomAnimationPlayable
     {
         public AnimationMixerPlayable mixer;
 
-        public AnimationPlayable fromClip { get { return mixer.GetInput(0).CastTo<AnimationPlayable>(); } }
-        public AnimationPlayable toClip { get { return mixer.GetInput(1).CastTo<AnimationPlayable>(); } }
+        public Playable fromClip { get { return mixer.GetInput(0); } }
+        public Playable toClip { get { return mixer.GetInput(1); } }
 
         public float transitionTime;
         private float timeSpentTransitioning;
         public float transitionPercentage { get { return timeSpentTransitioning / transitionTime; } }
+
+        bool lockOut = false;
 
     //CONSTRUCTOR
         public BlendFromToPlayable()
@@ -45,13 +139,15 @@ namespace AnimationMotionFields {
     //UPDATE
         public override void PrepareFrame(FrameData info)
         {
+            if (lockOut) { return; }
+
             //calculate a clamped (0 - 1) weight
             timeSpentTransitioning += info.deltaTime;
             timeSpentTransitioning = Mathf.Clamp(timeSpentTransitioning, 0.0f, transitionTime);
 
             //IF WE'RE FULLY TRANSITIONED
             if (Mathf.Approximately(transitionPercentage, 1.0f)) {
-                //Prune();
+                Prune();
                 return;
             }
 
@@ -62,24 +158,38 @@ namespace AnimationMotionFields {
 
         public void Prune()
         {
+            lockOut = true;
+
             Playable outputNodeRef = GetOutput(0);
             //for(int i = 0; i < outputNodeRef.outputCount; ++i) {
             //    if (outputNodeRef.GetOutput(i) == this) { Debug.Log("we good"); }
             //}
+            Debug.Log(outputNodeRef.inputCount);
 
-            AnimationPlayable toNode = toClip;
+            Playable toNode = toClip;
+
+            mixer.RemoveAllInputs();
+
+            
 
             //outputNodeRef.SetInput(toClip, 0);
-            Playable.Disconnect(outputNodeRef, 0);
-            Playable.Disconnect(mixer, 1);
+            //Playable.Disconnect(outputNodeRef, 0);
+
+            //Playable.Disconnect(mixer, 1);
             
+            //outputNodeRef.
+
             Playable.Connect(toNode, outputNodeRef,
                              0, 0);
 
-            
-            //mixer.RemoveAllInputs();
+            //Playable.Disconnect(outputNodeRef, 1);
+            mixer.RemoveAllInputs();
             //mixer.Destroy();
             //Destroy();
+            Debug.Log(outputNodeRef.inputCount);
+
+            //mixer.Destroy();
+
         }
     }
 
@@ -138,6 +248,9 @@ namespace AnimationMotionFields {
 
 
     }
+
+
+
 
 //    [System.Serializable]
 //    public class MotionFieldClipPlayableBinding {
