@@ -1,5 +1,5 @@
 ﻿using UnityEngine;
-//using UnityEngine.Experimental.Director;
+using UnityEngine.Experimental.Director;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
@@ -235,6 +235,12 @@ namespace AnimationMotionFields {
     [RequireComponent(typeof(Animator))]
     public class MotionFieldComponent : MonoBehaviour {
 
+        Animator animControl;
+
+        BlendSwitcherPlayable blendSwitcher;
+
+        public int initialPoseClipIndex;
+        public float initialPoseClipTimestamp;
 
         public CosmeticSkeleton cosmeticSkel;
         public MotionFieldController controller;
@@ -265,10 +271,19 @@ namespace AnimationMotionFields {
         private MotionPose curMotionPose;
 
         void Awake() {
+
+            animControl = GetComponent<Animator>();
+
             //HACK: in release build, it should be impossible to call functions from MotionFieldUtility
             MotionFieldUtility.GenerateKDTree(ref controller.kd, controller.animClipInfoList);
             controller.DeserializeDict();
 
+            //create the custom playalbe for driving the animations
+            blendSwitcher = Playable.Create<BlendSwitcherPlayable>();
+            blendSwitcher.InitBlendSwitcher(controller.animClipInfoList[initialPoseClipIndex].animClip,
+                                            initialPoseClipTimestamp);
+
+            animControl.Play(blendSwitcher);
         }
 		
         // Use this for initialization
@@ -318,11 +333,15 @@ namespace AnimationMotionFields {
                 return;
             }
 
+
+
+            /*
             cosmeticSkel.ApplyPose(pose);
 
             if (useRootMotion) {
                 ApplyRootMotion(pose.rootMotionInfo.value.position, pose.rootMotionInfo.value.rotation);
             }
+            */
         }
 
         //Apply the root motoin to the character
