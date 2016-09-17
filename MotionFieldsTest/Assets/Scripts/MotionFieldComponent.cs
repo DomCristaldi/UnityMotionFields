@@ -59,8 +59,9 @@ namespace AnimationMotionFields {
             }
         }
 
-        public CosmeticSkeletonBone GetBone(string boneLabel) {
-
+        //TODO: Try to make dictionary lookup
+        public CosmeticSkeletonBone GetBone(string boneLabel)
+        {
             foreach (CosmeticSkeletonBone bone in cosmeticBones) {
                 if (bone.boneLabel == boneLabel) {
                     return bone;
@@ -70,8 +71,9 @@ namespace AnimationMotionFields {
             return null;
         }
 
-        public CosmeticSkeletonBone GetBone(Transform boneTf) {
-
+        //TODO: Try to make dictionary lookup
+        public CosmeticSkeletonBone GetBone(Transform boneTf)
+        {
             foreach (CosmeticSkeletonBone bone in cosmeticBones) {
                 if (bone.boneTf == boneTf) {
                     return bone;
@@ -80,6 +82,13 @@ namespace AnimationMotionFields {
 
             return null;
         }
+        /*
+        public MotionPose GetCurrentPose()
+        {
+            BonePose[] currentBonePositions = cosmeticBones.Select(cb => cb.boneTf)
+                                                           .Select(tf => )
+        }
+        */
     }
 
 #if UNITY_EDITOR
@@ -270,6 +279,8 @@ namespace AnimationMotionFields {
 
         private MotionPose curMotionPose;
 
+        bool locker = false;
+
         void Awake() {
 
             animControl = GetComponent<Animator>();
@@ -280,9 +291,21 @@ namespace AnimationMotionFields {
 
             //create the custom playalbe for driving the animations
             blendSwitcher = Playable.Create<BlendSwitcherPlayable>();
+            blendSwitcher.InitBlendSwitcher(controller.animClipInfoList[1].animClip,
+                                            0.0f);
+            /*
             blendSwitcher.InitBlendSwitcher(controller.animClipInfoList[initialPoseClipIndex].animClip,
                                             initialPoseClipTimestamp);
+                                            */
+            /*********************************
+            blendSwitcher.InitBlendSwitcher(controller.animClipInfoList[0].animClip,
+                                            0.0f);
+            */
 
+            /*
+            blendSwitcher.BlendToAnim(controller.animClipInfoList[initialPoseClipIndex].animClip,
+                                      initialPoseClipTimestamp);
+            */
             animControl.Play(blendSwitcher);
         }
 		
@@ -299,6 +322,7 @@ namespace AnimationMotionFields {
                 }
             }
 
+            StartCoroutine(RunMixers(1.0f));
 
             //anim.Play();
             //transform.LerpTransform(transform, transform, 0.0f, Transform_ExtensionMethods.LerpType.Position | Transform_ExtensionMethods.LerpType.Rotation | Transform_ExtensionMethods.LerpType.Scale);
@@ -307,6 +331,8 @@ namespace AnimationMotionFields {
         // Update is called once per frame
         void Update () {
 
+            GraphVisualizerClient.Show(blendSwitcher, "Blend Switcher");
+
             //Debug.Log("adf");
             //anim.SetTime(t);
 
@@ -314,11 +340,26 @@ namespace AnimationMotionFields {
 
             //lerpVal += lerpDelta * Time.deltaTime;
 
+            return;
+
             MotionPose newPose = controller.OneTick(curMotionPose);
 
-            ApplyMotionPoseToSkeleton(newPose);
+            //ApplyMotionPoseToSkeleton(newPose);
 
+            AnimationClip selectedAnim = controller.animClipInfoList.Where(clipInfo => clipInfo.animClip.name == newPose.animName).First().animClip;
+            //Debug.Log(selectedAnim != null);
+            if (newPose.timestamp != 0.0f) {
+                //Debug.Break();
+                Debug.Log(newPose.timestamp);
+                blendSwitcher.BlendToAnim(selectedAnim, newPose.timestamp);
+
+                //Debug.Break();
+
+            }
             curMotionPose = newPose;
+
+            GraphVisualizerClient.Show(blendSwitcher, "Blend Switcher");
+
         }
 
 
@@ -370,6 +411,32 @@ namespace AnimationMotionFields {
             yield break;
         }
 
+        public IEnumerator RunMixers(float waitTime)
+        {
+
+            MotionPose newPose;
+
+            while (true) {
+                newPose = controller.OneTick(curMotionPose);
+                curMotionPose = newPose;
+
+                AnimationClip selectedAnim = controller.animClipInfoList
+                                                        .Where(clipInfo => clipInfo.animClip.name == newPose.animName)
+                                                        .First().animClip;
+
+
+                blendSwitcher.BlendToAnim(selectedAnim, newPose.timestamp);
+
+                Debug.LogFormat("Time - {0} : {1} - {2}",
+                                Time.time,
+                                curMotionPose.animName,
+                                curMotionPose.timestamp);
+
+                //yield return new WaitForSeconds(waitTime);
+                yield return null;
+            }
+
+        }
 
 #if UNITY_EDITOR
 

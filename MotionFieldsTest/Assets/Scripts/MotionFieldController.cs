@@ -391,7 +391,7 @@ public class AnimClipInfo {
 
     public MotionPose[] motionPoses;//all the poses generated for this animation clip
 
-    public int frameSampleRate;//sample rate that was used to create these poses
+    public int frameResolution;//sample rate that was used to create these poses
 
     public void PrintPathTest() {
         foreach (EditorCurveBinding ecb in AnimationUtility.GetCurveBindings(animClip)) {

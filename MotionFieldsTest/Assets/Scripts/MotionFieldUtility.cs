@@ -537,12 +537,14 @@ namespace AnimationMotionFields {
                 else {
                     //clipInfo.GenerateMotionPoses(samplingRate, uniquePaths);
                     animClipInfos[i].motionPoses = MotionFieldUtility.GenerateMotionPoses(animClipInfos[i].animClip,
-                                                                                  modelRef,
-                                                                                  samplingRate,
-                                                                                  animClipInfos[i].velocityCalculationMode,
-                                                                                  animClipInfos[i].rootMotionCalculationMode,
-                                                                                  animClipInfos[i].rootMotionFrameHandling);
+                                                                                          modelRef,
+                                                                                          samplingRate,
+                                                                                          animClipInfos[i].velocityCalculationMode,
+                                                                                          animClipInfos[i].rootMotionCalculationMode,
+                                                                                          animClipInfos[i].rootMotionFrameHandling);
                 }
+
+                animClipInfos[i].frameResolution = samplingRate;
             }
 
             EditorUtility.ClearProgressBar();

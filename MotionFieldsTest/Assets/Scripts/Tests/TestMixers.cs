@@ -14,7 +14,7 @@ public class TestMixers : MonoBehaviour {
     public Animator animControl;
 
 
-    public PoseMixerPlayable poseMixer;
+    //public PoseMixerPlayable poseMixer;
     public BlendSwitcherPlayable blendSwitcher;
 
     public AnimationClip clip1;
@@ -32,22 +32,27 @@ public class TestMixers : MonoBehaviour {
 
         animControl = GetComponent<Animator>();
 
-
+        /*
         AnimationClipPlayable clipPlayable1 = AnimationClipPlayable.Create(clip1);
         clipPlayable1.time = time1;
         poseMixer = Playable.Create<PoseMixerPlayable>();
         poseMixer.InitPlayable(clipPlayable1);
+        */
 
         blendSwitcher = Playable.Create<BlendSwitcherPlayable>();
-        blendSwitcher.InitBlendSwitcher(clip1, 0.0f);
 
         //animControl.Play(poseMixer);
-        animControl.Play(blendSwitcher);
     }
 
 
 	// Use this for initialization
 	void Start () {
+        blendSwitcher.InitBlendSwitcher(clip1, 0.0f);
+
+
+        animControl.Play(blendSwitcher);
+
+
 
     }
 
@@ -80,6 +85,8 @@ public class TestMixers_Editor : Editor
 
     TestMixers selfScript;
 
+    bool flipClip = true;
+
     void OnEnable()
     {
         selfScript = (TestMixers)target;
@@ -99,15 +106,20 @@ public class TestMixers_Editor : Editor
 
             if (GUILayout.Button("Add Node")) {
 
+                flipClip = !flipClip;
+
                 AnimationClipPlayable newNode = AnimationClipPlayable.Create(selfScript.clip1);
                 //selfScript.poseMixer.BlendToAnim(newNode, selfScript.tranTime);
-                selfScript.blendSwitcher.BlendToAnim(selfScript.clip1, 0.0f, selfScript.tranTime);
+                AnimationClip targetClip = null;
+                if (flipClip) { targetClip = selfScript.clip1; }
+                else { targetClip = selfScript.clip2; }
+                selfScript.blendSwitcher.BlendToAnim(targetClip, 0.0f, selfScript.tranTime);
             }
 
             if (GUILayout.Button("Destroy")) {
                 //MUST STOP PLAYER TO AVOID CRASH
                 selfScript.animControl.Stop();
-                selfScript.poseMixer.TearDown();
+                //selfScript.poseMixer.TearDown();
             }
         }
     }

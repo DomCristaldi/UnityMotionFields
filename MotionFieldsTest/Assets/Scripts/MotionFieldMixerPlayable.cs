@@ -1,6 +1,11 @@
 ﻿using UnityEngine;
+using UnityEngine.Assertions;
 using UnityEngine.Experimental.Director;
-using System.Collections.Generic;
+
+//#if UNITY_EDITOR
+//using UnityEditor;
+//#endif
+
 
 namespace AnimationMotionFields {
 
@@ -17,26 +22,82 @@ namespace AnimationMotionFields {
 
         public BlendSwitcherPlayable()
         {
+            //initialize timer so we don't calculate NaN (fucking IEEE)
+            timeSpentTransitioning = -1.0f;
+            transitionDuration = -1.0f;
+
             this.mixer = AnimationMixerPlayable.Create();
             AddInput(mixer);
         }
 
         //CALL THIS TO SET UP THE BLEND SWICHER AFTER IT'S CREATED
         public void InitBlendSwitcher(AnimationClip startingClip, float timestamp) {
+
+            fromClip = AnimationClipPlayable.Create(startingClip);
+            toClip = AnimationClipPlayable.Create(startingClip);
+            fromClip.time = timestamp;
+            toClip.time = timestamp;
+
+            mixer.AddInput(fromClip);
+            mixer.AddInput(toClip);
+
+            mixer.SetInput(fromClip, 0);
+            mixer.SetInput(toClip, 1);
+
+            mixer.SetInputWeight(0, 0.0f);
+            mixer.SetInputWeight(1, 1.0f);
+
+
+            return;
+
+
             AnimationClipPlayable startingClipPlayable = AnimationClipPlayable.Create(startingClip);
             startingClipPlayable.time = timestamp;
 
+            AnimationClipPlayable endingClipPlayable = AnimationClipPlayable.Create(startingClip);
+            endingClipPlayable.time = timestamp;
+
             //allocate the starting clip to the proper index (needs to be in index 1 b/c it's starting at its destination, and we transition from 0 -> 1)
-            mixer.AddInput(AnimationPlayable.Null);//index 0
-            mixer.AddInput(startingClipPlayable);//index 1
+            //mixer.AddInput(AnimationPlayable.Null);//index 0
+            mixer.AddInput(startingClipPlayable);//index 0
+            mixer.AddInput(endingClipPlayable);//index 1
+
+            mixer.SetInput(startingClipPlayable, 0);
+            mixer.SetInput(endingClipPlayable, 1);
+
+            mixer.SetInputWeight(0, 1.0f);
+            mixer.SetInputWeight(1, 0.0f);
+
+            //mixer.SetInputWeight(0, 0.0f);
+            //mixer.SetInputWeight(1, 1.0f);
         }
 
         public override void PrepareFrame(FrameData info)
         {
 
+            Assert.IsTrue(mixer.inputCount == 2);
+            Assert.IsTrue(mixer.GetInput(0).IsValid());
+            Assert.IsTrue(mixer.GetInput(1).IsValid());
+            /*
+            if (mixer.inputCount != 2
+                || !mixer.GetInput(0).IsValid()
+                || !mixer.GetInput(1).IsValid()) {
+
+                Debug.Log("invalid shit in Prepare Frame of Blend Switcher");
+                return;
+            }
+            */
+            /*
             timeSpentTransitioning = Mathf.Clamp(timeSpentTransitioning += info.deltaTime,
                                                  0.0f,
                                                  transitionDuration);
+            */
+            
+            timeSpentTransitioning = Mathf.MoveTowards(timeSpentTransitioning,
+                                                       transitionDuration,
+                                                       info.deltaTime);
+
+            Debug.Log(transitionPercentage);
 
             mixer.SetInputWeight(0, 1.0f - transitionPercentage);
             mixer.SetInputWeight(1, transitionPercentage);
@@ -49,26 +110,50 @@ namespace AnimationMotionFields {
 
         public void BlendToAnim(AnimationClip clip, float timestamp, float transitionDuration = 0.25f)
         {
+
+            //fromClip.clip = toClip.clip;
+            fromClip = AnimationClipPlayable.Create(toClip.clip);
+            fromClip.time = toClip.time;
+
+            toClip = AnimationClipPlayable.Create(clip);
+            toClip.time = timestamp;
+
+            /*
             Playable prevPlayable = mixer.GetInput(0);
             Playable currentPlayable = mixer.GetInput(1);
+
+            Debug.Log("playables logged");
+            Debug.Break();
 
             AnimationClipPlayable nextClipPlayable = AnimationClipPlayable.Create(clip);
             nextClipPlayable.time = timestamp;
 
+            Debug.Log("new playable created");
+            Debug.Break();
+
+
+            
             mixer.RemoveAllInputs();
             if (prevPlayable.IsValid()) {
                 prevPlayable.Destroy();
             }
+
+            Debug.Log("destruction");
+            Debug.Break();
+            */
+            /*
             mixer.SetInput(currentPlayable, 0);
             mixer.SetInput(nextClipPlayable, 1);
-
+            */
             mixer.SetInputWeight(0, 1.0f);
             mixer.SetInputWeight(1, 0.0f);
 
             this.transitionDuration = transitionDuration;
             timeSpentTransitioning = 0.0f;
+            
         }
     }
+
 
     [System.Serializable]
     //public class MotionFieldClipPlayableBinding
