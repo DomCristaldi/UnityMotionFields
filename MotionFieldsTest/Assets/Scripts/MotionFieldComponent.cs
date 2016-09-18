@@ -377,28 +377,47 @@ namespace AnimationMotionFields {
 
             int clipIndex = 0;
 
-            yield return new WaitForSeconds(waitTime);
+            //yield return new WaitForSeconds(waitTime);
 
             while (true) {
 
+                yield return null;
+
                 newPose = controller.OneTick(curMotionPose);
-                curMotionPose = newPose;
 
                 AnimationClip selectedAnim = controller.animClipInfoList
                                                         .Where(clipInfo => clipInfo.animClip.name == newPose.animName)
                                                         .First().animClip;
 
-                selectedAnim = controller.animClipInfoList[clipIndex].animClip;
+                //CHECK IF WE SHOUDL BLEND OUT TO ANOTHER ANIMATION OR A DIFFERENT TIME ON THE SAME TRACK
+                bool newPoseIsTooSimilar = selectedAnim.name == blendSwitcher.targetClipName
+                                           && Mathf.Abs(newPose.timestamp - blendSwitcher.targetClipTime) < 0.2f;
 
-                blendSwitcher.BlendToAnim(selectedAnim, 5.0f);
+                /*
+                float targetNodeTimestamp = blendSwitcher.targetClipTime;
+                if((selectedAnim.name != blendSwitcher.targetClipName)  //we're jumping to a different animation
+                    |                                                     // OR  
+                    Mathf.Abs(targetNodeTimestamp - newPose.timestamp) > 2.0f //we're on the same anim, but the time difference is large enough
+                ){                                                                //HACK: 0.2f magic number, it represents transition diffrence threshold
+                    */
+
+                if (!newPoseIsTooSimilar) {
+                    blendSwitcher.BlendToAnim(selectedAnim, newPose.timestamp);
+                    curMotionPose = newPose;
+                }
+
+                //selectedAnim = controller.animClipInfoList[clipIndex].animClip;
+                //blendSwitcher.BlendToAnim(selectedAnim, 5.0f);
 
                 ++clipIndex;
                 if (clipIndex >= controller.animClipInfoList.Count) {
                     clipIndex = 0;
                 }
 
-                yield return new WaitForSeconds(waitTime);
-                //yield return null;
+
+
+                //yield return new WaitForSeconds(waitTime);
+                yield return null;
             }
 
         }

@@ -11,14 +11,25 @@ public class Task_Movement_Forward_Backward : ATask {
 
     override public float CheckReward(MotionPose oldPose, MotionPose newPose, float taskval)
     {
-        //TODO: this task should work if its the only task. however, with multiple tasks, care must be taken so that they have equal weighting. IE one task does not overpoer others. currently, this task can potentially return float.MaxValue, overshadowing all other tasks in the total reward.
+        /* TODO
+         *
+         * this task should work if its the only task. 
+         * however, with multiple tasks, care must be taken so that they have equal weighting.
+         * IE one task does not overpoer others.
+         * 
+         *  currently, this task can potentially return float.MaxValue, overshadowing all other tasks in the total reward.
+         */
+
+        Debug.LogFormat("Task Input: MovementForwardBackward: {0}", taskval);
+
         if(taskval == 0)
         {
             //want deviation from 0 movement to be as small as possible. lower movement = higher reward
             float movement = Mathf.Abs(newPose.rootMotionInfo.value.posZ) + Mathf.Abs(newPose.rootMotionInfo.positionNext.posZ);
             if(movement == 0.0f || movement == -0.0f)   //yes you MUST check for both, 0.0f != -0.0f. i know i know, its wierd.
             {
-                return float.MaxValue;
+                //return float.MaxValue;
+                return Mathf.Infinity;
             }
             else
             {

@@ -11,7 +11,40 @@ namespace AnimationMotionFields {
 
     public class BlendSwitcherPlayable : CustomAnimationPlayable
     {
+        //TODO: check if we should check the time of the From Node if it has more weight in the blending
+        // you can do the math to set an int instead of hard coding a 0 or 1 in the 
+        // mixer funcitons for getting and setting
+
         public AnimationMixerPlayable mixer;
+
+        public string targetClipName {
+            get {
+                Assert.IsTrue(mixer.IsValid());
+                Assert.IsTrue(mixer.inputCount == 2);
+                if (mixer.GetInput(1).IsValid()) {
+                    Debug.Log("fetching clip name");
+                    return mixer.GetInput(1).CastTo<AnimationClipPlayable>().clip.name;
+                }
+                else {
+                    Debug.LogWarning("failed to fethc name");
+                    return "";
+                }
+            }
+        }
+
+        public float targetClipTime {
+            get {
+                Assert.IsTrue(mixer.IsValid());
+                Assert.IsTrue(mixer.inputCount == 2);
+
+                if (mixer.GetInput(1).IsValid()) {
+                    return (float) mixer.GetInput(1).CastTo<AnimationClipPlayable>().time;
+                }
+                else {
+                    return -1.0f;
+                }
+            }
+        }
 
         public AnimationClipPlayable fromClip;
         public AnimationClipPlayable toClip;
