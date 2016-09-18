@@ -309,7 +309,7 @@ namespace AnimationMotionFields {
                 }
             }
 
-            StartCoroutine(RunMixers_TEST(3.0f));
+            StartCoroutine(RunMixers_TEST(0.25f));
         }
 
         // Update is called once per frame
@@ -416,8 +416,8 @@ namespace AnimationMotionFields {
 
 
 
-                //yield return new WaitForSeconds(waitTime);
-                yield return null;
+                yield return new WaitForSeconds(waitTime);
+                //yield return null;
             }
 
         }

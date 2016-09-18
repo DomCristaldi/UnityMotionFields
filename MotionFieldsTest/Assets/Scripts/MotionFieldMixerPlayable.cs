@@ -144,7 +144,8 @@ namespace AnimationMotionFields {
 
             Debug.Log("do blend");
 
-            if (mixer.inputCount != 2) { Debug.LogError("not enough mixer inputs"); }
+            Debug.AssertFormat(mixer.IsValid(), "mixer is invalid. Make sure Blend Switcher is fully initialized");
+            Debug.AssertFormat(mixer.inputCount != 2, "Not enough mixer inputs. Currently has {0} Inputs", mixer.inputCount);
 
             Playable oldFromNode = mixer.GetInput(0);
             mixer.RemoveInput(0);
@@ -176,7 +177,7 @@ namespace AnimationMotionFields {
             mixer.SetInputWeight(1, 0.0f);
 
             this.transitionDuration = transitionDuration;
-            timeSpentTransitioning = 0.0f;
+            this.timeSpentTransitioning = 0.0f;
 
 
             /*
