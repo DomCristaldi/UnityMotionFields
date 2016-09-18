@@ -92,16 +92,18 @@ public class GraphRenderer : ITreeRenderer
     {
         foreach (var v in vertices)
         {
-            var nodeType = Playable.GetTypeOf(v.payload);
+            Type nodeType = Playable.GetTypeOf(v.payload);
 
-            if (m_LegendForType.ContainsKey(nodeType))
+            if (nodeType != null && m_LegendForType.ContainsKey(nodeType))
                 continue;
 
             int nextStyleIndex = m_LegendForType.Count;
 
             NodeTypeLegend legend;
             char[] separators = {'.'};
-	        var playableType = Playable.GetTypeOf(v.payload);
+	        Type playableType = Playable.GetTypeOf(v.payload);
+            if (playableType == null) { continue; }
+
             string[] typeElements = playableType.ToString().Split(separators);
             legend.label = typeElements[typeElements.Length - 1];
 
@@ -308,7 +310,7 @@ public class GraphRenderer : ITreeRenderer
         {
             m_CustomDrawingMethodForType[nodeType].Invoke(null, new object[] {nodeRect, v.payload});
         }
-        else
+        else if (nodeType != null)
         {
             GUI.Label(nodeRect, "", m_LegendForType[nodeType].style);
         }

@@ -279,7 +279,6 @@ namespace AnimationMotionFields {
 
         private MotionPose curMotionPose;
 
-        bool locker = false;
 
         void Awake() {
 
@@ -293,19 +292,7 @@ namespace AnimationMotionFields {
             blendSwitcher = Playable.Create<BlendSwitcherPlayable>();
             blendSwitcher.InitBlendSwitcher(controller.animClipInfoList[1].animClip,
                                             0.0f);
-            /*
-            blendSwitcher.InitBlendSwitcher(controller.animClipInfoList[initialPoseClipIndex].animClip,
-                                            initialPoseClipTimestamp);
-                                            */
-            /*********************************
-            blendSwitcher.InitBlendSwitcher(controller.animClipInfoList[0].animClip,
-                                            0.0f);
-            */
 
-            /*
-            blendSwitcher.BlendToAnim(controller.animClipInfoList[initialPoseClipIndex].animClip,
-                                      initialPoseClipTimestamp);
-            */
             animControl.Play(blendSwitcher);
         }
 		
@@ -322,44 +309,15 @@ namespace AnimationMotionFields {
                 }
             }
 
-            StartCoroutine(RunMixers(3.0f));
-
-            //anim.Play();
-            //transform.LerpTransform(transform, transform, 0.0f, Transform_ExtensionMethods.LerpType.Position | Transform_ExtensionMethods.LerpType.Rotation | Transform_ExtensionMethods.LerpType.Scale);
+            StartCoroutine(RunMixers_TEST(3.0f));
         }
 
         // Update is called once per frame
         void Update () {
 
-
-            //Debug.Log("adf");
-            //anim.SetTime(t);
-
-            //transform.LerpTransform(startPos.transform, endPos.transform, lerpVal);
-
-            //lerpVal += lerpDelta * Time.deltaTime;
-
-            return;
-
-            MotionPose newPose = controller.OneTick(curMotionPose);
-
-            //ApplyMotionPoseToSkeleton(newPose);
-
-            AnimationClip selectedAnim = controller.animClipInfoList
-                                                    .Where(clipInfo => clipInfo.animClip.name == newPose.animName)
-                                                    .First().animClip;
-            //Debug.Log(selectedAnim != null);
-            //if (newPose.timestamp != 0.0f) {
-                //Debug.Break();
-                //Debug.Log(newPose.timestamp);
-                blendSwitcher.BlendToAnim(selectedAnim, 5.0f);
-
-                //Debug.Break();
-
-            //}
-            curMotionPose = newPose;
-
-            GraphVisualizerClient.Show(blendSwitcher, "Blend Switcher");
+            if (blendSwitcher.mixer.IsValid()) {
+                GraphVisualizerClient.Show(blendSwitcher.mixer, "Blend Switcher");
+            }
 
         }
 
@@ -412,7 +370,7 @@ namespace AnimationMotionFields {
             yield break;
         }
 
-        public IEnumerator RunMixers(float waitTime)
+        public IEnumerator RunMixers_TEST(float waitTime)
         {
 
             MotionPose newPose;
@@ -422,8 +380,6 @@ namespace AnimationMotionFields {
             yield return new WaitForSeconds(waitTime);
 
             while (true) {
-                GraphVisualizerClient.Show(blendSwitcher, "Blend Switcher");
-
 
                 newPose = controller.OneTick(curMotionPose);
                 curMotionPose = newPose;
@@ -435,12 +391,7 @@ namespace AnimationMotionFields {
                 selectedAnim = controller.animClipInfoList[clipIndex].animClip;
 
                 blendSwitcher.BlendToAnim(selectedAnim, 5.0f);
-                /*
-                Debug.LogFormat("Time - {0} : {1} - {2}",
-                                Time.time,
-                                curMotionPose.animName,
-                                curMotionPose.timestamp);
-                */
+
                 ++clipIndex;
                 if (clipIndex >= controller.animClipInfoList.Count) {
                     clipIndex = 0;
