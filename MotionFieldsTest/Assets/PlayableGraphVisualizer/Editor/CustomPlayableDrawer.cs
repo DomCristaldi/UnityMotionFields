@@ -19,17 +19,44 @@ public class AnimationClipPlayableDrawer
         if (p.IsValid()) {
             castedP = p.CastTo<AnimationClipPlayable>();
             if (castedP.IsValid()) {
-                msg = castedP.clip.name;
+                msg = castedP.clip.name + "\n" + castedP.time;
+                Debug.Log(castedP.clip.name);
+            }
+            else {
+                Debug.Log("BAD DATA");
             }
         }
-        
-        var nodeStyle = new GUIStyle("flow node 6");
+        else { Debug.Log("core playable is bad"); }
 
+        //var nodeStyle = new GUIStyle("flow node 6");
+        /*
+        if (p.IsValid()) {
+
+            GUI.Window(EditorGUIUtility.GetControlID(FocusType.Passive),
+                       position,
+                       DoNodeWindow,
+                       p.time.ToString(),
+                       nodeStyle);
+        }
+
+        else {
+            */
+        GUI.Label(position, msg);//, nodeStyle);
+        //}
+
+        /*
         Vector2 sizeNeeded = nodeStyle.CalcSize(new GUIContent(msg));
         if (sizeNeeded.x < position.width && sizeNeeded.y < position.height)
             GUI.Label(position, msg, nodeStyle);
         else
             GUI.Label(position, "", nodeStyle);
+        */
+    }
+
+    private static void DoNodeWindow(int windowID)
+    {
+        //GUI.Label(GUI.window)
+
     }
 }
 

@@ -322,7 +322,7 @@ namespace AnimationMotionFields {
                 }
             }
 
-            StartCoroutine(RunMixers(1.0f));
+            StartCoroutine(RunMixers(3.0f));
 
             //anim.Play();
             //transform.LerpTransform(transform, transform, 0.0f, Transform_ExtensionMethods.LerpType.Position | Transform_ExtensionMethods.LerpType.Rotation | Transform_ExtensionMethods.LerpType.Scale);
@@ -331,7 +331,6 @@ namespace AnimationMotionFields {
         // Update is called once per frame
         void Update () {
 
-            GraphVisualizerClient.Show(blendSwitcher, "Blend Switcher");
 
             //Debug.Log("adf");
             //anim.SetTime(t);
@@ -346,16 +345,18 @@ namespace AnimationMotionFields {
 
             //ApplyMotionPoseToSkeleton(newPose);
 
-            AnimationClip selectedAnim = controller.animClipInfoList.Where(clipInfo => clipInfo.animClip.name == newPose.animName).First().animClip;
+            AnimationClip selectedAnim = controller.animClipInfoList
+                                                    .Where(clipInfo => clipInfo.animClip.name == newPose.animName)
+                                                    .First().animClip;
             //Debug.Log(selectedAnim != null);
-            if (newPose.timestamp != 0.0f) {
+            //if (newPose.timestamp != 0.0f) {
                 //Debug.Break();
-                Debug.Log(newPose.timestamp);
-                blendSwitcher.BlendToAnim(selectedAnim, newPose.timestamp);
+                //Debug.Log(newPose.timestamp);
+                blendSwitcher.BlendToAnim(selectedAnim, 5.0f);
 
                 //Debug.Break();
 
-            }
+            //}
             curMotionPose = newPose;
 
             GraphVisualizerClient.Show(blendSwitcher, "Blend Switcher");
@@ -416,7 +417,14 @@ namespace AnimationMotionFields {
 
             MotionPose newPose;
 
+            int clipIndex = 0;
+
+            yield return new WaitForSeconds(waitTime);
+
             while (true) {
+                GraphVisualizerClient.Show(blendSwitcher, "Blend Switcher");
+
+
                 newPose = controller.OneTick(curMotionPose);
                 curMotionPose = newPose;
 
@@ -424,16 +432,22 @@ namespace AnimationMotionFields {
                                                         .Where(clipInfo => clipInfo.animClip.name == newPose.animName)
                                                         .First().animClip;
 
+                selectedAnim = controller.animClipInfoList[clipIndex].animClip;
 
-                blendSwitcher.BlendToAnim(selectedAnim, newPose.timestamp);
-
+                blendSwitcher.BlendToAnim(selectedAnim, 5.0f);
+                /*
                 Debug.LogFormat("Time - {0} : {1} - {2}",
                                 Time.time,
                                 curMotionPose.animName,
                                 curMotionPose.timestamp);
+                */
+                ++clipIndex;
+                if (clipIndex >= controller.animClipInfoList.Count) {
+                    clipIndex = 0;
+                }
 
-                //yield return new WaitForSeconds(waitTime);
-                yield return null;
+                yield return new WaitForSeconds(waitTime);
+                //yield return null;
             }
 
         }

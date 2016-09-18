@@ -97,8 +97,6 @@ namespace AnimationMotionFields {
                                                        transitionDuration,
                                                        info.deltaTime);
 
-            Debug.Log(transitionPercentage);
-
             mixer.SetInputWeight(0, 1.0f - transitionPercentage);
             mixer.SetInputWeight(1, transitionPercentage);
 
@@ -111,13 +109,61 @@ namespace AnimationMotionFields {
         public void BlendToAnim(AnimationClip clip, float timestamp, float transitionDuration = 0.25f)
         {
 
+            Debug.Log("do blend");
+
+            if (mixer.inputCount != 2) { Debug.LogError("not enough mixer inputs"); }
+
+            Playable oldFromNode = mixer.GetInput(0);
+            mixer.RemoveInput(0);
+            oldFromNode.Destroy();
+
+            Playable oldToNode = mixer.GetInput(1);
+            mixer.RemoveInput(1);
+            mixer.SetInput(oldToNode, 0);
+
+            AnimationClipPlayable newToNode = AnimationClipPlayable.Create(clip);
+            newToNode.time = timestamp;
+            mixer.SetInput(newToNode, 1);
+
+            Debug.LogFormat("Blend Info\nFrom Clip: {0} - {1}\nToClip : {2} - {3}",
+                            mixer.GetInput(0).CastTo<AnimationClipPlayable>().clip.name,
+                            mixer.GetInput(0).CastTo<AnimationClipPlayable>().time,
+                            mixer.GetInput(1).CastTo<AnimationClipPlayable>().clip.name,
+                            mixer.GetInput(1).CastTo<AnimationClipPlayable>().time);
+
+            /*
+            mixer.SetInput(mixer.GetInput(0),
+                           1);
+            */
+            /*
+            mixer.SetInput(,
+                           0);
+            */
+            mixer.SetInputWeight(0, 1.0f);
+            mixer.SetInputWeight(1, 0.0f);
+
+            this.transitionDuration = transitionDuration;
+            timeSpentTransitioning = 0.0f;
+
+
+            /*
             //fromClip.clip = toClip.clip;
-            fromClip = AnimationClipPlayable.Create(toClip.clip);
-            fromClip.time = toClip.time;
+            //fromClip.Destroy();
+            Playable indexZero = Playable.Null;
+            if (mixer.inputCount > 0) { indexZero = mixer.GetInput(0); }
+            mixer.RemoveInput(0);
+            if (indexZero.IsValid()) {
+                indexZero.Destroy();
+            }
+            AnimationClipPlayable newfromClip = AnimationClipPlayable.Create(toClip.clip);
+            newfromClip.time = toClip.time;
+            mixer.SetInput(newfromClip, 0);
+
+
 
             toClip = AnimationClipPlayable.Create(clip);
             toClip.time = timestamp;
-
+            */
             /*
             Playable prevPlayable = mixer.GetInput(0);
             Playable currentPlayable = mixer.GetInput(1);
@@ -145,12 +191,12 @@ namespace AnimationMotionFields {
             mixer.SetInput(currentPlayable, 0);
             mixer.SetInput(nextClipPlayable, 1);
             */
-            mixer.SetInputWeight(0, 1.0f);
-            mixer.SetInputWeight(1, 0.0f);
+            //mixer.SetInputWeight(0, 1.0f);
+            //mixer.SetInputWeight(1, 0.0f);
 
-            this.transitionDuration = transitionDuration;
-            timeSpentTransitioning = 0.0f;
-            
+            //this.transitionDuration = transitionDuration;
+            //timeSpentTransitioning = 0.0f;
+
         }
     }
 
