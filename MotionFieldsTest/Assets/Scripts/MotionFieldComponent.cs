@@ -321,6 +321,15 @@ namespace AnimationMotionFields {
 
         }
 
+        void OnGUI()
+        {
+            Rect windowRect = new Rect(5, 5, 1000, 500);
+
+            windowRect = GUILayout.Window(0, windowRect, DisplayDebugInfo, "Debug Window");
+
+            //DisplayDebugInfo();
+
+        }
 
         public void ApplyMotionPoseToSkeleton(MotionPose pose) {
             if (controller == null) {
@@ -401,13 +410,15 @@ namespace AnimationMotionFields {
                 ){                                                                //HACK: 0.2f magic number, it represents transition diffrence threshold
                     */
 
+                
                 if (!newPoseIsTooSimilar) {
                     blendSwitcher.BlendToAnim(selectedAnim, newPose.timestamp);
                     curMotionPose = newPose;
                 }
+                
 
                 //selectedAnim = controller.animClipInfoList[clipIndex].animClip;
-                //blendSwitcher.BlendToAnim(selectedAnim, 5.0f);
+                //blendSwitcher.BlendToAnim(selectedAnim, Random.Range(0.0f, selectedAnim.length));
 
                 ++clipIndex;
                 if (clipIndex >= controller.animClipInfoList.Count) {
@@ -416,15 +427,60 @@ namespace AnimationMotionFields {
 
 
 
-                yield return new WaitForSeconds(waitTime);
-                //yield return null;
+                //yield return new WaitForSeconds(waitTime);
+                yield return null;
             }
 
         }
 
 #if UNITY_EDITOR
 
-        [SerializeField]
+        private void DisplayDebugInfo(int windowID)
+        {
+            GUILayout.BeginVertical();
+
+            //GUILayout.Label("testing");
+
+            if (blendSwitcher == null
+                || !blendSwitcher.mixer.IsValid())
+            {
+                GUILayout.EndVertical();
+                return;
+            }
+
+            GUILayout.Label(GetLayoutName(0, "First Node"));
+
+            GUILayout.Label("Transition Percentage: " + blendSwitcher.transitionPercentage);
+
+            GUILayout.Label(GetLayoutName(1, "Second Node"));
+
+            GUILayout.EndVertical();
+        }
+
+        private string GetLayoutName(int inputIndex, string displayName = "Node")
+        {
+            if(blendSwitcher.mixer.GetInput(inputIndex).IsValid()) {
+
+                AnimationClipPlayable node = blendSwitcher.mixer.GetInput(inputIndex).CastTo<AnimationClipPlayable>();
+                string nodeName = node.clip.name;
+                float nodeTime = (float)node.time;
+
+                return displayName + ": " + nodeName + " - " + nodeTime.ToString();
+            }
+
+            else {
+                return displayName + " Invalid";
+            }
+
+
+}
+
+#endif
+
+
+#if UNITY_EDITOR
+
+[SerializeField]
         private bool g_showSkeleton;
 
         [SerializeField]

@@ -2,9 +2,9 @@
 using UnityEngine.Assertions;
 using UnityEngine.Experimental.Director;
 
-//#if UNITY_EDITOR
-//using UnityEditor;
-//#endif
+#if UNITY_EDITOR
+using UnityEditor;
+#endif
 
 
 namespace AnimationMotionFields {
@@ -132,7 +132,6 @@ namespace AnimationMotionFields {
 
             mixer.SetInputWeight(0, 1.0f - transitionPercentage);
             mixer.SetInputWeight(1, transitionPercentage);
-
         }
 
         //COME BACK HERE <<<----------------
@@ -145,7 +144,7 @@ namespace AnimationMotionFields {
             Debug.Log("do blend");
 
             Debug.AssertFormat(mixer.IsValid(), "mixer is invalid. Make sure Blend Switcher is fully initialized");
-            Debug.AssertFormat(mixer.inputCount != 2, "Not enough mixer inputs. Currently has {0} Inputs", mixer.inputCount);
+            Debug.AssertFormat(mixer.inputCount == 2, "Mixer has incorrect number of inputs. Currently has {0} Inputs, should have 2", mixer.inputCount);
 
             Playable oldFromNode = mixer.GetInput(0);
             mixer.RemoveInput(0);
@@ -232,6 +231,9 @@ namespace AnimationMotionFields {
             //timeSpentTransitioning = 0.0f;
 
         }
+
+
+
     }
 
 
