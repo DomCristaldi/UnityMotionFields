@@ -253,9 +253,6 @@ public class MotionPose {
     //public float[] keyframeData;
     //public KeyframeData[] keyframeData;
 
-    public int frameSampleRate;//sampel rate that was used to create these poses
-
-
     public MotionPose(BonePose[] bonePoses, BonePose rootMotionInfo) {
         this.bonePoses = bonePoses;
         this.rootMotionInfo = rootMotionInfo;
@@ -392,6 +389,7 @@ public class AnimClipInfo {
     public MotionPose[] motionPoses;//all the poses generated for this animation clip
 
     public int frameResolution;//sample rate that was used to create these poses
+    public float frameStep; //time in seconds between every sampled frame of the clip
 
     public void PrintPathTest() {
         foreach (EditorCurveBinding ecb in AnimationUtility.GetCurveBindings(animClip)) {

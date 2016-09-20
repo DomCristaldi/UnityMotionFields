@@ -386,20 +386,44 @@ namespace AnimationMotionFields {
 
             int clipIndex = 0;
 
+            float timeSinceLastBlend = 0.0f - Time.deltaTime;
+            int framesSinceLastBlend = 0;
+            float timeStampOfLastBlend = curMotionPose.timestamp;
+            int indexOfLastBlend = 0;
+            int index = 0;
+
+            AnimClipInfo currentAnimInfo = controller.animClipInfoList
+                                        .Where(clipInfo => clipInfo.animClip.name == curMotionPose.animName)
+                                        .First();
+
+            //get index of curMotionPose
+            for (indexOfLastBlend = 0; indexOfLastBlend < currentAnimInfo.motionPoses.Length; indexOfLastBlend++) {
+                if (currentAnimInfo.motionPoses[indexOfLastBlend].timestamp == curMotionPose.timestamp) {
+                    break;
+                }
+            }
+
             //yield return new WaitForSeconds(waitTime);
 
             while (true) {
 
                 yield return null;
 
+                //advance curMotionPose as time pases
+                timeSinceLastBlend += Time.deltaTime;
+                framesSinceLastBlend = (int) (timeSinceLastBlend / currentAnimInfo.frameStep);
+                index = (int)Mathf.Min(indexOfLastBlend + framesSinceLastBlend, currentAnimInfo.motionPoses.Length); //gets min to prevent index being higher than array length
+                curMotionPose = currentAnimInfo.motionPoses[index];
+
+
                 newPose = controller.OneTick(curMotionPose);
 
-                AnimationClip selectedAnim = controller.animClipInfoList
+                AnimClipInfo selectedAnimInfo = controller.animClipInfoList
                                                         .Where(clipInfo => clipInfo.animClip.name == newPose.animName)
-                                                        .First().animClip;
+                                                        .First();
 
                 //CHECK IF WE SHOUDL BLEND OUT TO ANOTHER ANIMATION OR A DIFFERENT TIME ON THE SAME TRACK
-                bool newPoseIsTooSimilar = selectedAnim.name == blendSwitcher.targetClipName
+                bool newPoseIsTooSimilar = selectedAnimInfo.animClip.name == blendSwitcher.targetClipName
                                            && Mathf.Abs(newPose.timestamp - blendSwitcher.targetClipTime) < 0.2f;
 
                 /*
@@ -412,10 +436,22 @@ namespace AnimationMotionFields {
 
                 
                 if (!newPoseIsTooSimilar) {
-                    blendSwitcher.BlendToAnim(selectedAnim, newPose.timestamp);
+                    blendSwitcher.BlendToAnim(selectedAnimInfo.animClip, newPose.timestamp);
                     curMotionPose = newPose;
+
+                    timeSinceLastBlend = 0.0f;
+                    framesSinceLastBlend = 0;
+                    timeStampOfLastBlend = curMotionPose.timestamp;
+                    currentAnimInfo = selectedAnimInfo;
+
+                    //get index of curMotionPose
+                    for (indexOfLastBlend = 0; indexOfLastBlend < currentAnimInfo.motionPoses.Length; indexOfLastBlend++) {
+                        if (currentAnimInfo.motionPoses[indexOfLastBlend].timestamp == curMotionPose.timestamp) {
+                            break;
+                        }
+                    }
                 }
-                
+
 
                 //selectedAnim = controller.animClipInfoList[clipIndex].animClip;
                 //blendSwitcher.BlendToAnim(selectedAnim, Random.Range(0.0f, selectedAnim.length));
