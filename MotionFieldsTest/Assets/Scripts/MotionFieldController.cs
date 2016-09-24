@@ -440,7 +440,9 @@ public class MotionFieldController : ScriptableObject {
         float[] taskArr = GetTaskArray();
         //Debug.Log("task Length: " + taskArr.Length.ToString());
 
-        float reward = float.MinValue;
+        //float reward = float.MinValue;
+
+        float reward = Mathf.Infinity;
         MotionPose newPose = MoveOneFrame(currentPose, taskArr, ref reward);
 
         //Debug.Log("root motion of chosen pose:\n posX: " + newPose.rootMotionInfo.value.posX + "  posY: " + newPose.rootMotionInfo.value.posY + "  posZ: " + newPose.rootMotionInfo.value.posZ);
@@ -457,6 +459,8 @@ public class MotionFieldController : ScriptableObject {
         int chosenAction = PickCandidate(currentPose, candidateActions, taskArr, ref reward);
 
         //Debug.Log("Candidate Chosen! best fitness is " + reward.ToString() + " from Action " + chosenAction.ToString() + ", whose main influnce is " + candidateActions[chosenAction].animName + " at time " + candidateActions[chosenAction].timestamp.ToString());
+
+        Debug.LogFormat("Chosen Action: {0}", chosenAction);
         return candidateActions[chosenAction];
          
     }
