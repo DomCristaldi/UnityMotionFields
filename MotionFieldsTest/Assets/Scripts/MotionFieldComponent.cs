@@ -404,10 +404,11 @@ namespace AnimationMotionFields {
             }
 
             //yield return new WaitForSeconds(waitTime);
+            yield return null;
 
             while (true) {
 
-                yield return null;
+                //yield return null;
 
                 //advance curMotionPose as time pases
                 timeSinceLastBlend += Time.deltaTime;
@@ -418,13 +419,19 @@ namespace AnimationMotionFields {
 
                 newPose = controller.OneTick(curMotionPose);
 
+
+
                 AnimClipInfo selectedAnimInfo = controller.animClipInfoList
                                                         .Where(clipInfo => clipInfo.animClip.name == newPose.animName)
                                                         .First();
 
                 //CHECK IF WE SHOUDL BLEND OUT TO ANOTHER ANIMATION OR A DIFFERENT TIME ON THE SAME TRACK
-                bool newPoseIsTooSimilar = selectedAnimInfo.animClip.name == blendSwitcher.targetClipName
-                                           && Mathf.Abs(newPose.timestamp - blendSwitcher.targetClipTime) < 0.2f;
+                //bool newPoseIsTooSimilar = selectedAnimInfo.animClip.name == blendSwitcher.targetClipName
+                //                           && Mathf.Abs(newPose.timestamp - blendSwitcher.targetClipTime) < 0.2f;
+
+                bool newPoseIsTooSimilar = selectedAnimInfo.animClip.name == curMotionPose.animName
+                                           && Mathf.Abs(newPose.timestamp - curMotionPose.timestamp) < 0.2f;
+
 
                 /*
                 float targetNodeTimestamp = blendSwitcher.targetClipTime;
@@ -434,8 +441,12 @@ namespace AnimationMotionFields {
                 ){                                                                //HACK: 0.2f magic number, it represents transition diffrence threshold
                     */
 
-                
-                if (!newPoseIsTooSimilar) {
+                Debug.LogFormat("Current Pose Timestamp: {0}\nPose is too similar: {1}",
+                                curMotionPose.timestamp,
+                                newPoseIsTooSimilar);
+
+
+                if(!newPoseIsTooSimilar) {
                     blendSwitcher.BlendToAnim(selectedAnimInfo.animClip, newPose.timestamp);
                     curMotionPose = newPose;
 
@@ -464,7 +475,8 @@ namespace AnimationMotionFields {
 
 
                 //yield return new WaitForSeconds(waitTime);
-                yield return null;
+                //yield return null;
+                yield return new WaitForEndOfFrame();
             }
 
         }

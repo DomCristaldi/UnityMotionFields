@@ -782,7 +782,9 @@ public class MotionFieldController : ScriptableObject {
 
         for(int i = 0; i < taskArr.Length; i++){
 			float taskReward = TArrayInfo.TaskArray[i].CheckReward (pose, newPose, taskArr[i]);
-            Debug.Log("ttt" + taskReward);
+
+            Debug.LogFormat("Task: {0} - Value: {1}", TArrayInfo.TaskArray[i].name,
+                                                      taskReward);
 
             immediateReward += taskReward;
         }
