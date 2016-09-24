@@ -363,7 +363,7 @@ public class MotionPose {
     }
 
     //RETRIEVE THE BONE POSE WITH THE SPECIFIED LABEL
-    public BonePose GetBonePose(string label) {
+    public BonePose GetBonePose(string label) { //TODO: update to Dictionary lookukp
         foreach (BonePose pose in bonePoses) {
             if (pose.boneLabel == label) {
 
@@ -426,6 +426,9 @@ public class MotionFieldController : ScriptableObject {
 
     public int numActions = 1;
 
+    //DEBUG
+    public string currentTaskOutput;
+
     /*
     //legacy from motion fields
     [Range(0.0f, 1.0f)]
@@ -437,7 +440,9 @@ public class MotionFieldController : ScriptableObject {
         float[] taskArr = GetTaskArray();
         //Debug.Log("task Length: " + taskArr.Length.ToString());
 
-        float reward = float.MinValue;
+        //float reward = float.MinValue;
+
+        float reward = Mathf.Infinity;
         MotionPose newPose = MoveOneFrame(currentPose, taskArr, ref reward);
 
         //Debug.Log("root motion of chosen pose:\n posX: " + newPose.rootMotionInfo.value.posX + "  posY: " + newPose.rootMotionInfo.value.posY + "  posZ: " + newPose.rootMotionInfo.value.posZ);
@@ -454,6 +459,8 @@ public class MotionFieldController : ScriptableObject {
         int chosenAction = PickCandidate(currentPose, candidateActions, taskArr, ref reward);
 
         //Debug.Log("Candidate Chosen! best fitness is " + reward.ToString() + " from Action " + chosenAction.ToString() + ", whose main influnce is " + candidateActions[chosenAction].animName + " at time " + candidateActions[chosenAction].timestamp.ToString());
+
+        Debug.LogFormat("Chosen Action: {0}", chosenAction);
         return candidateActions[chosenAction];
          
     }
@@ -487,7 +494,7 @@ public class MotionFieldController : ScriptableObject {
         for (int i = 0; i < candidateActions.Length; ++i) {
             float reward = ComputeReward(currentPose, candidateActions[i], taskArr);
             //Debug.Log("Reward for action " + i.ToString() + " is " + reward.ToString());
-            if (reward > bestReward) {
+            if (reward < bestReward) {
                 bestReward = reward;
                 chosenAction = i;
             }
@@ -770,9 +777,15 @@ public class MotionFieldController : ScriptableObject {
 	private float ComputeReward(MotionPose pose, MotionPose newPose, float[] taskArr){
         //first calculate immediate reward
 		float immediateReward = 0.0f;
-		for(int i = 0; i < taskArr.Length; i++){
-			immediateReward += TArrayInfo.TaskArray[i].CheckReward (pose, newPose, taskArr[i]);
-		}
+
+        currentTaskOutput = "";
+        for(int i = 0; i < taskArr.Length; i++){
+			float taskReward = TArrayInfo.TaskArray[i].CheckReward (pose, newPose, taskArr[i]);
+
+            currentTaskOutput += TArrayInfo.TaskArray[i].name + " : " + taskReward + "\n";
+
+            immediateReward += taskReward;
+        }
 
         //calculate continuousReward
         float continuousReward = ContRewardLookup(newPose, taskArr);
