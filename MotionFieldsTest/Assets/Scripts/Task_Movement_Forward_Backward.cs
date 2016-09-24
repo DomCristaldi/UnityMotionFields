@@ -26,29 +26,20 @@ public class Task_Movement_Forward_Backward : ATask {
         {
             //want deviation from 0 movement to be as small as possible. lower movement = higher reward
             float movement = Mathf.Abs(newPose.rootMotionInfo.value.posZ) + Mathf.Abs(newPose.rootMotionInfo.positionNext.posZ);
-            
-            //yes you MUST check for both, 0.0f != -0.0f. i know i know, its wierd.
-            if(movement == 0.0f || movement == -0.0f)//TODO: Would this work with Mathf.Approximately?
-            {
-                //return Mathf.Infinity;
-                return maxTaskValue;
-            }
-            else
-            {
-                return 1.0f / movement;
-            }
+
+            return Mathf.Atan(movement);
         }
         else if(taskval < 0)
         {
             //move backwards. lower movement (it can be negative) = better reward
             float movement = newPose.rootMotionInfo.value.posZ + newPose.rootMotionInfo.positionNext.posZ;
-            return -movement;
+            return (Mathf.PI / 2) - Mathf.Atan(-movement);
         }
         else //taskval > 0
         {
             //move forwards. hogher movement (it can be negative) = better reward
             float movement = newPose.rootMotionInfo.value.posZ + newPose.rootMotionInfo.positionNext.posZ;
-            return movement;
+            return (Mathf.PI / 2) - Mathf.Atan(movement);
         }
     }
 
