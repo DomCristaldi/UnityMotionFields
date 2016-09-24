@@ -746,6 +746,7 @@ public class MotionFieldController : ScriptableObject {
     }
     */
 
+        //TODO: Move out to a Math Utility static class
     public List<List<float>> CartesianProduct( List<List<float>> sequences){
 		// base case: 
 		List<List<float>> product = new List<List<float>>(); 
