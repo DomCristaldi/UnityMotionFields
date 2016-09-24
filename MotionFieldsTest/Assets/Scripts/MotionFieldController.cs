@@ -363,7 +363,7 @@ public class MotionPose {
     }
 
     //RETRIEVE THE BONE POSE WITH THE SPECIFIED LABEL
-    public BonePose GetBonePose(string label) {
+    public BonePose GetBonePose(string label) { //TODO: update to Dictionary lookukp
         foreach (BonePose pose in bonePoses) {
             if (pose.boneLabel == label) {
 
@@ -426,6 +426,9 @@ public class MotionFieldController : ScriptableObject {
 
     public int numActions = 1;
 
+    //DEBUG
+    public string currentTaskOutput;
+
     /*
     //legacy from motion fields
     [Range(0.0f, 1.0f)]
@@ -487,7 +490,7 @@ public class MotionFieldController : ScriptableObject {
         for (int i = 0; i < candidateActions.Length; ++i) {
             float reward = ComputeReward(currentPose, candidateActions[i], taskArr);
             //Debug.Log("Reward for action " + i.ToString() + " is " + reward.ToString());
-            if (reward > bestReward) {
+            if (reward < bestReward) {
                 bestReward = reward;
                 chosenAction = i;
             }
@@ -770,9 +773,15 @@ public class MotionFieldController : ScriptableObject {
 	private float ComputeReward(MotionPose pose, MotionPose newPose, float[] taskArr){
         //first calculate immediate reward
 		float immediateReward = 0.0f;
-		for(int i = 0; i < taskArr.Length; i++){
-			immediateReward += TArrayInfo.TaskArray[i].CheckReward (pose, newPose, taskArr[i]);
-		}
+
+        currentTaskOutput = "";
+        for(int i = 0; i < taskArr.Length; i++){
+			float taskReward = TArrayInfo.TaskArray[i].CheckReward (pose, newPose, taskArr[i]);
+
+            currentTaskOutput += TArrayInfo.TaskArray[i].name + " : " + taskReward + "\n";
+
+            immediateReward += taskReward;
+        }
 
         //calculate continuousReward
         float continuousReward = ContRewardLookup(newPose, taskArr);

@@ -490,6 +490,8 @@ namespace AnimationMotionFields {
 
             GUILayout.Label(GetLayoutName(1, "Second Node"));
 
+            GUILayout.Label(controller.currentTaskOutput);
+
             GUILayout.EndVertical();
         }
 
