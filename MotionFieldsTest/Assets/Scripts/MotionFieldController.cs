@@ -426,6 +426,7 @@ public class MotionFieldController : ScriptableObject {
 
     public int numActions = 1;
 
+    private float startingReward = float.MaxValue;
     //DEBUG
     public string currentTaskOutput;
 
@@ -442,7 +443,7 @@ public class MotionFieldController : ScriptableObject {
 
         //float reward = float.MinValue;
 
-        float reward = Mathf.Infinity;
+        float reward = 0.0f;
         MotionPose newPose = MoveOneFrame(currentPose, taskArr, ref reward);
 
         //Debug.Log("root motion of chosen pose:\n posX: " + newPose.rootMotionInfo.value.posX + "  posY: " + newPose.rootMotionInfo.value.posY + "  posZ: " + newPose.rootMotionInfo.value.posZ);
@@ -458,9 +459,8 @@ public class MotionFieldController : ScriptableObject {
         //Debug.Log("Move One Frame pose after GenCandActions: " + string.Join(" ", currentPose.flattenedMotionPose.Select(d => d.ToString()).ToArray()));
         int chosenAction = PickCandidate(currentPose, candidateActions, taskArr, ref reward);
 
-        //Debug.Log("Candidate Chosen! best fitness is " + reward.ToString() + " from Action " + chosenAction.ToString() + ", whose main influnce is " + candidateActions[chosenAction].animName + " at time " + candidateActions[chosenAction].timestamp.ToString());
+        //Debug.Log("Candidate Chosen! best fitness is " + reward.ToString() + " from Action " + chosenAction.ToString());
 
-        Debug.LogFormat("Chosen Action: {0}", chosenAction);
         return candidateActions[chosenAction];
          
     }
@@ -488,6 +488,7 @@ public class MotionFieldController : ScriptableObject {
     }
 
     private int PickCandidate(MotionPose currentPose, MotionPose[] candidateActions, float[] taskArr, ref float bestReward) {
+        bestReward = startingReward;
         //choose the action with the highest reward
         int chosenAction = -1;
 
@@ -778,11 +779,9 @@ public class MotionFieldController : ScriptableObject {
         //first calculate immediate reward
 		float immediateReward = 0.0f;
 
-        currentTaskOutput = "";
         for(int i = 0; i < taskArr.Length; i++){
 			float taskReward = TArrayInfo.TaskArray[i].CheckReward (pose, newPose, taskArr[i]);
-
-            currentTaskOutput += TArrayInfo.TaskArray[i].name + " : " + taskReward + "\n";
+            Debug.Log("ttt" + taskReward);
 
             immediateReward += taskReward;
         }
