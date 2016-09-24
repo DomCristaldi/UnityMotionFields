@@ -22,11 +22,11 @@ namespace AnimationMotionFields {
                 Assert.IsTrue(mixer.IsValid());
                 Assert.IsTrue(mixer.inputCount == 2);
                 if (mixer.GetInput(1).IsValid()) {
-                    Debug.Log("fetching clip name");
+                    //Debug.Log("fetching clip name");
                     return mixer.GetInput(1).CastTo<AnimationClipPlayable>().clip.name;
                 }
                 else {
-                    Debug.LogWarning("failed to fethc name");
+                    //Debug.LogWarning("failed to fethc name");
                     return "";
                 }
             }
@@ -84,25 +84,25 @@ namespace AnimationMotionFields {
             return;
 
 
-            AnimationClipPlayable startingClipPlayable = AnimationClipPlayable.Create(startingClip);
-            startingClipPlayable.time = timestamp;
+            //AnimationClipPlayable startingClipPlayable = AnimationClipPlayable.Create(startingClip);
+            //startingClipPlayable.time = timestamp;
 
-            AnimationClipPlayable endingClipPlayable = AnimationClipPlayable.Create(startingClip);
-            endingClipPlayable.time = timestamp;
+            //AnimationClipPlayable endingClipPlayable = AnimationClipPlayable.Create(startingClip);
+            //endingClipPlayable.time = timestamp;
 
-            //allocate the starting clip to the proper index (needs to be in index 1 b/c it's starting at its destination, and we transition from 0 -> 1)
-            //mixer.AddInput(AnimationPlayable.Null);//index 0
-            mixer.AddInput(startingClipPlayable);//index 0
-            mixer.AddInput(endingClipPlayable);//index 1
+            ////allocate the starting clip to the proper index (needs to be in index 1 b/c it's starting at its destination, and we transition from 0 -> 1)
+            ////mixer.AddInput(AnimationPlayable.Null);//index 0
+            //mixer.AddInput(startingClipPlayable);//index 0
+            //mixer.AddInput(endingClipPlayable);//index 1
 
-            mixer.SetInput(startingClipPlayable, 0);
-            mixer.SetInput(endingClipPlayable, 1);
+            //mixer.SetInput(startingClipPlayable, 0);
+            //mixer.SetInput(endingClipPlayable, 1);
 
-            mixer.SetInputWeight(0, 1.0f);
-            mixer.SetInputWeight(1, 0.0f);
+            //mixer.SetInputWeight(0, 1.0f);
+            //mixer.SetInputWeight(1, 0.0f);
 
-            //mixer.SetInputWeight(0, 0.0f);
-            //mixer.SetInputWeight(1, 1.0f);
+            ////mixer.SetInputWeight(0, 0.0f);
+            ////mixer.SetInputWeight(1, 1.0f);
         }
 
         public override void PrepareFrame(FrameData info)
@@ -141,7 +141,7 @@ namespace AnimationMotionFields {
         public void BlendToAnim(AnimationClip clip, float timestamp, float transitionDuration = 0.25f)
         {
 
-            Debug.Log("do blend");
+            //Debug.Log("do blend");
 
             Debug.AssertFormat(mixer.IsValid(), "mixer is invalid. Make sure Blend Switcher is fully initialized");
             Debug.AssertFormat(mixer.inputCount == 2, "Mixer has incorrect number of inputs. Currently has {0} Inputs, should have 2", mixer.inputCount);
@@ -158,11 +158,11 @@ namespace AnimationMotionFields {
             newToNode.time = timestamp;
             mixer.SetInput(newToNode, 1);
 
-            Debug.LogFormat("Blend Info\nFrom Clip: {0} - {1}\nToClip : {2} - {3}",
-                            mixer.GetInput(0).CastTo<AnimationClipPlayable>().clip.name,
-                            mixer.GetInput(0).CastTo<AnimationClipPlayable>().time,
-                            mixer.GetInput(1).CastTo<AnimationClipPlayable>().clip.name,
-                            mixer.GetInput(1).CastTo<AnimationClipPlayable>().time);
+            //Debug.LogFormat("Blend Info\nFrom Clip: {0} - {1}\nToClip : {2} - {3}",
+            //                mixer.GetInput(0).CastTo<AnimationClipPlayable>().clip.name,
+            //                mixer.GetInput(0).CastTo<AnimationClipPlayable>().time,
+            //                mixer.GetInput(1).CastTo<AnimationClipPlayable>().clip.name,
+            //                mixer.GetInput(1).CastTo<AnimationClipPlayable>().time);
 
             /*
             mixer.SetInput(mixer.GetInput(0),

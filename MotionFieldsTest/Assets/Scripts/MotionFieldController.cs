@@ -355,7 +355,8 @@ public class MotionPose {
             int length = bonePoses.Length;
             for (int i = 0; i < length; ++i)
             {
-                retArray = retArray.Concat<float>(bonePoses[i].flattenedValue().Concat<float>(bonePoses[i].flattenedPositionNext()));
+                retArray = retArray.Concat<float>(bonePoses[i].flattenedValue()
+                                   .Concat<float>(bonePoses[i].flattenedPositionNext()));
             }
             return retArray.ToArray();
         }

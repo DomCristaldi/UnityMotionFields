@@ -8,6 +8,17 @@ using UnityEditorInternal;
 using System.IO;
 #endif
 
+[System.Serializable]
+public class TaskSettings
+{
+
+    public ATask task;
+
+    //[Range(0.0f, 1.0f)]
+    public float contributionScale;
+
+
+}
 
 [CreateAssetMenu]
 public class TaskArrayInfo : ScriptableObject {
@@ -16,12 +27,15 @@ public class TaskArrayInfo : ScriptableObject {
 
 	public List<ATask> TaskArray;
 
+    public List<TaskSettings> tasks;
 }
 
 #if UNITY_EDITOR
 [CanEditMultipleObjects]
 [CustomEditor(typeof(TaskArrayInfo))]
 public class TaskArrayInfo_Editor : Editor {
+
+    float heightPadding = 20.0f;
 
 	private TaskArrayInfo selfScript;
 
@@ -31,36 +45,66 @@ public class TaskArrayInfo_Editor : Editor {
 		selfScript = (TaskArrayInfo)target;
 
 		reorderATaskList = new ReorderableList (serializedObject,
-			serializedObject.FindProperty ("TaskArray"),
+			serializedObject.FindProperty ("tasks"),
 			true, true, true, true);
 
-		reorderATaskList.onAddDropdownCallback = (Rect buttonRect, ReorderableList selfList) => {
+        reorderATaskList.drawElementCallback = (Rect rect, int index, bool isActive, bool isFocused) => {
 
-			GenericMenu menu = new GenericMenu();
-			string[] guids = AssetDatabase.FindAssets("", new[] {"Assets/" + selfScript.storageFolderLocation});
+            SerializedProperty indexProp = reorderATaskList.serializedProperty.GetArrayElementAtIndex(index);
 
-			foreach (string guid in guids) {
-				if (AssetDatabase.LoadAssetAtPath(AssetDatabase.GUIDToAssetPath(guid), typeof(ATask)) as ATask == null) {continue;}
+            EditorGUI.PropertyField(rect,
+                                    reorderATaskList.serializedProperty.GetArrayElementAtIndex(index),
+                                    new GUIContent(),
+                                    true);
 
-				string path = AssetDatabase.GUIDToAssetPath(guid);
-				menu.AddItem(new GUIContent(Path.GetFileNameWithoutExtension(path)),
-					false,
-					null);
-			}
+            rect.y += EditorGUI.GetPropertyHeight(reorderATaskList.serializedProperty.GetArrayElementAtIndex(index));
 
-			menu.ShowAsContext();
-		};
-	}
+            //EditorGUI.Slider(rect, 0.5f, 1.0f, 0.0f);
+            //EditorGUI.FloatField(rect,
+            //                     selfScript.TaskArray[index].contributionScale);
+
+            /*
+            selfScript.TaskArray[index].contributionScale = 
+                EditorGUI.Slider(rect,
+                                 selfScript.TaskArray[index].contributionScale,
+                                 0.0f,
+                                 1.0f);
+            */
+        };
+
+        reorderATaskList.elementHeightCallback = (int index) => {
+            return (EditorGUI.GetPropertyHeight(reorderATaskList.serializedProperty.GetArrayElementAtIndex(index)))
+                   + heightPadding;
+        };
+
+        //reorderATaskList.onAddDropdownCallback = (Rect buttonRect, ReorderableList selfList) => {
+
+        //	GenericMenu menu = new GenericMenu();
+        //	string[] guids = AssetDatabase.FindAssets("", new[] {"Assets/" + selfScript.storageFolderLocation});
+
+        //	foreach (string guid in guids) {
+        //		if (AssetDatabase.LoadAssetAtPath(AssetDatabase.GUIDToAssetPath(guid), typeof(ATask)) as ATask == null) {continue;}
+
+        //		string path = AssetDatabase.GUIDToAssetPath(guid);
+        //		menu.AddItem(new GUIContent(Path.GetFileNameWithoutExtension(path)),
+        //			false,
+        //			null);
+        //	}
+
+        //	menu.ShowAsContext();
+        //};
+
+    }
 
 	public override void OnInspectorGUI()
 	{
-		base.OnInspectorGUI ();
+		//base.OnInspectorGUI ();
         //return;
 
-		//serializedObject.Update();
-		//reorderATaskList.DoLayoutList();
-		//serializedObject.ApplyModifiedProperties();
-	}
+        serializedObject.Update();
+        reorderATaskList.DoLayoutList();
+        serializedObject.ApplyModifiedProperties();
+    }
 
 }
 #endif

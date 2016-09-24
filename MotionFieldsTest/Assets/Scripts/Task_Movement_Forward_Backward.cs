@@ -20,16 +20,18 @@ public class Task_Movement_Forward_Backward : ATask {
          *  currently, this task can potentially return float.MaxValue, overshadowing all other tasks in the total reward.
          */
 
-        Debug.LogFormat("Task Input: MovementForwardBackward: {0}", taskval);
+        //Debug.LogFormat("Task Input: MovementForwardBackward: {0}", taskval);
 
         if(taskval == 0)
         {
             //want deviation from 0 movement to be as small as possible. lower movement = higher reward
             float movement = Mathf.Abs(newPose.rootMotionInfo.value.posZ) + Mathf.Abs(newPose.rootMotionInfo.positionNext.posZ);
-            if(movement == 0.0f || movement == -0.0f)   //yes you MUST check for both, 0.0f != -0.0f. i know i know, its wierd.
+            
+            //yes you MUST check for both, 0.0f != -0.0f. i know i know, its wierd.
+            if(movement == 0.0f || movement == -0.0f)//TODO: Would this work with Mathf.Approximately?
             {
-                //return float.MaxValue;
-                return Mathf.Infinity;
+                //return Mathf.Infinity;
+                return maxTaskValue;
             }
             else
             {
