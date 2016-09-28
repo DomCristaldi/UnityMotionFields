@@ -417,6 +417,11 @@ namespace AnimationMotionFields {
                 index = (int)Mathf.Min(indexOfLastBlend + framesSinceLastBlend, currentAnimInfo.motionPoses.Length); //gets min to prevent index being higher than array length
                 curMotionPose = currentAnimInfo.motionPoses[index];
 
+                Debug.Log(timeSinceLastBlend);
+                Debug.Log(currentAnimInfo.frameStep);
+                Debug.Log(framesSinceLastBlend);
+                Debug.Log(curMotionPose.timestamp);
+
 
                 candidates = controller.OneTick(curMotionPose);
 
@@ -441,21 +446,21 @@ namespace AnimationMotionFields {
                     Mathf.Abs(targetNodeTimestamp - newPose.timestamp) > 2.0f //we're on the same anim, but the time difference is large enough
                 ){                                                                //HACK: 0.2f magic number, it represents transition diffrence threshold
                     */
-                
+
                 /*
                 Debug.LogFormat("Current Pose Timestamp: {0}\nPose is too similar: {1}",
                                 curMotionPose.timestamp,
                                 newPoseIsTooSimilar);
                 */
 
-                if(!newPoseIsTooSimilar) {
+                string AbrahamLincoln = "";
+                for (int i = 0; i < candidates.Length; ++i)
+                {
+                    AbrahamLincoln += " candidate #" + (i + 1) + ": " + candidates[i].pose.animName + " at time " + candidates[i].pose.timestamp + " with reward " + candidates[i].reward + "\n";
+                }
+                Debug.Log(AbrahamLincoln);
 
-                    string AbrahamLincoln = "switching to pose: " + candidates[0].pose.animName + " at time " + candidates[0].pose.timestamp + " with reward " + candidates[0].reward + "\n";
-                    for(int i = 1; i < candidates.Length; ++i)
-                    {
-                       AbrahamLincoln += " candidate #" + i + ": " + candidates[i].pose.animName + " at time " + candidates[i].pose.timestamp + " with reward " + candidates[i].reward + "\n";
-                    }
-                    Debug.Log(AbrahamLincoln);
+                if (!newPoseIsTooSimilar) {
 
                     blendSwitcher.BlendToAnim(selectedAnimInfo.animClip, newPose.timestamp);
                     curMotionPose = newPose;

@@ -545,7 +545,7 @@ namespace AnimationMotionFields {
                 }
 
                 animClipInfos[i].frameResolution = samplingRate;
-                animClipInfos[i].frameStep = animClipInfos[i].animClip.frameRate * samplingRate;
+                animClipInfos[i].frameStep = (1.0f / (float)animClipInfos[i].animClip.frameRate) * samplingRate;
             }
 
             EditorUtility.ClearProgressBar();
