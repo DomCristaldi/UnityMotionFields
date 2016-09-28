@@ -400,9 +400,14 @@ namespace AnimationMotionFields {
             //since each point can have its reward calculated independently of other points during the same generation, each generation is multithreaded.
             int numThreads = 4;
             ThreadedRewardsTableUpdater threadedUpdater = new ThreadedRewardsTableUpdater (selectedMotionFieldController, rewardTable, generations, numThreads);
-            threadedUpdater.Update();
-
-            Debug.Log("Done, " + rewardTable[0][2] + "  " + rewardTable[1][2] + " " + rewardTable[2][2] + " " + rewardTable[3][2] + " " + rewardTable[rewardTable.Count - 1][2]);
+            try {
+                threadedUpdater.Update();
+            }
+            catch (System.Exception)
+            {
+                EditorUtility.ClearProgressBar();
+                throw;
+            }
 
             //now that the rewards are calculated, set the initializer in selectedMotionFieldController.
             //at runtime, this is converted to a dictionary
