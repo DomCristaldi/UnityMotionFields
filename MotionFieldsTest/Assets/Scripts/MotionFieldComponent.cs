@@ -417,10 +417,10 @@ namespace AnimationMotionFields {
                 index = (int)Mathf.Min(indexOfLastBlend + framesSinceLastBlend, currentAnimInfo.motionPoses.Length - 1); //gets min to prevent index being higher than array length
                 curMotionPose = currentAnimInfo.motionPoses[index];
 
-                Debug.Log(timeSinceLastBlend);
-                Debug.Log(currentAnimInfo.frameStep);
-                Debug.Log(framesSinceLastBlend);
-                Debug.Log(curMotionPose.timestamp);
+                Debug.LogFormat("Time Since Last Blend: {0}", timeSinceLastBlend);
+                Debug.LogFormat("Current Anim Frame Step: {0}", currentAnimInfo.frameStep);
+                Debug.LogFormat("Frames Since Last Blend: {0}", framesSinceLastBlend);
+                Debug.LogFormat("Current Pose Timestamp: {0}", curMotionPose.timestamp);
 
 
                 candidates = controller.OneTick(curMotionPose);
@@ -461,6 +461,8 @@ namespace AnimationMotionFields {
                 Debug.Log(AbrahamLincoln);
 
                 if (!newPoseIsTooSimilar) {
+
+                    Debug.LogWarning("-------Blend To New Pose-------");
 
                     blendSwitcher.BlendToAnim(selectedAnimInfo.animClip, newPose.timestamp);
                     curMotionPose = newPose;
