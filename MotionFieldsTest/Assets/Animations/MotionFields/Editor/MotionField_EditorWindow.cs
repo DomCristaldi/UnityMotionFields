@@ -269,12 +269,8 @@ namespace AnimationMotionFields {
 
             EditorGUILayout.EndVertical();
 
-            if (selectedMotionFieldController == null || selectedMotionFieldComponent == null) {
-                return;
-            } 
+            if (selectedMotionFieldController != null && selectedMotionFieldComponent != null) {
 
-            //if (selectedMotionFieldController != null) {
-            else {
                 //reorderableAnimClips.DoLayoutList();
                 /*
                 GUILayout.BeginHorizontal();
@@ -306,43 +302,44 @@ namespace AnimationMotionFields {
 
 
                 GUILayout.EndHorizontal();
-            }
 
-            if (GUILayout.Button("print path")) {
-                selectedMotionFieldController.animClipInfoList[0].PrintPathTest();
-            }
 
-            if(GUILayout.Button("extraction tests"))
-            {
-                ExtractionTest();
-            }
+                if (GUILayout.Button("print path"))
+                {
+                    selectedMotionFieldController.animClipInfoList[0].PrintPathTest();
+                }
 
-            //skinnedMesh = (ModelImporterClipAnimation) EditorGUILayout.ObjectField("skinMesh: ", skinnedMesh, typeof(ModelImporterClipAnimation), false);
-            if (GUILayout.Button("Generate Rewards Table")) {
-                if(selectedMotionFieldController.kd == null)
+                if (GUILayout.Button("extraction tests"))
                 {
-                    Debug.LogError("KDTree is not initialized! Generate Poses first.");
+                    ExtractionTest();
                 }
-                else if (selectedMotionFieldController.TArrayInfo == null)
+
+                //skinnedMesh = (ModelImporterClipAnimation) EditorGUILayout.ObjectField("skinMesh: ", skinnedMesh, typeof(ModelImporterClipAnimation), false);
+                if (GUILayout.Button("Generate Rewards Table"))
                 {
-                    Debug.LogError("You must assign a TaskArray to the MotionField");
-                    return;
-                }
-                else if (selectedMotionFieldController.numActions <= 0)
-                {
-                    Debug.LogError("The numActions variable in the MotionField must be a positive int");
-                    return;
-                }
-                else
-                {
-                    GenerateRewardsTable();
-                    Debug.Log(selectedMotionFieldController.precomputedRewards_Initializer.Count.ToString());
+                    if (selectedMotionFieldController.kd == null)
+                    {
+                        Debug.LogError("KDTree is not initialized! Generate Poses first.");
+                    }
+                    else if (selectedMotionFieldController.TArrayInfo == null)
+                    {
+                        Debug.LogError("You must assign a TaskArray to the MotionField");
+                        return;
+                    }
+                    else if (selectedMotionFieldController.numActions <= 0)
+                    {
+                        Debug.LogError("The numActions variable in the MotionField must be a positive int");
+                        return;
+                    }
+                    else
+                    {
+                        GenerateRewardsTable();
+                        Debug.Log(selectedMotionFieldController.precomputedRewards_Initializer.Count.ToString());
+                    }
                 }
             }
 
             EditorGUILayout.EndVertical();
-
-
         }
 
         /// <summary>
