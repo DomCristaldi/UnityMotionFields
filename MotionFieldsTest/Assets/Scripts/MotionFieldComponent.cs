@@ -414,7 +414,7 @@ namespace AnimationMotionFields {
                 //advance curMotionPose as time pases
                 timeSinceLastBlend += Time.deltaTime;
                 framesSinceLastBlend = (int) (timeSinceLastBlend / currentAnimInfo.frameStep);
-                index = (int)Mathf.Min(indexOfLastBlend + framesSinceLastBlend, currentAnimInfo.motionPoses.Length); //gets min to prevent index being higher than array length
+                index = (int)Mathf.Min(indexOfLastBlend + framesSinceLastBlend, currentAnimInfo.motionPoses.Length - 1); //gets min to prevent index being higher than array length
                 curMotionPose = currentAnimInfo.motionPoses[index];
 
                 Debug.Log(timeSinceLastBlend);
