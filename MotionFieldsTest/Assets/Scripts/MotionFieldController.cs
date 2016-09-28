@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Collections;
 using System.Linq;
+using System;
 
 using AnimationMotionFields;
 
@@ -155,25 +156,7 @@ public class BoneTransform {
     }
 
     public static BoneTransform BlendTransform(BoneTransform tf1, BoneTransform tf2, float alpha) {
-        /*BoneTransform retBoneTf = new BoneTransform();
 
-        retBoneTf.posX = Mathf.Lerp(tf1.posX, tf2.posX, alpha);
-        retBoneTf.posY = Mathf.Lerp(tf1.posY, tf2.posY, alpha);
-        retBoneTf.posZ = Mathf.Lerp(tf1.posZ, tf2.posZ, alpha);
-
-        Quaternion slerpedRot = Quaternion.Slerp(new Quaternion(tf1.rotX, tf1.rotY, tf1.rotZ, tf1.rotW),
-                                                 new Quaternion(tf2.rotX, tf2.rotY, tf2.rotZ, tf2.rotW),
-                                                 alpha);
-        retBoneTf.rotW = slerpedRot.w;
-        retBoneTf.rotX = slerpedRot.x;
-        retBoneTf.rotY = slerpedRot.y;
-        retBoneTf.rotZ = slerpedRot.z;
-
-        retBoneTf.sclX = Mathf.Lerp(tf1.sclX, tf2.sclX, alpha);
-        retBoneTf.sclY = Mathf.Lerp(tf1.sclY, tf2.sclY, alpha);
-        retBoneTf.sclZ = Mathf.Lerp(tf1.sclZ, tf2.sclZ, alpha);
-
-        return retBoneTf;*/
         Vector3 newPos = Vector3.Lerp(tf1.position, tf2.position, alpha);
         Quaternion newRot = Quaternion.Slerp(tf1.rotation, tf2.rotation, alpha);
 
@@ -306,44 +289,6 @@ public class MotionPose {
             newPoseBones[i].positionNextNext = BoneTransform.BlendTransforms(BonePosNextNexts, weights);
         }
 
-        /*
-        //set initial bone pose array and rootMotionBone to that of the first pose to blend
-        BonePose newRootMotion =new BonePose(posesToBlend[0].rootMotionInfo.boneLabel);
-        newRootMotion.value = new BoneTransform(posesToBlend[0].rootMotionInfo.value);
-        newRootMotion.positionNext = new BoneTransform(posesToBlend[0].rootMotionInfo.positionNext);
-        newRootMotion.positionNextNext = new BoneTransform(posesToBlend[0].rootMotionInfo.positionNextNext);
-
-        BonePose[] newPoseBones = new BonePose[posesToBlend[0].bonePoses.Length];
-        for(int j = 0; j < posesToBlend[0].bonePoses.Length; ++j)
-        {
-            BonePose newBone = new BonePose(posesToBlend[0].bonePoses[j].boneLabel);
-            newBone.value = new BoneTransform(posesToBlend[0].bonePoses[j].value);
-            newBone.positionNext = new BoneTransform(posesToBlend[0].bonePoses[j].positionNext);
-            newBone.positionNextNext = new BoneTransform(posesToBlend[0].bonePoses[j].positionNextNext);
-            newPoseBones[j] = newBone;
-        }
-        //represents the amount we've blended in so far
-        float curBoneWeight = weights[0];
-
-        for (int i = 1; i < posesToBlend.Length; ++i) {
-            //create normalized weights for tiered blending
-            float bpwNormalized = curBoneWeight / (curBoneWeight + weights[i]);
-            //float wiNormalized = weights[i] / (curBoneWeight + weights[i]);
-
-            newRootMotion.value = BoneTransform.BlendTransform(newRootMotion.value, posesToBlend[i].rootMotionInfo.value, bpwNormalized);
-            newRootMotion.positionNext = BoneTransform.BlendTransform(newRootMotion.positionNext, posesToBlend[i].rootMotionInfo.positionNext, bpwNormalized);
-            newRootMotion.positionNextNext = BoneTransform.BlendTransform(newRootMotion.positionNextNext, posesToBlend[i].rootMotionInfo.positionNextNext, bpwNormalized);
-
-            for (int j = 0; j < posesToBlend[i].bonePoses.Length; ++j) {
-                //do the blending
-                newPoseBones[j].value = BoneTransform.BlendTransform(newPoseBones[j].value, posesToBlend[i].bonePoses[j].value, bpwNormalized);
-                newPoseBones[j].positionNext = BoneTransform.BlendTransform(newPoseBones[j].positionNext, posesToBlend[i].bonePoses[j].positionNext, bpwNormalized);
-                newPoseBones[j].positionNextNext = BoneTransform.BlendTransform(newPoseBones[j].positionNextNext, posesToBlend[i].bonePoses[j].positionNextNext, bpwNormalized);
-            }
-            //add to the weight we iterated so far
-            curBoneWeight += weights[i];
-        }*/
-
         this.bonePoses = newPoseBones;
         this.rootMotionInfo = newRootMotion;
     }
@@ -436,71 +381,53 @@ public class MotionFieldController : ScriptableObject {
     public float driftCorrection = 0.1f;
     */
 
-	public MotionPose OneTick(MotionPose currentPose){
+	public candidatePose[] OneTick(MotionPose currentPose){
 
         float[] taskArr = GetTaskArray();
         //Debug.Log("task Length: " + taskArr.Length.ToString());
 
-        //float reward = float.MinValue;
-
-        float reward = 0.0f;
-        MotionPose newPose = MoveOneFrame(currentPose, taskArr, ref reward);
+        candidatePose[] newPoses = MoveOneFrame(currentPose, taskArr);
 
         //Debug.Log("root motion of chosen pose:\n posX: " + newPose.rootMotionInfo.value.posX + "  posY: " + newPose.rootMotionInfo.value.posY + "  posZ: " + newPose.rootMotionInfo.value.posZ);
 
-        return newPose;
+        return newPoses;
 	}
 
-    public MotionPose MoveOneFrame(MotionPose currentPose, float[] taskArr, ref float reward)
+    public candidatePose[] MoveOneFrame(MotionPose currentPose, float[] taskArr)
     {
         //Debug.Log("Move One Frame pose before GenCandActions: " + string.Join(" ", currentPose.flattenedMotionPose.Select(d => d.ToString()).ToArray()));
-        MotionPose[] candidateActions = GenerateCandidateActions(currentPose);
+        candidatePose[] candidateActions = GenerateCandidateActions(currentPose);
 
         //Debug.Log("Move One Frame pose after GenCandActions: " + string.Join(" ", currentPose.flattenedMotionPose.Select(d => d.ToString()).ToArray()));
-        int chosenAction = PickCandidate(currentPose, candidateActions, taskArr, ref reward);
+        RankCandidates(currentPose, ref candidateActions, taskArr);
 
-        //Debug.Log("Candidate Chosen! best fitness is " + reward.ToString() + " from Action " + chosenAction.ToString());
-
-        return candidateActions[chosenAction];
-         
+        return candidateActions;
     }
 
-    private MotionPose[] GenerateCandidateActions(MotionPose currentPose)
+    private candidatePose[] GenerateCandidateActions(MotionPose currentPose)
     {
         //generate candidate states to move to by finding closest poses in kdtree
         float[] currentPoseArr = currentPose.flattenedMotionPose;
 
-        return NearestNeighbor(currentPoseArr);
-
-        /*
-        //legacy from motion fields
         MotionPose[] neighbors = NearestNeighbor(currentPoseArr);
-        float[] weights = GenerateWeights(currentPose, neighbors);
-        float[][] actionWeights = GenerateActionWeights(weights);
-        MotionPose[] candidateActions = new MotionPose[actionWeights.Length];
-        for(int i = 0; i < actionWeights.Length; ++i){
-            candidateActions[i] = GeneratePose(currentPose, neighbors, 0,  actionWeights[i]); //0 is the index in neighbors of the neighbor which is closest to the current pose. Because of how the kdtree works, the closest neighbor pose will ALWAYS be at index 0, hence the magic number. sorry.
-            candidateActions[i].animName = neighbors[i].animName;
-            candidateActions[i].timestamp = neighbors[i].timestamp;
+
+        candidatePose[] candidates = new candidatePose[neighbors.Length];
+        for (int i = 0; i < candidates.Length; ++i)
+        {
+            candidates[i] = new candidatePose(neighbors[i]);
         }
-        return candidateActions;
-        */
+
+        return candidates;
     }
 
-    private int PickCandidate(MotionPose currentPose, MotionPose[] candidateActions, float[] taskArr, ref float bestReward) {
-        bestReward = startingReward;
-        //choose the action with the highest reward
-        int chosenAction = -1;
+    private candidatePose[] RankCandidates(MotionPose currentPose, ref candidatePose[] candidateActions, float[] taskArr) {
 
         for (int i = 0; i < candidateActions.Length; ++i) {
-            float reward = ComputeReward(currentPose, candidateActions[i], taskArr);
-            //Debug.Log("Reward for action " + i.ToString() + " is " + reward.ToString());
-            if (reward < bestReward) {
-                bestReward = reward;
-                chosenAction = i;
-            }
+            ComputeReward(currentPose, ref candidateActions[i], taskArr); //sets the reward for that candidate
         }
-        return chosenAction;
+
+        Array.Sort(candidateActions);
+        return candidateActions;
     }
 
     private MotionPose[] NearestNeighbor(float[] pose){
@@ -513,34 +440,6 @@ public class MotionFieldController : ScriptableObject {
         }
         return data;
     }
-
-    /*
-    //legacy from motion fields
-    private float[][] GenerateActionWeights(float[] weights){
-        int i, j;
-        float[][] actions = new float[numActions][];
-        float actionSum = 0.0f;
-
-        for (i = 0; i < numActions; i++)
-        {
-            //for each action array, set weight[i] to 1 and renormalize
-            actions[i] = new float[numActions];
-            actionSum = 1.0f + (1.0f - weights[i]); //note sum of weights[] is 1.0f
-
-            for (j = 0; j < numActions; j++)
-            {
-                if (i == j){
-                    actions[i][j] = 1.0f / actionSum;
-                }
-                else {
-                    actions[i][j] = weights[j] / actionSum;
-                }
-            }
-        }
-        return actions;
-    }
-    */
-
 
 	private float[] GenerateWeights(float[] ideal, float[][] neighbors){
 
@@ -580,172 +479,6 @@ public class MotionFieldController : ScriptableObject {
         return weights;
 	}
 
-    /*
-    //legacy from motion fields
-    private float[] GenerateWeights(MotionPose pose, MotionPose[] neighbors)
-    {
-        //note: neighbors.Length == numActions
-        BonePose[] Bones = pose.bonePoses;
-        BonePose[] neighborBones = new BonePose[Bones.Length];
-        float[] weights = new float[neighbors.Length];
-        float weightsSum = 0.0f;
-        int i, j;
-
-        //weights[i] = 1/distance(neighbors[i] , floatpos) ^2 
-        for (i = 0; i < neighbors.Length; ++i)
-        {
-            neighborBones = neighbors[i].bonePoses;
-            weights[i] = 0.0f;
-            for (j = 0; j < pose.bonePoses.Length; ++j)
-            {
-                weights[i] += BoneDist(Bones[j].value, neighborBones[j].value, Bones[j].sqrtBoneLength);
-                weights[i] += BoneDist(Bones[j].positionNext, neighborBones[j].positionNext, Bones[j].sqrtBoneLength);
-            }
-            weights[i] += RootBoneDist(pose.rootMotionInfo.positionNext, neighbors[i].rootMotionInfo.positionNext, pose.rootMotionInfo.sqrtBoneLength); //only velocity of root is considered, not the position.
-
-            weights[i] = 1.0f / Mathf.Sqrt(weights[i]);
-            weightsSum += weights[i];
-
-            if (float.IsInfinity(weights[i])){
-                for (j = 0; j < weights.Length; j++)
-                {
-                    if (j == i){
-                        weights[j] = 1.0f;
-                    }
-                    else {
-                        weights[j] = 0.0f;
-                    }
-                }
-
-                return weights;
-            }
-        }
-
-        //now normalize weights so that they sum to 1
-        for (i = 0; i < weights.Length; i++){
-            weights[i] = weights[i] / weightsSum;
-        }
-
-        return weights;
-    }
-    */
-    /*
-    //legacy from motion fields
-    private float BoneDist(BoneTransform b1, BoneTransform b2, float sqrtBonelength)
-    {
-        float sqDist = 0.0f;
-
-        float[] b1Arr = b1.flattenedTransform(sqrtBonelength);
-        float[] b2Arr = b2.flattenedTransform(sqrtBonelength);
-        for(int i = 0; i < b1Arr.Length; ++i)
-        {
-            sqDist += ((b1Arr[i] - b2Arr[i]) * (b1Arr[i] - b2Arr[i]));
-        }
-
-        return sqDist;
-    }
-    */
-    /*
-    //legacy from motion fields
-    private float RootBoneDist(BoneTransform b1, BoneTransform b2, float sqrtBonelength)
-    {
-        //rootBone is calculated differently as the difference in position is also factored in along eith difference in the rotation.
-        float sqDist = 0.0f;
-
-        float[] b1Arr = b1.flattenedTransform(sqrtBonelength);
-        float[] b2Arr = b2.flattenedTransform(sqrtBonelength);
-        for (int i = 0; i < b1Arr.Length; ++i)
-        {
-            sqDist += ((b1Arr[i] - b2Arr[i]) * (b1Arr[i] - b2Arr[i]));
-        }
-
-        sqDist += ((b1.posX - b2.posX) * (b1.posX - b2.posX)) * sqrtBonelength * sqrtBonelength;
-        sqDist += ((b1.posY - b2.posY) * (b1.posY - b2.posY)) * sqrtBonelength * sqrtBonelength;
-        sqDist += ((b1.posZ - b2.posZ) * (b1.posZ - b2.posZ)) * sqrtBonelength * sqrtBonelength;
-
-        return sqDist;
-    }
-    */
-    /*
-    //legacy from motion fields
-    private MotionPose GeneratePose(MotionPose currentPose, MotionPose[] neighbors, int closestNeighborIndex, float[] action){
-        if(action[0] == 0.0f || action[0] == -0.0f)
-        {
-            Debug.LogError("This shouldnt happen and is bad.");
-        }
-        MotionPose blendedNeighbors = new MotionPose(neighbors, action);
-
-        int numBones = currentPose.bonePoses.Length;
-
-        BonePose newRootBone = GenerateRootBone(currentPose.rootMotionInfo, blendedNeighbors.rootMotionInfo, neighbors[closestNeighborIndex].rootMotionInfo);
-
-        BonePose[] newPoseBones = new BonePose[numBones];
-        for (int i = 0; i < numBones; i++)
-        {
-            newPoseBones[i] = GenerateBone(currentPose.bonePoses[i], blendedNeighbors.bonePoses[i], neighbors[closestNeighborIndex].bonePoses[i]);
-        }
-
-        MotionPose newPose = new MotionPose(newPoseBones, newRootBone);
-        return newPose;
-    }
-    */
-    /*
-    //legacy from motion fields
-    public BonePose GenerateBone(BonePose currBone, BonePose blendBone, BonePose closestBone)
-    {
-        //TODO: add drift correction with closestbone
-
-        //note about quaternion math: v = x2 * x1^-1,     x2 = x1 * v,     x1 * v != v * x1  (quaternion math is not commutative)
-        //b * (a * b^-1) == a, i believe
-        
-        //OLD broken logic:
-        //new_position = currentPose.position + blendedNeighbors.positionNext - blendedNeighbors.position
-        //new_positionNext = currentPose.position + blendedNeighbors.position + blendedNeighbors.positionNextNext - 2(blendedNeighbors.positionNext)
-        
-        //NEW logic: 
-        //new_position = currentPose.position + (blendedNeighbors.positionNext - blendedNeighbors.position)
-        //new_positionNext = new_position + (blendedNeighbors.positionNextNext - blendedNeighbors.positionNext)  
-        
-        BoneTransform V1 = BoneTransform.Subtract(blendBone.positionNext, blendBone.value);
-        BoneTransform V2 = BoneTransform.Subtract(closestBone.positionNext, currBone.value);
-        BoneTransform V = BoneTransform.BlendTransform(V1, V2, driftCorrection);
-        
-
-        BoneTransform Y1 = BoneTransform.Subtract(blendBone.positionNextNext, blendBone.positionNext);
-        BoneTransform Y2 = BoneTransform.Subtract(closestBone.positionNextNext, closestBone.positionNext);
-        BoneTransform Y = BoneTransform.BlendTransform(Y1, Y2, driftCorrection);
-
-        BonePose newBone = new BonePose(currBone.boneLabel);
-
-        newBone.value = BoneTransform.Add(currBone.value, V);
-        newBone.positionNext = BoneTransform.Add(newBone.value, Y);
-
-        return newBone;
-    }
-    */
-    /*
-    //legacy from motion fields
-    public BonePose GenerateRootBone(BonePose currBone, BonePose blendBone, BonePose closestBone)
-    {
-        //TODO: add drift correction with closestbone
-
-        //note about quaternion math: v = x2 * x1^-1,     x2 = x1 * v,     x1 * v != v * x1  (quaternion math is not commutative)
-        //b * (a * b^-1) == a, i believe
-        //root bone must be handled differently because it is stored as a displacement, not a position!
-        //new_position = blendBone.positionNext  //note this works if currBone.value is either a velocity from previous frame or a value of 0, which are the current two modes for root calculation. If, somehow, currBone.value contains a non-zero position for root, change this to currBone.Value + blendBone.PositionNext
-        //new_positionNext = blendBone.positionNextNext  
-        
-        BonePose newBone = new BonePose(currBone.boneLabel);
-
-        //newBone.value = new BoneTransform(blendBone.positionNext);
-        //newBone.positionNext = new BoneTransform(blendBone.positionNextNext);
-        newBone.value = BoneTransform.BlendTransform(blendBone.positionNext, closestBone.positionNext, driftCorrection);
-        newBone.positionNext = BoneTransform.BlendTransform(blendBone.positionNextNext, closestBone.positionNextNext, driftCorrection);
-
-        return newBone;
-    }
-    */
-
         //TODO: Move out to a Math Utility static class
     public List<List<float>> CartesianProduct( List<List<float>> sequences){
 		// base case: 
@@ -776,25 +509,24 @@ public class MotionFieldController : ScriptableObject {
 		return taskArr;
 	}
 
-	private float ComputeReward(MotionPose pose, MotionPose newPose, float[] taskArr){
+	private void ComputeReward(MotionPose pose, ref candidatePose newPose, float[] taskArr){
         //first calculate immediate reward
 		float immediateReward = 0.0f;
 
         for(int i = 0; i < taskArr.Length; i++){
-			float taskReward = TArrayInfo.TaskArray[i].CheckReward (pose, newPose, taskArr[i]);
+			float taskReward = TArrayInfo.TaskArray[i].CheckReward (pose, newPose.pose, taskArr[i]);
 
-            Debug.LogFormat("Task: {0} - Value: {1}", TArrayInfo.TaskArray[i].name,
-                                                      taskReward);
+            //Debug.LogFormat("Task: {0} - Value: {1}", TArrayInfo.TaskArray[i].name, taskReward);
 
             immediateReward += taskReward;
         }
 
         //calculate continuousReward
-        float continuousReward = ContRewardLookup(newPose, taskArr);
+        float continuousReward = ContRewardLookup(newPose.pose, taskArr);
 
         //Debug.Log("Continuous Reward is " + continuousReward.ToString());
 
-		return immediateReward + scale*continuousReward;
+		newPose.reward = immediateReward + scale*continuousReward;
 	}
 
 	private float ContRewardLookup(MotionPose pose, float[] Tasks){
@@ -855,19 +587,6 @@ public class MotionFieldController : ScriptableObject {
         for (j = 0; j < nearestTasksArr.Length; j++) {
             dictKeys[j] = new vfKey(pose.animName, pose.timestamp, nearestTasksArr[j]);
         }
-
-        /*
-        legacy from motionfields
-        float[] nearestTasks_weights = GenerateWeights(Tasks, nearestTasksArr);
-        List<vfKey> dictKeys = new List<vfKey> ();
-		List<float> dictKeys_weights = new List<float> ();
-		for (i = 0; i < neighbors.Length; i++){
-			for (j = 0; j < nearestTasksArr.Length; j++){
-				dictKeys.Add (new vfKey(neighbors[i].animName, neighbors[i].timestamp, nearestTasksArr[j]));
-				dictKeys_weights.Add (neighbors_weights [i] * nearestTasks_weights [j]);
-			}
-		}
-        */
 
         //do lookups in precomputed table, get weighted sum
         float continuousReward = 0.0f;
@@ -980,6 +699,42 @@ public struct vfKey{
             
             return hash;
         }
+    }
+}
+
+public class candidatePose : IComparable<candidatePose>
+{
+    private MotionPose _pose;
+    private float _reward;
+
+    public candidatePose(MotionPose pose)
+    {
+        this._pose = pose;
+    }
+
+    public candidatePose(MotionPose pose, float reward)
+    {
+        this._pose = pose;
+        this._reward = reward;
+    }
+
+    public MotionPose pose
+    {
+        get { return _pose; }
+    }
+    public float reward
+    {
+        get { return _reward; }
+        set { _reward = value; }
+    }
+
+    public int CompareTo(candidatePose P)
+    {
+        if (P == null || this.reward > P.reward) return 1;
+
+        else if(this.reward == P.reward) return 0;
+
+        else return -1;
     }
 }
 

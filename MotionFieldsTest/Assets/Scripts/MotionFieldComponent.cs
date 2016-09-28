@@ -383,6 +383,7 @@ namespace AnimationMotionFields {
         {
 
             MotionPose newPose;
+            candidatePose[] candidates;
 
             int clipIndex = 0;
 
@@ -417,9 +418,9 @@ namespace AnimationMotionFields {
                 curMotionPose = currentAnimInfo.motionPoses[index];
 
 
-                newPose = controller.OneTick(curMotionPose);
+                candidates = controller.OneTick(curMotionPose);
 
-
+                newPose = candidates[0].pose;
 
                 AnimClipInfo selectedAnimInfo = controller.animClipInfoList
                                                         .Where(clipInfo => clipInfo.animClip.name == newPose.animName)
@@ -440,13 +441,22 @@ namespace AnimationMotionFields {
                     Mathf.Abs(targetNodeTimestamp - newPose.timestamp) > 2.0f //we're on the same anim, but the time difference is large enough
                 ){                                                                //HACK: 0.2f magic number, it represents transition diffrence threshold
                     */
-
+                
+                /*
                 Debug.LogFormat("Current Pose Timestamp: {0}\nPose is too similar: {1}",
                                 curMotionPose.timestamp,
                                 newPoseIsTooSimilar);
-
+                */
 
                 if(!newPoseIsTooSimilar) {
+
+                    string AbrahamLincoln = "switching to pose: " + candidates[0].pose.animName + " at time " + candidates[0].pose.timestamp + " with reward " + candidates[0].reward + "\n";
+                    for(int i = 1; i < candidates.Length; ++i)
+                    {
+                       AbrahamLincoln += " candidate #" + i + ": " + candidates[i].pose.animName + " at time " + candidates[i].pose.timestamp + " with reward " + candidates[i].reward + "\n";
+                    }
+                    Debug.Log(AbrahamLincoln);
+
                     blendSwitcher.BlendToAnim(selectedAnimInfo.animClip, newPose.timestamp);
                     curMotionPose = newPose;
 

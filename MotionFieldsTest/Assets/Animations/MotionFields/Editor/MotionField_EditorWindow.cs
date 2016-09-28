@@ -563,8 +563,8 @@ namespace AnimationMotionFields {
 
                 //rewardTable[i][0] is the MotionPose at that point, rewardTable[i][1] is the TaskArray at that point
                 float reward = 0.0f;
-                selectedMotionFieldController.MoveOneFrame((MotionPose)rewardTable[i][0], (float[])rewardTable[i][1], ref reward);
-                rewardTable[i][2] = reward;
+                candidatePose[] candidates = selectedMotionFieldController.MoveOneFrame((MotionPose)rewardTable[i][0], (float[])rewardTable[i][1]);
+                rewardTable[i][2] = candidates[0].reward; //set reward in table to reward of best candidate
             }
         }
 
