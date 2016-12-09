@@ -312,6 +312,11 @@ namespace AnimationMotionFields {
             StartCoroutine(RunMixers_TEST(0.25f));
         }
 
+        void OnDestroy()
+        {
+            blendSwitcher.Destroy();
+        }
+
         // Update is called once per frame
         void Update () {
 
