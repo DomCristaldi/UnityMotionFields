@@ -254,6 +254,7 @@ namespace AnimationMotionFields {
         public CosmeticSkeleton cosmeticSkel;
         public MotionFieldController controller;
 
+        public Transform targetLocation;
 
         //public MotionSkeleton skeleton;
 
@@ -309,7 +310,7 @@ namespace AnimationMotionFields {
                 }
             }
 
-            StartCoroutine(RunMixers_TEST(0.25f));
+            StartCoroutine(RunMixersRoutine(0.25f));
         }
 
         // Update is called once per frame
@@ -379,7 +380,7 @@ namespace AnimationMotionFields {
             yield break;
         }
 
-        public IEnumerator RunMixers_TEST(float waitTime)
+        public IEnumerator RunMixersRoutine(float waitTime)
         {
 
             MotionPose newPose;
@@ -417,11 +418,12 @@ namespace AnimationMotionFields {
                 index = (int)Mathf.Min(indexOfLastBlend + framesSinceLastBlend, currentAnimInfo.motionPoses.Length - 1); //gets min to prevent index being higher than array length
                 curMotionPose = currentAnimInfo.motionPoses[index];
 
+                /*
                 Debug.LogFormat("Time Since Last Blend: {0}", timeSinceLastBlend);
                 Debug.LogFormat("Current Anim Frame Step: {0}", currentAnimInfo.frameStep);
                 Debug.LogFormat("Frames Since Last Blend: {0}", framesSinceLastBlend);
                 Debug.LogFormat("Current Pose Timestamp: {0}", curMotionPose.timestamp);
-
+                */
 
                 candidates = controller.OneTick(curMotionPose);
 
@@ -452,17 +454,18 @@ namespace AnimationMotionFields {
                                 curMotionPose.timestamp,
                                 newPoseIsTooSimilar);
                 */
-
+                /*
                 string AbrahamLincoln = "";
                 for (int i = 0; i < candidates.Length; ++i)
                 {
                     AbrahamLincoln += " candidate #" + (i + 1) + ": " + candidates[i].pose.animName + " at time " + candidates[i].pose.timestamp + " with reward " + candidates[i].reward + "\n";
                 }
                 Debug.Log(AbrahamLincoln);
+                */
 
                 if (!newPoseIsTooSimilar) {
 
-                    Debug.LogWarning("-------Blend To New Pose-------");
+                    //Debug.LogWarning("-------Blend To New Pose-------");
 
                     blendSwitcher.BlendToAnim(selectedAnimInfo.animClip, newPose.timestamp);
                     curMotionPose = newPose;
