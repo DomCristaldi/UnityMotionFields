@@ -287,7 +287,6 @@ namespace AnimationMotionFields {
 
             //HACK: in release build, it should be impossible to call functions from MotionFieldUtility
             MotionFieldUtility.GenerateKDTree(ref controller.kd, controller.animClipInfoList);
-            controller.DeserializeDict();
 
             //create the custom playalbe for driving the animations
             blendSwitcher = Playable.Create<BlendSwitcherPlayable>();
@@ -305,6 +304,7 @@ namespace AnimationMotionFields {
                     if(controller.animClipInfoList[i].useClip == true)
                     {
                         curMotionPose = controller.animClipInfoList[i].motionPoses[0];
+                        Debug.Log("initial MotionPose set");
                         break;
                     }
                 }
