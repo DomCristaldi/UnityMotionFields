@@ -155,15 +155,7 @@ public class BoneTransform {
         }
     }
 
-    public static BoneTransform BlendTransform(BoneTransform tf1, BoneTransform tf2, float alpha) {
-
-        Vector3 newPos = Vector3.Lerp(tf1.position, tf2.position, alpha);
-        Quaternion newRot = Quaternion.Slerp(tf1.rotation, tf2.rotation, alpha);
-
-        return new BoneTransform(newPos, newRot);
-    }
-
-    public static BoneTransform BlendTransforms(BoneTransform[] trans, float[] weights)
+    /*public static BoneTransform BlendTransforms(BoneTransform[] trans, float[] weights)
     {
         Vector3 avgPos = Vector3.zero;
         Quaternion avgRot = new Quaternion(0, 0, 0, 0);
@@ -189,13 +181,13 @@ public class BoneTransform {
             }
         }
 
-        //note: is normalizing avgPos and avgScl nessesary? avgPos is not nessesarily a unit vector, but they should all be the same length, and avgPos may not be that length?
+        //note: is normalizing avgPos nessesary? avgPos is not nessesarily a unit vector, but they should all be the same length, and avgPos may not be that length?
 
         //Normalize the result to a unit Quaternion
         avgRot = avgRot.Normalize();
 
         return new BoneTransform(avgPos, avgRot);
-    }
+    }*/
 
 }
 
@@ -251,7 +243,7 @@ public class MotionPose {
 
 
     //CONSTRUCTOR FOR CREATING A MOTION POSE OUT OF BLENED POSES
-    public MotionPose(MotionPose[] posesToBlend, float[] weights) {
+    /*public MotionPose(MotionPose[] posesToBlend, float[] weights) {
 
         //Break out if there's no data to work with for either poses or weights
         if (posesToBlend.Length == 0) { Debug.LogError("Supplied Poses Array is of length 0"); return; }
@@ -291,7 +283,7 @@ public class MotionPose {
 
         this.bonePoses = newPoseBones;
         this.rootMotionInfo = newRootMotion;
-    }
+    }*/
 
     public float[] flattenedMotionPose {
         //the initial 'position' of the rootmotion is not factored in, just the velocity from value(position 1) to positionnext(position 2), which is currently stored as the values for the root in positionnext
