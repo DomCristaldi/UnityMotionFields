@@ -360,31 +360,13 @@ public class MotionFieldController : ScriptableObject {
     //DEBUG
     public string currentTaskOutput;
 
-    /*
-    //legacy from motion fields
-    [Range(0.0f, 1.0f)]
-    public float driftCorrection = 0.1f;
-    */
-
-	public candidatePose[] OneTick(MotionPose currentPose){
-
-        float[] taskArr = GetTaskArray();
-        //Debug.Log("task Length: " + taskArr.Length.ToString());
-
-        candidatePose[] newPoses = MoveOneFrame(currentPose, taskArr);
-
-        //Debug.Log("root motion of chosen pose:\n posX: " + newPose.rootMotionInfo.value.posX + "  posY: " + newPose.rootMotionInfo.value.posY + "  posZ: " + newPose.rootMotionInfo.value.posZ);
-
-        return newPoses;
-	}
-
-    public candidatePose[] MoveOneFrame(MotionPose currentPose, float[] taskArr)
+    public candidatePose[] MoveOneTick(MotionPose currentPose, Transform targetLocation)
     {
         //Debug.Log("Move One Frame pose before GenCandActions: " + string.Join(" ", currentPose.flattenedMotionPose.Select(d => d.ToString()).ToArray()));
         candidatePose[] candidateActions = GenerateCandidateActions(currentPose);
 
         //Debug.Log("Move One Frame pose after GenCandActions: " + string.Join(" ", currentPose.flattenedMotionPose.Select(d => d.ToString()).ToArray()));
-        RankCandidates(currentPose, ref candidateActions, taskArr);
+        RankCandidates(currentPose, ref candidateActions, targetLocation);
 
         return candidateActions;
     }
@@ -405,10 +387,10 @@ public class MotionFieldController : ScriptableObject {
         return candidates;
     }
 
-    private candidatePose[] RankCandidates(MotionPose currentPose, ref candidatePose[] candidateActions, float[] taskArr) {
+    private candidatePose[] RankCandidates(MotionPose currentPose, ref candidatePose[] candidateActions, Transform targetLocation) {
 
         for (int i = 0; i < candidateActions.Length; ++i) {
-            ComputeReward(currentPose, ref candidateActions[i], taskArr); //sets the reward for that candidate
+            TArrayInfo.ComputeReward(currentPose, ref candidateActions[i], targetLocation); //sets the reward for that candidate
         }
 
         Array.Sort(candidateActions);
@@ -424,68 +406,6 @@ public class MotionFieldController : ScriptableObject {
             data[i] = (MotionPose)nn_data[i];
         }
         return data;
-    }
-
-	private float[] GenerateWeights(float[] ideal, float[][] neighbors){
-
-		float[] weights = new float[neighbors.Length];
-        float diff;
-        float weightsSum = 0;
-        int i, j;
-
-		//weights[i] = 1/distance(neighbors[i] , floatpos) ^2 
-		for(i = 0; i < neighbors.Length; i++){
-			weights [i] = 0.0f;
-			for(j = 0; j < ideal.Length; j++){
-                diff = ideal[j] - neighbors[i][j];
-				weights [i] += diff*diff;
-			}
-			weights [i] = 1.0f / weights [i];
-            weightsSum += weights[i];
-
-            if (float.IsInfinity(weights[i])) { //special case where a neighbor is identical to ideal.
-                for (j = 0; j < weights.Length; j++) {
-                    if (j == i) {
-                        weights[j] = 1.0f;
-                    }
-                    else {
-                        weights[j] = 0.0f;
-                    }
-                }
-                return weights;
-            }
-        }
-
-        //now normalize weights so that they sum to 1
-        for (i = 0; i < weights.Length; i++) {
-            weights[i] = weights[i] / weightsSum;
-        }
-        //Debug.Log("weights: " + string.Join(" ", weights.Select(w => w.ToString()).ToArray()));
-        return weights;
-	}
-
-    private float[] GetTaskArray(){
-        //current value of task array determined by world params
-		int tasklength = TArrayInfo.TaskArray.Count;
-		float[] taskArr = new float[tasklength];
-		for(int i = 0; i < tasklength; i++){
-			taskArr[i] = TArrayInfo.TaskArray[i].DetermineTaskValue();
-		}
-		return taskArr;
-	}
-
-	private void ComputeReward(MotionPose pose, ref candidatePose newPose, float[] taskArr){
-        //first calculate immediate reward
-		float immediateReward = 0.0f;
-
-        for(int i = 0; i < taskArr.Length; i++){
-			float taskReward = TArrayInfo.TaskArray[i].CheckReward (pose, newPose.pose, taskArr[i]);
-
-            //Debug.LogFormat("Task: {0} - Value: {1}", TArrayInfo.TaskArray[i].name, taskReward);
-
-            immediateReward += taskReward;
-        }
-        newPose.reward = immediateReward;
     }
 }
 

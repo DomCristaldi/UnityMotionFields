@@ -14,8 +14,5 @@ public abstract class ATask : ScriptableObject{
 
 	public int numSamples;
 
-    abstract public float CheckReward(MotionPose oldPose, MotionPose newPose, float taskval);
-
-    abstract public float DetermineTaskValue();
-		
+    abstract public float CheckReward(MotionPose oldPose, MotionPose newPose, Transform targetLocation);		
 }

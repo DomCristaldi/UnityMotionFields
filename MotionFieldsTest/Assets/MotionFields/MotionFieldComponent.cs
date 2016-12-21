@@ -430,7 +430,7 @@ namespace AnimationMotionFields {
                 Debug.LogFormat("Current Pose Timestamp: {0}", curMotionPose.timestamp);
                 */
 
-                candidates = controller.OneTick(curMotionPose);
+                candidates = controller.MoveOneTick(curMotionPose, targetLocation);
 
                 newPose = candidates[0].pose;
 

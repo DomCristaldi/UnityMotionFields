@@ -10,12 +10,7 @@ public class Task_Trajectory : ATask
 
     }
 
-    override public float CheckReward(MotionPose oldPose, MotionPose newPose, float taskval)
-    {
-        return 0;
-    }
-
-    override public float DetermineTaskValue()
+    override public float CheckReward(MotionPose oldPose, MotionPose newPose, Transform targetLocation)
     {
         return 0;
     }
