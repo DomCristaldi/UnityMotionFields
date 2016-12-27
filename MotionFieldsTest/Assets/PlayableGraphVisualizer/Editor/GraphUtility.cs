@@ -39,7 +39,7 @@ public class Vertex
     public float propagatedWeight;
 
     // Content represented by the node, to allow custom information to be drawn
-    public Playable payload;
+    public object payload;
 };
 
 // One edge is associated to each connection in the graph
