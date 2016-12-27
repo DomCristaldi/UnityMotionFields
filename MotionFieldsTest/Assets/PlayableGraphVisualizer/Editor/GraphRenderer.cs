@@ -4,6 +4,8 @@ using System.Collections.Generic;
 using System.Reflection;
 using System;
 
+using UnityEngine.Experimental.Director;
+
 
 public class GraphRenderer : ITreeRenderer
 {
@@ -90,16 +92,19 @@ public class GraphRenderer : ITreeRenderer
     {
         foreach (var v in vertices)
         {
-            var nodeType = v.payload.GetType();
+            Type nodeType = Playable.GetTypeOf(v.payload);
 
-            if (m_LegendForType.ContainsKey(nodeType))
+            if (nodeType != null && m_LegendForType.ContainsKey(nodeType))
                 continue;
 
             int nextStyleIndex = m_LegendForType.Count;
 
             NodeTypeLegend legend;
             char[] separators = {'.'};
-            string[] typeElements = v.payload.GetType().ToString().Split(separators);
+	        Type playableType = Playable.GetTypeOf(v.payload);
+            if (playableType == null) { continue; }
+
+            string[] typeElements = playableType.ToString().Split(separators);
             legend.label = typeElements[typeElements.Length - 1];
 
             if (nextStyleIndex < k_PredefinedNodeStyles.Length)
@@ -298,14 +303,14 @@ public class GraphRenderer : ITreeRenderer
 
     private void DrawNode(Vertex v, Vector2 nodeCenter, Vector2 nodeSize, string name)
     {
-        var nodeType = v.payload.GetType();
+        var nodeType = Playable.GetTypeOf(v.payload);
         var nodeRect = new Rect(nodeCenter.x, nodeCenter.y, nodeSize.x, nodeSize.y);
 
         if (m_UseCustomDrawingMethods && m_CustomDrawingMethodForType.ContainsKey(nodeType))
         {
             m_CustomDrawingMethodForType[nodeType].Invoke(null, new object[] {nodeRect, v.payload});
         }
-        else
+        else if (nodeType != null)
         {
             GUI.Label(nodeRect, "", m_LegendForType[nodeType].style);
         }

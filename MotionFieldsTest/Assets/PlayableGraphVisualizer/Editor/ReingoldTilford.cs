@@ -40,7 +40,14 @@ namespace UnityEngine.Experimental.Director
             public float    weight;
             public float    propagatedWeight;
 
-            public Playable[] children { get { return playable.GetInputs(); } }
+            public Playable[] children {
+                get {
+
+                    if (!playable.IsValid()) { return new Playable[] { }; }
+
+                    return playable.GetInputs();
+                }
+            }
         }
 
         // by convention, all graph layout algorithms should have a minimum distance of 1 unit between nodes
@@ -114,7 +121,7 @@ namespace UnityEngine.Experimental.Director
                 for (int i = 0; i < nbChildren; i++)
                 {
                     Playable c = pair.Value.children[i];
-                    if (c != null)
+                    if (c.IsValid())
                     {
                         edgesList.Add(new Edge(m_Nodes[c].vertexId, info.vertexId));
                     }
@@ -139,12 +146,14 @@ namespace UnityEngine.Experimental.Director
             info.vertexId = m_Nodes.Keys.Count;
             m_Nodes.Add(node, info);
 
+            if (!node.IsValid()) { return; }
+
             Playable[] inputs = node.GetInputs();
             int nbInputs = inputs.Length;
 
             for (int c = 0; c < nbInputs; c++)
             {
-                if (inputs[c] != null)
+                if (inputs[c].IsValid())
                     RecursiveAddNodes(inputs[c], currentDepth + 1, node.GetInputWeight(c), weight * parentWeight);
             }
         }
@@ -176,9 +185,11 @@ namespace UnityEngine.Experimental.Director
         // Traverse the graph and place all nodes according to the algorithm
         private void RecursiveTraverse(Playable root)
         {
+            if (!root.IsValid()) { return; }
+
             foreach (var c in root.GetInputs())
             {
-                if (c != null)
+                if (c.IsValid())
                 {
                     RecursiveTraverse(c);
                 }
@@ -187,7 +198,7 @@ namespace UnityEngine.Experimental.Director
             Vector2 nodePos = new Vector2(m_HorizontalPositionForLevel[m_Nodes[root].depth], 0);
 
             // Move children apart until they stop touching
-            var nonNullInputs = root.GetInputs().Where(x => x != null).ToArray();
+            var nonNullInputs = root.GetInputs().Where(x => x.IsValid()).ToArray();
             if (nonNullInputs.Length > 1)
             {
                 SeparateSubtrees(nonNullInputs);
@@ -216,7 +227,7 @@ namespace UnityEngine.Experimental.Director
         // Separate the given subtrees so they do not overlap
         private void SeparateSubtrees(Playable[] subroots)
         {
-            subroots = subroots.Where(s => s != null).ToArray();
+            subroots = subroots.Where(s => s.IsValid()).ToArray();
             if (subroots.Length < 2)
                 return;
 
@@ -276,7 +287,7 @@ namespace UnityEngine.Experimental.Director
             allDescendants.Add(root);
             foreach (var child in root.GetInputs())
             {
-                if (child != null)
+                if (child.IsValid())
                     allDescendants.AddRange(GetSubtreeNodes(child));
             }
             return allDescendants;
@@ -305,7 +316,7 @@ namespace UnityEngine.Experimental.Director
 
             foreach (var child in subtreeRoot.GetInputs())
             {
-                if (child != null)
+                if (child.IsValid())
                     RecursiveMoveSubtree(child, delta);
             }
         }

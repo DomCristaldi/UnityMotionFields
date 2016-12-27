@@ -1,142 +1,143 @@
-//using UnityEngine;
-//using UnityEditor;
-//using UnityEngine.Experimental.Director;
-//using System;
-//using System.Collections.Generic;
-//using System.Linq;
+using UnityEngine;
+using UnityEditor;
+using UnityEngine.Experimental.Director;
+using System;
+using System.Collections.Generic;
+using System.Linq;
 
-//public partial class GraphVisualizer : EditorWindow
-//{
-//    GraphRenderer m_Renderer;
-//    ReingoldTilford m_Layout;
 
-//    Dictionary<Playable, string> m_Graphs = new Dictionary<Playable, string>();
-//    Playable m_CurrentGraph = null;
+public partial class GraphVisualizer : EditorWindow
+{
+    GraphRenderer m_Renderer;
+    ReingoldTilford m_Layout;
 
-//    const float k_ToolbarHeight = 17f;
+    Dictionary<Playable, string> m_Graphs = new Dictionary<Playable, string>();
+    Playable m_CurrentGraph = Playable.Null;
 
-//    [MenuItem("Window/Graph Visualizer")]
-//    public static void ShowWindow()
-//    {
-//        EditorWindow.GetWindow<GraphVisualizer>();
-//    }
+    const float k_ToolbarHeight = 17f;
 
-//    private GraphVisualizer()
-//    {
-//        GraphVisualizerClient.instance.updateGraph = OnUpdateGraph;
-//        EditorApplication.playmodeStateChanged = OnPlayModeChanged;
-//    }
+    [MenuItem("Window/Graph Visualizer")]
+    public static void ShowWindow()
+    {
+        EditorWindow.GetWindow<GraphVisualizer>("Graph Vis");
+    }
 
-//    public void OnDestroy()
-//    {
-//        m_Graphs.Clear();
-//    }
+    private GraphVisualizer()
+    {
+        GraphVisualizerClient.instance.updateGraph = OnUpdateGraph;
+        EditorApplication.playmodeStateChanged = OnPlayModeChanged;
+    }
 
-//    public void OnPlayModeChanged()
-//    {
-//        if (!EditorApplication.isPaused && !EditorApplication.isPlaying)
-//        {
-//            m_CurrentGraph = null;
-//            m_Graphs.Clear();
-//            Repaint();
-//        }
-//    }
+    public void OnDestroy()
+    {
+        m_Graphs.Clear();
+    }
 
-//    public void OnUpdateGraph(Playable p, string title)
-//    {
-//        if (!m_Graphs.ContainsKey(p))
-//        {
-//            m_Graphs.Add(p, title);
-//            m_CurrentGraph = p;
-//        }
-//        // Update titles if necessary
-//        else if (m_Graphs.ContainsKey(p) && m_Graphs[p] != title)
-//        {
-//            m_Graphs[p] = title;
-//        }
+    public void OnPlayModeChanged()
+    {
+        if (!EditorApplication.isPaused && !EditorApplication.isPlaying)
+        {
+            m_CurrentGraph = Playable.Null;
+            m_Graphs.Clear();
+            Repaint();
+        }
+    }
 
-//        if (m_CurrentGraph == p)
-//        {
-//            UpdateLayout(p);
-//        }
-//    }
+    public void OnUpdateGraph(Playable p, string title)
+    {
+        if (!m_Graphs.ContainsKey(p))
+        {
+            m_Graphs.Add(p, title);
+            m_CurrentGraph = p;
+        }
+        // Update titles if necessary
+        else if (m_Graphs.ContainsKey(p) && m_Graphs[p] != title)
+        {
+            m_Graphs[p] = title;
+        }
 
-//    public void UpdateLayout(Playable graph)
-//    {
-//        if (m_Layout == null)
-//            m_Layout = new ReingoldTilford();
+        if (m_CurrentGraph == p)
+        {
+            UpdateLayout(p);
+        }
+    }
 
-//        m_Layout.Layout(graph);
-//        Repaint();
-//    }
+    public void UpdateLayout(Playable graph)
+    {
+        if (m_Layout == null)
+            m_Layout = new ReingoldTilford();
 
-//    private void DoToolbar()
-//    {
-//        EditorGUILayout.BeginHorizontal(EditorStyles.toolbar, GUILayout.Width(position.width));
-//        GUIStyle onStyle = "ToolbarButton";
-//        const string graphTitle = "Graph: ";
-//        if (m_Graphs.Count == 1)
-//        {
-//            GUILayout.Label(graphTitle + m_Graphs[m_CurrentGraph]);
-//        }
-//        if (m_Graphs.Count > 1)
-//        {
-//            var options = m_Graphs.Values.ToArray();
-//            var playables = m_Graphs.Keys.ToArray();
+        m_Layout.Layout(graph);
+        Repaint();
+    }
 
-//            // Can buttons be used to select the multiple graphs, or do we need a drop down menu?
-//            float totalWidth = 0;
-//            foreach (var o in options)
-//            {
-//                totalWidth += onStyle.CalcSize(new GUIContent(o)).x;
-//            }
+    private void DoToolbar()
+    {
+        EditorGUILayout.BeginHorizontal(EditorStyles.toolbar, GUILayout.Width(position.width));
+        GUIStyle onStyle = "ToolbarButton";
+        const string graphTitle = "Graph: ";
+        if (m_Graphs.Count == 1)
+        {
+            GUILayout.Label(graphTitle + m_Graphs[m_CurrentGraph]);
+        }
+        if (m_Graphs.Count > 1)
+        {
+            var options = m_Graphs.Values.ToArray();
+            var playables = m_Graphs.Keys.ToArray();
 
-//            if (totalWidth > position.width)
-//            {
-//                int initialIndex = Array.IndexOf(playables, m_CurrentGraph);
-//                int index = EditorGUILayout.Popup(graphTitle, initialIndex, options, GUILayout.Width(position.width));
+            // Can buttons be used to select the multiple graphs, or do we need a drop down menu?
+            float totalWidth = 0;
+            foreach (var o in options)
+            {
+                totalWidth += onStyle.CalcSize(new GUIContent(o)).x;
+            }
 
-//                if (index !=  initialIndex)
-//                {
-//                    m_CurrentGraph = playables[index];
-//                    UpdateLayout(m_CurrentGraph);
-//                }
-//            }
-//            else
-//            {
-//                GUILayout.Label(graphTitle);
-//                for (int i = 0; i < m_Graphs.Count; i++)
-//                {
-//                    bool isCurrent = m_CurrentGraph == playables[i];
-//                    bool value = GUILayout.Toggle(isCurrent, options[i], onStyle);
-//                    if (value && value != isCurrent)
-//                    {
-//                        m_CurrentGraph = playables[i];
-//                        UpdateLayout(m_CurrentGraph);
-//                    }
-//                }
-//            }
-//        }
+            if (totalWidth > position.width)
+            {
+                int initialIndex = Array.IndexOf(playables, m_CurrentGraph);
+                int index = EditorGUILayout.Popup(graphTitle, initialIndex, options, GUILayout.Width(position.width));
 
-//        GUILayout.FlexibleSpace();
-//        EditorGUILayout.EndHorizontal();
-//    }
+                if (index !=  initialIndex)
+                {
+                    m_CurrentGraph = playables[index];
+                    UpdateLayout(m_CurrentGraph);
+                }
+            }
+            else
+            {
+                GUILayout.Label(graphTitle);
+                for (int i = 0; i < m_Graphs.Count; i++)
+                {
+                    bool isCurrent = m_CurrentGraph == playables[i];
+                    bool value = GUILayout.Toggle(isCurrent, options[i], onStyle);
+                    if (value && value != isCurrent)
+                    {
+                        m_CurrentGraph = playables[i];
+                        UpdateLayout(m_CurrentGraph);
+                    }
+                }
+            }
+        }
 
-//    void OnGUI()
-//    {
-//        GUILayout.BeginVertical();
-//        DoToolbar();
+        GUILayout.FlexibleSpace();
+        EditorGUILayout.EndHorizontal();
+    }
 
-//        if (m_CurrentGraph == null)
-//            return;
+    void OnGUI()
+    {
+        GUILayout.BeginVertical();
+        DoToolbar();
 
-//        if (m_Renderer == null)
-//            m_Renderer = new GraphRenderer();
+        if (!m_CurrentGraph.IsValid())
+            return;
 
-//        GUILayout.EndVertical();
+        if (m_Renderer == null)
+            m_Renderer = new GraphRenderer();
 
-//        var graphRect = new Rect(0, k_ToolbarHeight, position.width, position.height - k_ToolbarHeight);
-//        if (m_Layout != null)
-//            m_Renderer.Draw(m_Layout, graphRect);
-//    }
-//}
+        GUILayout.EndVertical();
+
+        var graphRect = new Rect(0, k_ToolbarHeight, position.width, position.height - k_ToolbarHeight);
+        if (m_Layout != null)
+            m_Renderer.Draw(m_Layout, graphRect);
+    }
+}
