@@ -11,6 +11,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 28f7b0f6ae3b8ce428b55c48d8b8b0d9, type: 3}
   m_Name: Walking_MotionField
   m_EditorClassIdentifier: 
+  trackedBones:
+  - Hips
+  - LeftUpLeg
+  - LeftLeg
   animClipInfoList:
   - useClip: 0
     velocityCalculationMode: 0

@@ -9,8 +9,8 @@ using UnityEditor;
 using UnityEditorInternal;
 #endif
 
-namespace AnimationMotionFields {
-
+namespace AnimationMotionFields
+{
     [System.Serializable]
     public class CosmeticSkeletonBone {
         public enum MovementSpace {
@@ -27,8 +27,8 @@ namespace AnimationMotionFields {
 
     //TODO: SERIALIZE TO DICTIONARY AT RUNTIME
     [System.Serializable]
-    public class CosmeticSkeleton {
-
+    public class CosmeticSkeleton
+    {
         //public GameObject marker;
 
         public Transform skeletonRoot;
@@ -40,7 +40,8 @@ namespace AnimationMotionFields {
 
         //TODO: Write GetCurrentPose() to get the current Motion Pose of the skeleton
 
-        public void ApplyPose(MotionPose pose) {
+        public void ApplyPose(MotionPose pose)
+        {
             foreach (BonePose poseBone in pose.bonePoses) {
                 foreach (CosmeticSkeletonBone cosBone in cosmeticBones) {
                     if (cosBone.boneLabel == poseBone.boneLabel) {
@@ -116,8 +117,8 @@ namespace AnimationMotionFields {
     */
     
     [CustomPropertyDrawer(typeof(CosmeticSkeleton))]
-    public class CosmeticSkeleton_PropertyDrawer : PropertyDrawer {
-
+    public class CosmeticSkeleton_PropertyDrawer : PropertyDrawer
+    {
         private ReorderableList _reorderList;
         private float _elementPadding = 0.5f;
 
@@ -157,8 +158,8 @@ namespace AnimationMotionFields {
             return _reorderList;
         }
 
-        public override float GetPropertyHeight(SerializedProperty property, GUIContent label) {
-
+        public override float GetPropertyHeight(SerializedProperty property, GUIContent label)
+        {
             if (_reorderList == null) { _reorderList = GetReorderList(property.FindPropertyRelative("cosmeticBones")); }
 
             float propHeight = 0.0f;
@@ -183,8 +184,8 @@ namespace AnimationMotionFields {
 
         }
 
-        public override void OnGUI(Rect position, SerializedProperty property, GUIContent label) {
-
+        public override void OnGUI(Rect position, SerializedProperty property, GUIContent label)
+        {
             float yVal = position.y;
 
             //SerializedProperty markerProp = property.FindPropertyRelative("marker");
@@ -242,11 +243,50 @@ namespace AnimationMotionFields {
 
     //[ExecuteInEditMode]
     [RequireComponent(typeof(Animator))]
-    public class MotionFieldComponent : MonoBehaviour {
+    public class MotionFieldComponent : MonoBehaviour
+    {
+        private MotionPose newPose;
+        private candidatePose[] candidates;
+        private AnimClipInfo currentAnimInfo;
+
+        private class AnimMixerBlendInfo
+        {
+            //public MotionPose newPose;
+            //public candidatePose[] candidates;
+
+            public int clipIndex;
+
+            public float timeSinceLastBlend;
+            public int framesSinceLastBlend;
+            public float timeStampOfLastBlend;
+
+            public int indexOfLastBlend;
+            public int index;
+
+        //CONSTRUCTOR - Set Defaults
+            public AnimMixerBlendInfo(float timeStampOfLastBlend = 0.0f)
+            {
+                //this.newPose = null;
+                //this.candidates = null;
+
+                this.clipIndex = 0;
+
+                this.timeSinceLastBlend = 0.0f - Time.deltaTime;
+                this.framesSinceLastBlend = 0;
+                this.timeStampOfLastBlend = timeStampOfLastBlend; //this is data that is set on a per-instance basis, so it needs to be set at runtime per object
+
+                this.indexOfLastBlend = 0;
+                this.index = 0;
+            }
+        }
+
+        private AnimMixerBlendInfo currentBlendInfo;
 
         Animator animControl;
 
         BlendSwitcherPlayable blendSwitcher;
+
+        public BoneMap AssignedBoneMap;
 
         public int initialPoseClipIndex;
         public float initialPoseClipTimestamp;
@@ -256,33 +296,19 @@ namespace AnimationMotionFields {
 
         public Transform targetLocation;
 
-        //public MotionSkeleton skeleton;
 
-        //private CosmeticSkeleton curPose;
-        //private CosmeticSkeleton nextPose;
 
-        //public GameObject startPos;
-        //public GameObject endPos;
-
-        //float lerpVal = 0.0f;
-        //public float lerpDelta = 0.2f;
-        //public MotionSkeleton skeleton;
-
-        //private MotionPose currentPos;
 
         private float[] currentTaskArray;
-        //public MotionSkeletonBonePlayable testRoot;
-        //MotionSkeletonBonePlayable testPlayable;
 
-        //public float t;
 
         public bool useRootMotion = true;
 
         private MotionPose curMotionPose;
 
 
-        void Awake() {
-
+        void Awake()
+        {
             animControl = GetComponent<Animator>();
 
             //HACK: in release build, it should be impossible to call functions from MotionFieldUtility
@@ -298,8 +324,11 @@ namespace AnimationMotionFields {
         }
 		
         // Use this for initialization
-        void Start () {
-            if (controller != null) {
+        void Start ()
+        {
+            //if possible, get the currently used Motion Pose
+            if (controller != null) 
+            {
                 for(int i = 0; i < controller.animClipInfoList.Count; ++i)
                 {
                     if(controller.animClipInfoList[i].useClip == true)
@@ -310,7 +339,9 @@ namespace AnimationMotionFields {
                 }
             }
 
-            StartCoroutine(RunMixersRoutine(0.25f));
+            InitAnimMixer();
+
+            //StartCoroutine(RunMixersRoutine(0.25f));
         }
 
         void OnDestroy()
@@ -319,9 +350,12 @@ namespace AnimationMotionFields {
         }
 
         // Update is called once per frame
-        void Update () {
+        void Update ()
+        {
+            UpdateAnimMixer();
 
-            if (blendSwitcher.mixer.IsValid()) {
+            if (blendSwitcher.mixer.IsValid()) 
+            {
                 GraphVisualizerClient.Show(blendSwitcher.mixer, "Blend Switcher");
             }
 
@@ -337,31 +371,31 @@ namespace AnimationMotionFields {
 
         }
 
-        public void ApplyMotionPoseToSkeleton(MotionPose pose) {
-            if (controller == null) {
+        public void ApplyMotionPoseToSkeleton(MotionPose pose)
+        {
+            if (controller == null) 
+            {
                 Debug.LogErrorFormat("Motion Field Controller for {0} has not been assigned. Cannot apply Motion Pose", gameObject.name);
                 return;
             }
 
-            if (cosmeticSkel == null) {
+            if (cosmeticSkel == null) 
+            {
                 Debug.LogErrorFormat("Skeleton for {0} has not been assigned. Cannot apply Motion Pose", gameObject.name);
                 return;
             }
 
-
-
-            /*
             cosmeticSkel.ApplyPose(pose);
 
-            if (useRootMotion) {
+            if (useRootMotion) 
+            {
                 ApplyRootMotion(pose.rootMotionInfo.value.position, pose.rootMotionInfo.value.rotation);
             }
-            */
         }
 
         //Apply the root motoin to the character
-        public void ApplyRootMotion(Vector3 translation, Quaternion rotation) {
-
+        public void ApplyRootMotion(Vector3 translation, Quaternion rotation)
+        {
             //apply position first, because it was extracted from the movement of the previous frame and that previous frame's rotation
             transform.position += transform.rotation * translation;
 
@@ -370,8 +404,8 @@ namespace AnimationMotionFields {
         }
 
         //TEMP: Function to help test if the motion poses are correct, called from an Editor Script
-        public IEnumerator PlayOutMotionPoseAnim(int animIndex) {
-
+        public IEnumerator PlayOutMotionPoseAnim(int animIndex)
+        {
             if (controller == null) { yield break; }
 
             foreach (MotionPose pose in controller.animClipInfoList[animIndex].motionPoses) {
@@ -381,13 +415,108 @@ namespace AnimationMotionFields {
                 yield return null;
             }
 
-
             yield break;
+        }
+
+        private void InitAnimMixer()
+        {
+            //REFACTOR - try to get rid of LINQ, it generally performs slow
+            currentAnimInfo = controller.animClipInfoList
+                                        .Where(clipInfo => clipInfo.animClip.name == curMotionPose.animName)
+                                        .First();
+
+            //wrapper structure hold useful data
+            currentBlendInfo = new AnimMixerBlendInfo(curMotionPose != null ? curMotionPose.timestamp
+                                                                           : 0.0f);
+
+            //get index of curMotionPose
+            for(currentBlendInfo.indexOfLastBlend = 0; 
+                currentBlendInfo.indexOfLastBlend < currentAnimInfo.motionPoses.Length;
+                currentBlendInfo.indexOfLastBlend++) 
+            {
+                if(currentAnimInfo.motionPoses[currentBlendInfo.indexOfLastBlend].timestamp == curMotionPose.timestamp) {
+                    break;
+                }
+            }
+
+            /*for(indexOfLastBlend = 0; indexOfLastBlend < currentAnimInfo.motionPoses.Length; indexOfLastBlend++) {
+                if(currentAnimInfo.motionPoses[indexOfLastBlend].timestamp == curMotionPose.timestamp) {
+                    break;
+                }
+            }
+            */
+        }
+
+        private void UpdateAnimMixer()
+        {
+
+            //advance curMotionPose as time passes
+            currentBlendInfo.timeSinceLastBlend += Time.deltaTime;
+            currentBlendInfo.framesSinceLastBlend = (int)(currentBlendInfo.timeSinceLastBlend / currentAnimInfo.frameStep);
+            currentBlendInfo.index = (int)Mathf.Min(currentBlendInfo.indexOfLastBlend + currentBlendInfo.framesSinceLastBlend, currentAnimInfo.motionPoses.Length - 1); //gets min to prevent index being higher than array length
+            curMotionPose = currentAnimInfo.motionPoses[currentBlendInfo.index];
+
+            /*
+            Debug.LogFormat("Time Since Last Blend: {0}", timeSinceLastBlend);
+            Debug.LogFormat("Current Anim Frame Step: {0}", currentAnimInfo.frameStep);
+            Debug.LogFormat("Frames Since Last Blend: {0}", framesSinceLastBlend);
+            Debug.LogFormat("Current Pose Timestamp: {0}", curMotionPose.timestamp);
+            */
+
+            candidates = controller.OneTick(curMotionPose);
+
+            newPose = candidates[0].pose;
+
+            AnimClipInfo selectedAnimInfo = controller.animClipInfoList
+                                                    .Where(clipInfo => clipInfo.animClip.name == newPose.animName)
+                                                    .First();
+
+            //CHECK IF WE SHOUDL BLEND OUT TO ANOTHER ANIMATION OR A DIFFERENT TIME ON THE SAME TRACK
+            //bool newPoseIsTooSimilar = selectedAnimInfo.animClip.name == blendSwitcher.targetClipName
+            //                           && Mathf.Abs(newPose.timestamp - blendSwitcher.targetClipTime) < 0.2f;
+
+            bool newPoseIsTooSimilar = selectedAnimInfo.animClip.name == curMotionPose.animName
+                                       && Mathf.Abs(newPose.timestamp - curMotionPose.timestamp) < 0.2f;
+
+
+            if(!newPoseIsTooSimilar) 
+            {
+                //Debug.LogWarning("-------Blend To New Pose-------");
+
+                blendSwitcher.BlendToAnim(selectedAnimInfo.animClip, newPose.timestamp);
+                curMotionPose = newPose;
+
+                currentBlendInfo.timeSinceLastBlend = 0.0f;
+                currentBlendInfo.framesSinceLastBlend = 0;
+                currentBlendInfo.timeStampOfLastBlend = curMotionPose.timestamp;
+                currentAnimInfo = selectedAnimInfo;
+
+                //get index of curMotionPose
+                for(currentBlendInfo.indexOfLastBlend = 0; 
+                    currentBlendInfo.indexOfLastBlend < currentAnimInfo.motionPoses.Length; 
+                    currentBlendInfo.indexOfLastBlend++) 
+                {
+                    if(currentAnimInfo.motionPoses[currentBlendInfo.indexOfLastBlend].timestamp == curMotionPose.timestamp) {
+                        break;
+                    }
+                }
+            }
+
+            //selectedAnim = controller.animClipInfoList[clipIndex].animClip;
+            //blendSwitcher.BlendToAnim(selectedAnim, Random.Range(0.0f, selectedAnim.length));
+
+            ++currentBlendInfo.clipIndex;
+            if(currentBlendInfo.clipIndex >= controller.animClipInfoList.Count)
+            {
+                currentBlendInfo.clipIndex = 0;
+            }
         }
 
         public IEnumerator RunMixersRoutine(float waitTime)
         {
 
+            //InitAnimMixer();
+            
             MotionPose newPose;
             candidatePose[] candidates;
 
@@ -399,22 +528,25 @@ namespace AnimationMotionFields {
             int indexOfLastBlend = 0;
             int index = 0;
 
+            //REFACTOR - try to get rid of LINQ, it generally performs slow
             AnimClipInfo currentAnimInfo = controller.animClipInfoList
                                         .Where(clipInfo => clipInfo.animClip.name == curMotionPose.animName)
                                         .First();
 
-            //get index of curMotionPose
-            for (indexOfLastBlend = 0; indexOfLastBlend < currentAnimInfo.motionPoses.Length; indexOfLastBlend++) {
-                if (currentAnimInfo.motionPoses[indexOfLastBlend].timestamp == curMotionPose.timestamp) {
+            for(indexOfLastBlend = 0; indexOfLastBlend < currentAnimInfo.motionPoses.Length; indexOfLastBlend++) 
+            {
+                if(currentAnimInfo.motionPoses[indexOfLastBlend].timestamp == curMotionPose.timestamp)
+                {
                     break;
                 }
             }
 
+
             //yield return new WaitForSeconds(waitTime);
             yield return null;
 
-            while (true) {
-
+            while (true) 
+            {
                 //yield return null;
 
                 //advance curMotionPose as time pases
@@ -446,30 +578,8 @@ namespace AnimationMotionFields {
                                            && Mathf.Abs(newPose.timestamp - curMotionPose.timestamp) < 0.2f;
 
 
-                /*
-                float targetNodeTimestamp = blendSwitcher.targetClipTime;
-                if((selectedAnim.name != blendSwitcher.targetClipName)  //we're jumping to a different animation
-                    |                                                     // OR  
-                    Mathf.Abs(targetNodeTimestamp - newPose.timestamp) > 2.0f //we're on the same anim, but the time difference is large enough
-                ){                                                                //HACK: 0.2f magic number, it represents transition diffrence threshold
-                    */
-
-                /*
-                Debug.LogFormat("Current Pose Timestamp: {0}\nPose is too similar: {1}",
-                                curMotionPose.timestamp,
-                                newPoseIsTooSimilar);
-                */
-                /*
-                string AbrahamLincoln = "";
-                for (int i = 0; i < candidates.Length; ++i)
+                if (!newPoseIsTooSimilar) 
                 {
-                    AbrahamLincoln += " candidate #" + (i + 1) + ": " + candidates[i].pose.animName + " at time " + candidates[i].pose.timestamp + " with reward " + candidates[i].reward + "\n";
-                }
-                Debug.Log(AbrahamLincoln);
-                */
-
-                if (!newPoseIsTooSimilar) {
-
                     //Debug.LogWarning("-------Blend To New Pose-------");
 
                     blendSwitcher.BlendToAnim(selectedAnimInfo.animClip, newPose.timestamp);
@@ -481,23 +591,23 @@ namespace AnimationMotionFields {
                     currentAnimInfo = selectedAnimInfo;
 
                     //get index of curMotionPose
-                    for (indexOfLastBlend = 0; indexOfLastBlend < currentAnimInfo.motionPoses.Length; indexOfLastBlend++) {
-                        if (currentAnimInfo.motionPoses[indexOfLastBlend].timestamp == curMotionPose.timestamp) {
+                    for (indexOfLastBlend = 0; indexOfLastBlend < currentAnimInfo.motionPoses.Length; indexOfLastBlend++) 
+                    {
+                        if (currentAnimInfo.motionPoses[indexOfLastBlend].timestamp == curMotionPose.timestamp)
+                        {
                             break;
                         }
                     }
                 }
 
-
                 //selectedAnim = controller.animClipInfoList[clipIndex].animClip;
                 //blendSwitcher.BlendToAnim(selectedAnim, Random.Range(0.0f, selectedAnim.length));
 
                 ++clipIndex;
-                if (clipIndex >= controller.animClipInfoList.Count) {
+                if (clipIndex >= controller.animClipInfoList.Count) 
+                {
                     clipIndex = 0;
                 }
-
-
 
                 //yield return new WaitForSeconds(waitTime);
                 //yield return null;
@@ -590,9 +700,10 @@ namespace AnimationMotionFields {
             Gizmos.color = originalGizmoColor;
         }
 
-        private void Gizmo_DrawSkeletonHierarchy(Transform root) {
-
-            foreach (Transform tf in root) {
+        private void Gizmo_DrawSkeletonHierarchy(Transform root)
+        {
+            foreach (Transform tf in root) 
+            {
                 Gizmo_DrawSkeletonHierarchy(tf);
             }
 
@@ -603,8 +714,8 @@ namespace AnimationMotionFields {
             Gizmos.DrawSphere(root.position, g_skeletonJointRadius);
         }
 
-        private void Gizmo_DrawBodyOrientation() {
-
+        private void Gizmo_DrawBodyOrientation()
+        {
             Gizmos.color = g_bodyOrientaionVecColor;
 
             HumanPoseHandler hPoseHandler = new HumanPoseHandler(cosmeticSkel.avatar, cosmeticSkel.skeletonRoot);
@@ -643,8 +754,8 @@ namespace AnimationMotionFields {
 #if UNITY_EDITOR
     [CanEditMultipleObjects]
     [CustomEditor(typeof(MotionFieldComponent))]
-    public class MotionFieldComponent_Editor : Editor {
-
+    public class MotionFieldComponent_Editor : Editor
+    {
         private MotionFieldComponent selfScript;
         private Animator animControl;
 
@@ -653,13 +764,14 @@ namespace AnimationMotionFields {
 
         public Color rootMotionColor = Color.red;
 
-        void OnEnable() {
-
+        void OnEnable()
+        {
             selfScript = (MotionFieldComponent)target;
             animControl = selfScript.GetComponent<Animator>();
         }
 
-        void OnSceneGUI() {
+        void OnSceneGUI()
+        {
             Color originalHandleColor = Handles.color;
 
             DrawRootMotionVectors();
@@ -670,7 +782,8 @@ namespace AnimationMotionFields {
             //Repaint();
         }
 
-        public override void OnInspectorGUI() {
+        public override void OnInspectorGUI()
+        {
             base.OnInspectorGUI();
             /*
             EditorGUILayout.Space();
@@ -690,7 +803,8 @@ namespace AnimationMotionFields {
             //EditorGUILayout.Vector3Field("Center of Mass: ", animControl.bodyPosition);
         }
 
-        private void TranscribeBoneLabelsFromControllerTool() {
+        private void TranscribeBoneLabelsFromControllerTool()
+        {
             if (selfScript.controller == null) { return; }
         //HACK: come back and use a Bone Labels Scriptable Object instead (when it finally exists
             if (selfScript.controller.animClipInfoList.Count == 0) { return; }
@@ -704,7 +818,8 @@ namespace AnimationMotionFields {
             */
         }
 
-        private void DrawMotionApplicationTool() {
+        private void DrawMotionApplicationTool()
+        {
             if (selfScript.controller == null) { return; }
 
             EditorGUILayout.BeginVertical();
@@ -714,19 +829,21 @@ namespace AnimationMotionFields {
             selectedAnim = EditorGUILayout.IntSlider(selectedAnim, 0, selfScript.controller.animClipInfoList.Count - 1);
             selectedPose = EditorGUILayout.IntSlider(selectedPose, 0, selfScript.controller.animClipInfoList[selectedAnim].motionPoses.Length);
 
-            if (GUILayout.Button("ApplyPose")) {
+            if (GUILayout.Button("ApplyPose"))
+            {
                 selfScript.ApplyMotionPoseToSkeleton(selfScript.controller.animClipInfoList[selectedAnim].motionPoses[selectedPose]);
             }
 
-            if (GUILayout.Button("Play thorugh poses")) {
+            if (GUILayout.Button("Play thorugh poses"))
+            {
                 selfScript.StartCoroutine(selfScript.PlayOutMotionPoseAnim(selectedAnim));
             }
 
             EditorGUILayout.EndVertical();
         }
 
-        private void DrawRootMotionVectors() {
-
+        private void DrawRootMotionVectors()
+        {
             if (selfScript.controller == null) { return; }
 
             Matrix4x4 originalMatrix = Handles.matrix;
@@ -735,8 +852,10 @@ namespace AnimationMotionFields {
             Handles.color = rootMotionColor;
 
 
-            if (selfScript.controller.animClipInfoList.Count > 0) {
-                if (selfScript.controller.animClipInfoList[selectedAnim].motionPoses.Length > 0) {
+            if (selfScript.controller.animClipInfoList.Count > 0) 
+            {
+                if (selfScript.controller.animClipInfoList[selectedAnim].motionPoses.Length > 0) 
+                {
                     Handles.DrawLine(Vector3.zero, //selfScript.transform.position,
                                      selfScript.controller.animClipInfoList[selectedAnim].motionPoses[selectedPose].rootMotionInfo.value.rotation * 
                                      selfScript.controller.animClipInfoList[selectedAnim].motionPoses[selectedPose].rootMotionInfo.value.position *
@@ -748,7 +867,8 @@ namespace AnimationMotionFields {
             Handles.matrix = originalMatrix;
         }
 
-        private void DrawBodyOrientation() {
+        private void DrawBodyOrientation()
+        {
             Handles.color = Color.cyan;
             Matrix4x4 originalMatrix = Handles.matrix;
 

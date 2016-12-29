@@ -327,11 +327,11 @@ namespace AnimationMotionFields {
                     HumanPose curHumanPose = GetHumanPose(modelRef, animClip, timestamp);//this stores the current frame's pose
 
                     ExtractRootMotion_MovementExtraction(ref motionPose,
-                                                                      animClip,
-                                                                      modelRef,
-                                                                      prevHumanPose.bodyPosition, prevHumanPose.bodyRotation,
-                                                                      curHumanPose.bodyPosition, curHumanPose.bodyRotation,
-                                                                      frameHandling);
+                                                         animClip,
+                                                         modelRef,
+                                                         prevHumanPose.bodyPosition, prevHumanPose.bodyRotation,
+                                                         curHumanPose.bodyPosition, curHumanPose.bodyRotation,
+                                                         frameHandling);
                     break;
 
             //REFERENCE POINT

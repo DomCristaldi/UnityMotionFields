@@ -348,6 +348,9 @@ public class AnimClipInfo {
 [CreateAssetMenu]
 public class MotionFieldController : ScriptableObject {
 
+    //public List<string> trackedBones;
+    public BoneMap AssignedBoneMap;
+
     public List<AnimClipInfo> animClipInfoList;
 
     public KDTreeDLL_f.KDTree kd;
