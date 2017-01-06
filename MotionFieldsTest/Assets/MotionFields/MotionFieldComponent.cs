@@ -463,6 +463,7 @@ namespace AnimationMotionFields
             Debug.LogFormat("Current Pose Timestamp: {0}", curMotionPose.timestamp);
             */
 
+            //candidates sorted by reward
             candidates = controller.OneTick(curMotionPose, targetLocation);
 
             newPose = candidates[0].pose;

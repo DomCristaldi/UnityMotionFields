@@ -296,6 +296,7 @@ namespace AnimationMotionFields {
                     //get the center of mass and body orientation out of the human pose
                     HumanPose hPose = GetHumanPose(modelRef, animClip, timestamp);
 
+                    //set info for the skeleton root (aka hip bone)
                     ExtractRootMotion_SkeletonRootOffset(motionPose,
                                                          animClip,
                                                          modelRef, 
@@ -326,6 +327,7 @@ namespace AnimationMotionFields {
                     HumanPose prevHumanPose = GetHumanPose(modelRef, animClip, timestamp - frameStep);//this stores the previous frame's pose
                     HumanPose curHumanPose = GetHumanPose(modelRef, animClip, timestamp);//this stores the current frame's pose
 
+                    //sets info for root bone
                     ExtractRootMotion_MovementExtraction(ref motionPose,
                                                          animClip,
                                                          modelRef,
@@ -423,7 +425,9 @@ namespace AnimationMotionFields {
             AnimationMode.StopAnimationMode();
         }
 
-
+        /// <summary>
+        /// Root Motion is extracted here as the change in the root from the previous frame to the current frame, from the orientation/perspective of the previous frame
+        /// </summary>
         public static void ExtractRootMotion_MovementExtraction(ref MotionPose motionPose,
                                                                 AnimationClip animClip,
                                                                 MotionFieldComponent modelRef,
