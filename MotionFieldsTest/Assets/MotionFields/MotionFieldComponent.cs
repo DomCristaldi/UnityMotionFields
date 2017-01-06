@@ -463,7 +463,7 @@ namespace AnimationMotionFields
             Debug.LogFormat("Current Pose Timestamp: {0}", curMotionPose.timestamp);
             */
 
-            candidates = controller.OneTick(curMotionPose);
+            candidates = controller.OneTick(curMotionPose, targetLocation);
 
             newPose = candidates[0].pose;
 
@@ -562,7 +562,7 @@ namespace AnimationMotionFields
                 Debug.LogFormat("Current Pose Timestamp: {0}", curMotionPose.timestamp);
                 */
 
-                candidates = controller.MoveOneTick(curMotionPose, targetLocation);
+                candidates = controller.OneTick(curMotionPose, targetLocation);
 
                 newPose = candidates[0].pose;
 

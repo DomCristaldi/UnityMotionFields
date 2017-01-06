@@ -355,7 +355,7 @@ public class MotionFieldController : ScriptableObject {
     //DEBUG
     public string currentTaskOutput;
 
-    public candidatePose[] MoveOneTick(MotionPose currentPose, Transform targetLocation)
+    public candidatePose[] OneTick(MotionPose currentPose, Transform targetLocation)
     {
         //Debug.Log("Move One Frame pose before GenCandActions: " + string.Join(" ", currentPose.flattenedMotionPose.Select(d => d.ToString()).ToArray()));
         candidatePose[] candidateActions = GenerateCandidateActions(currentPose);
