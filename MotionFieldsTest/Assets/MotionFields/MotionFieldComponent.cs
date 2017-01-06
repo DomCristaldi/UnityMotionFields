@@ -316,10 +316,14 @@ namespace AnimationMotionFields
 
             //create the custom playalbe for driving the animations
             blendSwitcher = Playable.Create<BlendSwitcherPlayable>();
-            blendSwitcher.InitBlendSwitcher(controller.animClipInfoList[1].animClip,
-                                            0.0f);
-
-            animControl.Play(blendSwitcher);
+            foreach(AnimClipInfo clipInfo in controller.animClipInfoList) {
+                if(clipInfo.useClip == true) {
+                    blendSwitcher.InitBlendSwitcher(clipInfo.animClip, 0.0f);
+                    animControl.Play(blendSwitcher);
+                    break;
+                }
+            }
+            //TODO: if no clip could be chosen to start blendswitcher, throw an error.
         }
 		
         // Use this for initialization
