@@ -2,14 +2,15 @@
 using System.Collections;
 
 [CreateAssetMenu]
-public class Task_Movement_Forward_Backward : ATask {
+public class Task_Movement_Forward_Backward : ATask
+{
 
     public Task_Movement_Forward_Backward()
     {
 
     }
 
-    override public float CheckReward(MotionPose oldPose, MotionPose newPose, float taskval)
+    override public float CheckReward(MotionPose oldPose, MotionPose newPose, Transform targetLocation)
     {
         /* TODO
          *
@@ -20,16 +21,18 @@ public class Task_Movement_Forward_Backward : ATask {
          *  currently, this task can potentially return float.MaxValue, overshadowing all other tasks in the total reward.
          */
 
+        float taskval = Input.GetAxisRaw("Vertical");
+
         //Debug.LogFormat("Task Input: MovementForwardBackward: {0}", taskval);
 
-        if(taskval == 0)
+        if (taskval == 0)
         {
             //want deviation from 0 movement to be as small as possible. lower movement = higher reward
             float movement = Mathf.Abs(newPose.rootMotionInfo.value.posZ) + Mathf.Abs(newPose.rootMotionInfo.positionNext.posZ);
 
             return Mathf.Atan(movement);
         }
-        else if(taskval < 0)
+        else if (taskval < 0)
         {
             //move backwards. lower movement (it can be negative) = better reward
             float movement = newPose.rootMotionInfo.value.posZ + newPose.rootMotionInfo.positionNext.posZ;
@@ -41,12 +44,5 @@ public class Task_Movement_Forward_Backward : ATask {
             float movement = newPose.rootMotionInfo.value.posZ + newPose.rootMotionInfo.positionNext.posZ;
             return (Mathf.PI / 2) - Mathf.Atan(movement);
         }
-    }
-
-    override public float DetermineTaskValue()
-    {
-        //holds value from -1 to 1. value of zero means stand still, 1 is move forward, 0 is move backwards. 
-        //determine task by checking input. if no input, task = 0. if up arrow, task = 1. if down arrow, task = -1
-        return Input.GetAxisRaw("Vertical");
     }
 }

@@ -155,15 +155,7 @@ public class BoneTransform {
         }
     }
 
-    public static BoneTransform BlendTransform(BoneTransform tf1, BoneTransform tf2, float alpha) {
-
-        Vector3 newPos = Vector3.Lerp(tf1.position, tf2.position, alpha);
-        Quaternion newRot = Quaternion.Slerp(tf1.rotation, tf2.rotation, alpha);
-
-        return new BoneTransform(newPos, newRot);
-    }
-
-    public static BoneTransform BlendTransforms(BoneTransform[] trans, float[] weights)
+    /*public static BoneTransform BlendTransforms(BoneTransform[] trans, float[] weights)
     {
         Vector3 avgPos = Vector3.zero;
         Quaternion avgRot = new Quaternion(0, 0, 0, 0);
@@ -189,13 +181,13 @@ public class BoneTransform {
             }
         }
 
-        //note: is normalizing avgPos and avgScl nessesary? avgPos is not nessesarily a unit vector, but they should all be the same length, and avgPos may not be that length?
+        //note: is normalizing avgPos nessesary? avgPos is not nessesarily a unit vector, but they should all be the same length, and avgPos may not be that length?
 
         //Normalize the result to a unit Quaternion
         avgRot = avgRot.Normalize();
 
         return new BoneTransform(avgPos, avgRot);
-    }
+    }*/
 
 }
 
@@ -251,7 +243,7 @@ public class MotionPose {
 
 
     //CONSTRUCTOR FOR CREATING A MOTION POSE OUT OF BLENED POSES
-    public MotionPose(MotionPose[] posesToBlend, float[] weights) {
+    /*public MotionPose(MotionPose[] posesToBlend, float[] weights) {
 
         //Break out if there's no data to work with for either poses or weights
         if (posesToBlend.Length == 0) { Debug.LogError("Supplied Poses Array is of length 0"); return; }
@@ -291,7 +283,7 @@ public class MotionPose {
 
         this.bonePoses = newPoseBones;
         this.rootMotionInfo = newRootMotion;
-    }
+    }*/
 
     public float[] flattenedMotionPose {
         //the initial 'position' of the rootmotion is not factored in, just the velocity from value(position 1) to positionnext(position 2), which is currently stored as the values for the root in positionnext
@@ -357,52 +349,19 @@ public class MotionFieldController : ScriptableObject {
 
 	public TaskArrayInfo TArrayInfo;
 
-	private Dictionary<vfKey, float> precomputedRewards;
-
-	//using an ArrayList because Unity is dumb and doesn't have tuples.
-	//each arralist should holds a MotionPose in [0] a float[] in [1], and a float in [2]
-	//since ArrayList stores everything as object, must cast it when taking out data
-	[HideInInspector]
-	public List<precomputedRewards_Initializer_Element> precomputedRewards_Initializer;
-
-    //how much to prefer the immediate reward vs future reward. 
-    //reward = r(firstframe) + scale*r(secondframe) + scale^2*r(thirdframe) + ... ect
-    //close to 0 has higher preference on early reward. closer to 1 has higher preference on later reward
-    //closer to 1 also asymptotically increases time to generate precomputed rewards, so its recommended you dont set it too high. 
-    [Range(0.0f,0.999f)]
-    public float scale = 0.5f; 
-
     public int numActions = 1;
 
     private float startingReward = float.MaxValue;
     //DEBUG
     public string currentTaskOutput;
 
-    /*
-    //legacy from motion fields
-    [Range(0.0f, 1.0f)]
-    public float driftCorrection = 0.1f;
-    */
-
-	public candidatePose[] OneTick(MotionPose currentPose){
-
-        float[] taskArr = GetTaskArray();
-        //Debug.Log("task Length: " + taskArr.Length.ToString());
-
-        candidatePose[] newPoses = MoveOneFrame(currentPose, taskArr);
-
-        //Debug.Log("root motion of chosen pose:\n posX: " + newPose.rootMotionInfo.value.posX + "  posY: " + newPose.rootMotionInfo.value.posY + "  posZ: " + newPose.rootMotionInfo.value.posZ);
-
-        return newPoses;
-	}
-
-    public candidatePose[] MoveOneFrame(MotionPose currentPose, float[] taskArr)
+    public candidatePose[] MoveOneTick(MotionPose currentPose, Transform targetLocation)
     {
         //Debug.Log("Move One Frame pose before GenCandActions: " + string.Join(" ", currentPose.flattenedMotionPose.Select(d => d.ToString()).ToArray()));
         candidatePose[] candidateActions = GenerateCandidateActions(currentPose);
 
         //Debug.Log("Move One Frame pose after GenCandActions: " + string.Join(" ", currentPose.flattenedMotionPose.Select(d => d.ToString()).ToArray()));
-        RankCandidates(currentPose, ref candidateActions, taskArr);
+        RankCandidates(currentPose, ref candidateActions, targetLocation);
 
         return candidateActions;
     }
@@ -423,10 +382,10 @@ public class MotionFieldController : ScriptableObject {
         return candidates;
     }
 
-    private candidatePose[] RankCandidates(MotionPose currentPose, ref candidatePose[] candidateActions, float[] taskArr) {
+    private candidatePose[] RankCandidates(MotionPose currentPose, ref candidatePose[] candidateActions, Transform targetLocation) {
 
         for (int i = 0; i < candidateActions.Length; ++i) {
-            ComputeReward(currentPose, ref candidateActions[i], taskArr); //sets the reward for that candidate
+            TArrayInfo.ComputeReward(currentPose, ref candidateActions[i], targetLocation); //sets the reward for that candidate
         }
 
         Array.Sort(candidateActions);
@@ -442,266 +401,6 @@ public class MotionFieldController : ScriptableObject {
             data[i] = (MotionPose)nn_data[i];
         }
         return data;
-    }
-
-	private float[] GenerateWeights(float[] ideal, float[][] neighbors){
-
-		float[] weights = new float[neighbors.Length];
-        float diff;
-        float weightsSum = 0;
-        int i, j;
-
-		//weights[i] = 1/distance(neighbors[i] , floatpos) ^2 
-		for(i = 0; i < neighbors.Length; i++){
-			weights [i] = 0.0f;
-			for(j = 0; j < ideal.Length; j++){
-                diff = ideal[j] - neighbors[i][j];
-				weights [i] += diff*diff;
-			}
-			weights [i] = 1.0f / weights [i];
-            weightsSum += weights[i];
-
-            if (float.IsInfinity(weights[i])) { //special case where a neighbor is identical to ideal.
-                for (j = 0; j < weights.Length; j++) {
-                    if (j == i) {
-                        weights[j] = 1.0f;
-                    }
-                    else {
-                        weights[j] = 0.0f;
-                    }
-                }
-                return weights;
-            }
-        }
-
-        //now normalize weights so that they sum to 1
-        for (i = 0; i < weights.Length; i++) {
-            weights[i] = weights[i] / weightsSum;
-        }
-        //Debug.Log("weights: " + string.Join(" ", weights.Select(w => w.ToString()).ToArray()));
-        return weights;
-	}
-
-        //TODO: Move out to a Math Utility static class
-    public List<List<float>> CartesianProduct( List<List<float>> sequences){
-		// base case: 
-		List<List<float>> product = new List<List<float>>(); 
-		product.Add (new List<float> ());
-		foreach(List<float> sequence in sequences) 
-		{ 
-			// don't close over the loop variable (fixed in C# 5 BTW)
-			List<float> s = sequence; 
-			List<List<float>> newProduct = new List<List<float>> ();
-			foreach (List<float> p in product){
-				foreach (float item in s){
-					newProduct.Add(p.Concat (new List<float> (new float[] { item })).ToList());
-				}
-			}
-			product = newProduct;
-		} 
-		return product; 
-	}
-
-    private float[] GetTaskArray(){
-        //current value of task array determined by world params
-		int tasklength = TArrayInfo.TaskArray.Count;
-		float[] taskArr = new float[tasklength];
-		for(int i = 0; i < tasklength; i++){
-			taskArr[i] = TArrayInfo.TaskArray[i].DetermineTaskValue();
-		}
-		return taskArr;
-	}
-
-	private void ComputeReward(MotionPose pose, ref candidatePose newPose, float[] taskArr){
-        //first calculate immediate reward
-		float immediateReward = 0.0f;
-
-        for(int i = 0; i < taskArr.Length; i++){
-			float taskReward = TArrayInfo.TaskArray[i].CheckReward (pose, newPose.pose, taskArr[i]);
-
-            //Debug.LogFormat("Task: {0} - Value: {1}", TArrayInfo.TaskArray[i].name, taskReward);
-
-            immediateReward += taskReward;
-        }
-
-        //calculate continuousReward
-        float continuousReward = ContRewardLookup(newPose.pose, taskArr);
-
-        //Debug.Log("Continuous Reward is " + continuousReward.ToString());
-
-		newPose.reward = immediateReward + scale*continuousReward;
-	}
-
-	private float ContRewardLookup(MotionPose pose, float[] Tasks){
-        //get continuous reward from valuefunc lookup table.
-        //reward is weighted blend of closest values in lookup table.
-        //get closest poses from kdtree, and closest tasks from cartesian product
-        //then get weighted rewards from lookup table for each pose+task combo
-        int i, j;
-
-        /*
-        //legacy from motion fields
-        //get closest poses (now with pose matching, pose is already an existing pose, rather than a blend of poses, so getting nearest existing poses is no longer nessesary.)
-        float[] poseArr = pose.flattenedMotionPose;
-        MotionPose[] neighbors = NearestNeighbor (poseArr);
-        float[] neighbors_weights = GenerateWeights(pose, neighbors);
-        */
-
-		//get closest tasks.
-		List<List<float>> nearest_vals = new List<List<float>> ();
-        float min, max, numSamples, interval;
-		for(i=0; i < Tasks.Length; i++){
-
-            List<float> nearest_val = new List<float> ();
-
-            //dont change math on how tasks are sampled unless you know what your doing. must make equivalent changes when creating dict in MFEditorWindow
-            min = TArrayInfo.TaskArray[i].min;
-            max = TArrayInfo.TaskArray[i].max;
-            numSamples = TArrayInfo.TaskArray[i].numSamples;
-            interval = (max - min) / (numSamples - 1);
-
-            //Debug.Log("interval for " + min.ToString() + " to " + max.ToString() + " for " + numSamples.ToString() + " samples is " + interval.ToString());
-            float lower = Mathf.FloorToInt((Tasks[i] - min) / interval) * interval + min;
-            nearest_val.Add (lower);
-            if(lower != max && lower != Tasks[i])
-            {
-                nearest_val.Add(lower + interval);
-            }
-			nearest_vals.Add (nearest_val);
-		}
-        
-        //turn the above/below vals for each task into 2^Tasks.Length() task arrays, each of which exists in precalculated dataset
-        List<List<float>> nearestTasks = CartesianProduct(nearest_vals);
-		float[][] nearestTasksArr = nearestTasks.Select(a => a.ToArray()).ToArray();
-
-        /*
-        string StrSampleTasks = "nearest sampled tasks to " + string.Join(" ", Tasks.Select(t => t.ToString()).ToArray()) + ":";
-        for (int rr = 0; rr < nearestTasksArr.Count(); rr++)
-        {
-            StrSampleTasks += "\n" + string.Join(" ", nearestTasksArr[rr].Select(t => t.ToString()).ToArray());
-        }
-        Debug.Log(StrSampleTasks);
-        */
-        
-        float[] dictKeys_weights = GenerateWeights(Tasks, nearestTasksArr);
-
-		//get matrix of neighbors x tasks. The corresponding weight matrix should sum to 1.
-		vfKey[] dictKeys = new vfKey[nearestTasksArr.Length];
-        for (j = 0; j < nearestTasksArr.Length; j++) {
-            dictKeys[j] = new vfKey(pose.animName, pose.timestamp, nearestTasksArr[j]);
-        }
-
-        //do lookups in precomputed table, get weighted sum
-        float continuousReward = 0.0f;
-		for(i = 0; i < dictKeys.Length; i++){
-            //Debug.Log("lookup table vfkey:\nclipname: " + dictKeys[i].clipId + "\ntimestamp: " + dictKeys[i].timeStamp.ToString() + "\ntasks: " + string.Join(" ", dictKeys[i].tasks.Select(w => w.ToString()).ToArray()) + "\nhashcode: " + dictKeys[i].GetHashCode() + "\ncomponent hashcodes: " + dictKeys[i].clipId.GetHashCode() + "  " + dictKeys[i].timeStamp.GetHashCode() + "  (" + string.Join(" ", dictKeys[i].tasks.Select(w => w.GetHashCode().ToString()).ToArray()) + ")");
-            try
-            {
-                continuousReward += precomputedRewards[dictKeys[i]] * dictKeys_weights[i];
-            }
-            catch (KeyNotFoundException)
-            {
-                Debug.LogError("Failed to find key in dict with params \nclipname: " + dictKeys[i].clipId + "\ntimestamp: " + dictKeys[i].timeStamp.ToString() + "\ntasks: " + string.Join(" ", dictKeys[i].tasks.Select(w => ((double)w).ToString()).ToArray()) + "\nhashcode: " + dictKeys[i].GetHashCode() + "\ncomponent hashcodes: " + dictKeys[i].clipId.GetHashCode() + "  " + dictKeys[i].timeStamp.GetHashCode() + " (" + string.Join(" ", dictKeys[i].tasks.Select(w => w.GetHashCode().ToString()).ToArray()) + ")");
-            }
-            
-		}
-
-        //Debug.Log("Continuous Reward Lookup complete, cont reward is " + continuousReward.ToString());
-
-		return continuousReward;
-	}
-
-    public void makeDictfromList(List<ArrayList> lst)
-    {
-        precomputedRewards = new Dictionary<vfKey, float>();
-        foreach (ArrayList arrLst in lst)
-        {
-            MotionPose mp = (MotionPose)arrLst[0];
-            float[] taskarr = (float[])arrLst[1];
-            vfKey newkey = new vfKey(mp.animName, mp.timestamp, taskarr);
-            //Debug.Log("VFKEY ADDED:\nclipname: " + mp.animName + "\ntimestamp: " + mp.timestamp.ToString() + "\ntasks: " + string.Join(" ", taskarr.Select(w => ((double)w).ToString()).ToArray()) + "\nhashcode: " + newkey.GetHashCode() + "\ncomponent hashcodes: " + newkey.clipId.GetHashCode() + "  " + newkey.timeStamp.GetHashCode() + " (" + string.Join(" ", newkey.tasks.Select(w => w.GetHashCode().ToString()).ToArray()) + ")");
-            precomputedRewards.Add(newkey, System.Convert.ToSingle(arrLst[2]));
-        }
-    }
-
-    public void DeserializeDict()
-    {
-        precomputedRewards = new Dictionary<vfKey, float>();
-        foreach (precomputedRewards_Initializer_Element elem in precomputedRewards_Initializer)
-        {
-            vfKey newKey = new vfKey(elem.animName, elem.timestamp, elem.taskArr);
-            precomputedRewards.Add(newKey, elem.reward);
-        }
-    }
-}
-
-[System.Serializable]
-public class precomputedRewards_Initializer_Element
-{
-    public string animName;
-    public float timestamp;
-    public float[] taskArr;
-    public float reward;
-}
-
-public struct vfKey{
-	private readonly string _clipId;
-	private readonly float _timeStamp;
-	private readonly float[] _tasks;
-
-    public string clipId
-    {
-        get { return _clipId; }
-    }
-    public float timeStamp
-    {
-        get { return _timeStamp; }
-    }
-    public float[] tasks
-    {
-        get { return _tasks; }
-    }
-
-	public vfKey(string id, float time, float[] tasks){
-		this._clipId = id;
-		this._timeStamp = time;
-		this._tasks = tasks;
-	}
-
-    public static bool operator ==(vfKey vfKey1, vfKey vfKey2)
-    {
-        return vfKey1.Equals(vfKey2);
-    }
-
-    public static bool operator !=(vfKey vfKey1, vfKey vfKey2)
-    {
-        return !vfKey1.Equals(vfKey2);
-    }
-
-    public override bool Equals(object obj)
-    {
-        return (obj is vfKey)
-            && this._clipId.Equals(((vfKey)obj).clipId)
-            && this._timeStamp.Equals(((vfKey)obj).timeStamp)
-            && this._tasks.SequenceEqual(((vfKey)obj).tasks);
-    }
-
-    public override int GetHashCode()
-    {
-        //hashcode implentation from 'Effective Java' by Josh Bloch
-        unchecked
-        {
-            var hash = 17;
- 
-            hash = (31 * hash) + this._clipId.GetHashCode();
-            hash = (31 * hash) + this._timeStamp.GetHashCode();
-            for(int i = 0; i < _tasks.Length; i++)
-            {
-                hash = (31 * hash) + this._tasks[i].GetHashCode();
-            }
-            
-            return hash;
-        }
     }
 }
 

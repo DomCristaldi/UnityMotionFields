@@ -630,7 +630,7 @@ namespace AnimationMotionFields {
                         numPts += 1;
                     }
                     catch (KDTreeDLL_f.KeyDuplicateException e) {
-                        Debug.Log(e.ToString() + "\nDuplicates in the kdtree are redundant. Skip inserting pt.");
+                        Debug.Log("Duplicate pose found from clip " + pose.animName + " at time " + pose.timestamp + ". Skip inserting into the kdtree.");
                     }
                 }
             }

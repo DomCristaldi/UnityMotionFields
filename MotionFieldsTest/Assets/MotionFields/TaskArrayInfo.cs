@@ -28,6 +28,20 @@ public class TaskArrayInfo : ScriptableObject {
 	public List<ATask> TaskArray;
 
     public List<TaskSettings> tasks;
+
+    public void ComputeReward(MotionPose pose, ref candidatePose newPose, Transform targetLocation)
+    {
+        newPose.reward = 0.0f;
+
+        foreach (ATask task in TaskArray)
+        {
+            float taskReward = task.CheckReward(pose, newPose.pose, targetLocation);
+
+            //Debug.LogFormat("Task: {0} - Value: {1}", task.name, taskReward);
+
+            newPose.reward += taskReward;
+        }
+    }
 }
 
 #if UNITY_EDITOR
