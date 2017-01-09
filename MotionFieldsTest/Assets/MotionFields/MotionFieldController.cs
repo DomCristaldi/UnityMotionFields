@@ -387,7 +387,7 @@ public class MotionFieldController : ScriptableObject {
     {
 
         for (int i = 0; i < candidateActions.Length; ++i) {
-            TArrayInfo.ComputeReward(currentPose, ref candidateActions[i], targetLocation); //sets the reward for that candidate
+            TArrayInfo.ComputeCost(currentPose, ref candidateActions[i], targetLocation, animClipInfoList); //sets the cost for that candidate
         }
 
         Array.Sort(candidateActions);
@@ -412,34 +412,34 @@ public class MotionFieldController : ScriptableObject {
 public class candidatePose : IComparable<candidatePose>
 {
     private MotionPose _pose;
-    private float _reward;
+    private float _cost;
 
     public candidatePose(MotionPose pose)
     {
         this._pose = pose;
     }
 
-    public candidatePose(MotionPose pose, float reward)
+    public candidatePose(MotionPose pose, float cost)
     {
         this._pose = pose;
-        this._reward = reward;
+        this._cost = cost;
     }
 
     public MotionPose pose
     {
         get { return _pose; }
     }
-    public float reward
+    public float cost
     {
-        get { return _reward; }
-        set { _reward = value; }
+        get { return _cost; }
+        set { _cost = value; }
     }
 
     public int CompareTo(candidatePose P)
     {
-        if (P == null || this.reward > P.reward) return 1;
+        if (P == null || this.cost > P.cost) return 1;
 
-        else if(this.reward == P.reward) return 0;
+        else if(this.cost == P.cost) return 0;
 
         else return -1;
     }

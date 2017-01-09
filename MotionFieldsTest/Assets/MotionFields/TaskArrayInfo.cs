@@ -29,17 +29,17 @@ public class TaskArrayInfo : ScriptableObject {
 
     public List<TaskSettings> tasks;
 
-    public void ComputeReward(MotionPose pose, ref candidatePose newPose, Transform targetLocation)
+    public void ComputeCost(MotionPose pose, ref candidatePose newPose, Transform targetLocation, List<AnimClipInfo> animClipInfoList)
     {
-        newPose.reward = 0.0f;
+        newPose.cost = 0.0f;
 
         foreach (ATask task in TaskArray)
         {
-            float taskReward = task.CheckReward(pose, newPose.pose, targetLocation);
+            float taskCost = task.CheckCost(pose, newPose.pose, targetLocation, animClipInfoList);
 
-            //Debug.LogFormat("Task: {0} - Value: {1}", task.name, taskReward);
+            //Debug.LogFormat("Task: {0} - Value: {1}", task.name, taskCost);
 
-            newPose.reward += taskReward;
+            newPose.cost += taskCost;
         }
     }
 }
