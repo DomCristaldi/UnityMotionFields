@@ -323,11 +323,15 @@ public class AnimClipInfo {
     public RootMotionFrameHandling rootMotionFrameHandling;
     public bool looping = false;
     public AnimationClip animClip;
-
-    public MotionPose[] motionPoses;//all the poses generated for this animation clip
-
-    public int frameResolution;//sample rate that was used to create these poses
-    public float frameStep; //time in seconds between every sampled frame of the clip
+    
+    /// <summary> All the poses generated for this animation clip </summary>
+    public MotionPose[] motionPoses;
+    
+    /// <summary> Sample rate used to create poses (pose was generated every frameResolution frames of anim) </summary>
+    public int frameResolution;
+    
+    /// <summary> Length of time between poses in clip. </summary>
+    public float frameStep;
 
     public void PrintPathTest() {
         foreach (EditorCurveBinding ecb in AnimationUtility.GetCurveBindings(animClip)) {
@@ -350,8 +354,6 @@ public class MotionFieldController : ScriptableObject {
 	public TaskArrayInfo TArrayInfo;
 
     public int numActions = 1;
-
-    private float startingReward = float.MaxValue;
     //DEBUG
     public string currentTaskOutput;
 
@@ -366,12 +368,10 @@ public class MotionFieldController : ScriptableObject {
         return candidateActions;
     }
 
+    /// <summary> Generate candidate states to move to. </summary>
     private candidatePose[] GenerateCandidateActions(MotionPose currentPose)
     {
-        //generate candidate states to move to by finding closest poses in kdtree
-        float[] currentPoseArr = currentPose.flattenedMotionPose;
-
-        MotionPose[] neighbors = NearestNeighbor(currentPoseArr);
+        MotionPose[] neighbors = NearestNeighbor(currentPose);
 
         candidatePose[] candidates = new candidatePose[neighbors.Length];
         for (int i = 0; i < candidates.Length; ++i)
@@ -382,18 +382,23 @@ public class MotionFieldController : ScriptableObject {
         return candidates;
     }
 
-    private candidatePose[] RankCandidates(MotionPose currentPose, ref candidatePose[] candidateActions, Transform targetLocation) {
+    /// <summary> Sorts the candidateActions by their costs, calculated from TArrayInfo </summary>
+    private void RankCandidates(MotionPose currentPose, ref candidatePose[] candidateActions, Transform targetLocation)
+    {
 
         for (int i = 0; i < candidateActions.Length; ++i) {
             TArrayInfo.ComputeReward(currentPose, ref candidateActions[i], targetLocation); //sets the reward for that candidate
         }
 
         Array.Sort(candidateActions);
-        return candidateActions;
     }
 
-    private MotionPose[] NearestNeighbor(float[] pose){
-        object[] nn_data = kd.nearest (pose, numActions);
+    /// <summary> Returns an array of MotionPoses most similar to the given pose. Array is of length numActions </summary>
+    private MotionPose[] NearestNeighbor(MotionPose pose)
+    {
+        float[] poseArr = pose.flattenedMotionPose;
+
+        object[] nn_data = kd.nearest (poseArr, numActions);
         
         MotionPose[] data = new MotionPose[nn_data.Length];
         for(int i = 0; i < nn_data.Length; ++i)
