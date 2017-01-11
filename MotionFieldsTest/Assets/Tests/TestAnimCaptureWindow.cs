@@ -125,7 +125,7 @@ public class SampleClipTool : EditorWindow {
 
         //HIPS LOCATION AND ROTATION
         //skelRootTf = EditorGUILayout.ObjectField(skelRootTf, typeof(Transform), true) as Transform;
-        skelRootTf = go.GetComponent<AnimationMotionFields.MotionFieldComponent>().cosmeticSkel.skeletonRoot;
+        skelRootTf = go.GetComponent<AnimationMotionFields.MotionFieldComponent>().skeletonRoot;
 
         if (skelRootTf == null) { return; }
 

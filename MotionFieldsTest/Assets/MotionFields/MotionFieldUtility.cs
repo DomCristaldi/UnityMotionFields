@@ -69,7 +69,7 @@ namespace AnimationMotionFields {
                 bonePoses[i].value = new BoneTransform(cosBone.boneTf, isLocalSpace);
 
                 //ENCODE BONE LENGTHS
-                if(modelRef.cosmeticSkel.skeletonRoot == cosBone.boneTf) {
+                if(modelRef.skeletonRoot == cosBone.boneTf) {
                     //HACK: predefine bone length of the root of the Skeleton to 0.5f meters
                     bonePoses[i].sqrtBoneLength = Mathf.Sqrt(0.5f);
                 }
@@ -357,8 +357,8 @@ namespace AnimationMotionFields {
         {
 
         //RECORD IMPORTANT POINTS FOR READABILITY
-            Transform anchorPointTf = modelRef.cosmeticSkel.rootMotionReferencePoint;
-            Transform skelRootTf = modelRef.cosmeticSkel.skeletonRoot;
+            Transform anchorPointTf = modelRef.rootMotionReferencePoint;
+            Transform skelRootTf = modelRef.skeletonRoot;
 
             //record a reference to the Bone Pose for the Skeleton Root so it's easier to read
             BonePose skelRootBone = motionPose.GetBonePose(modelRef.cosmeticSkel.GetBone(skelRootTf).boneLabel);
@@ -408,7 +408,7 @@ namespace AnimationMotionFields {
                             + skelRootTf.position;
 
             //transform the point to the reference point's local space, where the skeleton's root is originally located 
-            newPos = modelRef.cosmeticSkel.rootMotionReferencePoint.InverseTransformPoint(newPos);
+            newPos = modelRef.rootMotionReferencePoint.InverseTransformPoint(newPos);
             
 
             Vector3 centerOfMassToHips = skelRootTf.position - rootMotionReferencePos;
@@ -432,7 +432,7 @@ namespace AnimationMotionFields {
                                                                 RootMotionFrameHandling frameHandling = RootMotionFrameHandling.SetFirstFrameToZero)
         {
 
-            Quaternion prevRotToAnchorRot = modelRef.cosmeticSkel.rootMotionReferencePoint.rotation * Quaternion.Inverse(prevRot);
+            Quaternion prevRotToAnchorRot = modelRef.rootMotionReferencePoint.rotation * Quaternion.Inverse(prevRot);
 
             Vector3 positionMotion = Vector3.ProjectOnPlane(prevRotToAnchorRot * (curPos - prevPos), Vector3.up);
 
@@ -454,7 +454,7 @@ namespace AnimationMotionFields {
             AnimationMode.BeginSampling();
 
             //sample pose and store in the Human Pose we allocated earlier
-            HumanPoseHandler hPoseHandler = new HumanPoseHandler(modelRef.cosmeticSkel.avatar, modelRef.cosmeticSkel.skeletonRoot);
+            HumanPoseHandler hPoseHandler = new HumanPoseHandler(modelRef.avatar, modelRef.skeletonRoot);
             AnimationMode.SampleAnimationClip(modelRef.gameObject, animClip, timestamp);
             hPoseHandler.GetHumanPose(ref hPose);
 

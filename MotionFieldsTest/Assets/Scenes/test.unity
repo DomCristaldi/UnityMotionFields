@@ -182,6 +182,10 @@ Transform:
   m_Father: {fileID: 0}
   m_RootOrder: 1
   m_LocalEulerAnglesHint: {x: 50, y: -30, z: 0}
+--- !u!4 &589140060 stripped
+Transform:
+  m_PrefabParentObject: {fileID: 473998, guid: c5056a12ff353414b9fe8becf94a59f2, type: 2}
+  m_PrefabInternal: {fileID: 763982497}
 --- !u!4 &760737445 stripped
 Transform:
   m_PrefabParentObject: {fileID: 469518, guid: c5056a12ff353414b9fe8becf94a59f2, type: 2}
@@ -663,19 +667,19 @@ Prefab:
       objectReference: {fileID: 0}
     - target: {fileID: 435604, guid: c5056a12ff353414b9fe8becf94a59f2, type: 2}
       propertyPath: m_LocalRotation.x
-      value: -0.040673066
+      value: -0.04067307
       objectReference: {fileID: 0}
     - target: {fileID: 435604, guid: c5056a12ff353414b9fe8becf94a59f2, type: 2}
       propertyPath: m_LocalRotation.y
-      value: 0.02692503
+      value: 0.026925031
       objectReference: {fileID: 0}
     - target: {fileID: 435604, guid: c5056a12ff353414b9fe8becf94a59f2, type: 2}
       propertyPath: m_LocalRotation.z
-      value: 0.044140972
+      value: 0.044140976
       objectReference: {fileID: 0}
     - target: {fileID: 435604, guid: c5056a12ff353414b9fe8becf94a59f2, type: 2}
       propertyPath: m_LocalRotation.w
-      value: 0.9978338
+      value: 0.99783385
       objectReference: {fileID: 0}
     - target: {fileID: 435604, guid: c5056a12ff353414b9fe8becf94a59f2, type: 2}
       propertyPath: m_LocalPosition.x
@@ -1059,7 +1063,7 @@ Prefab:
       objectReference: {fileID: 0}
     - target: {fileID: 9519824, guid: c5056a12ff353414b9fe8becf94a59f2, type: 2}
       propertyPath: m_Enabled
-      value: 1
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 11470552, guid: c5056a12ff353414b9fe8becf94a59f2, type: 2}
       propertyPath: control
@@ -2358,7 +2362,7 @@ Prefab:
     - target: {fileID: 9519824, guid: c5056a12ff353414b9fe8becf94a59f2, type: 2}
       propertyPath: m_Controller
       value: 
-      objectReference: {fileID: 0}
+      objectReference: {fileID: 9100000, guid: 635394e239a485d4ba311011ce84b05d, type: 2}
     - target: {fileID: 11470552, guid: c5056a12ff353414b9fe8becf94a59f2, type: 2}
       propertyPath: g_flooredBodyPosRadius
       value: 0.05
@@ -2367,6 +2371,23 @@ Prefab:
       propertyPath: targetLocation
       value: 
       objectReference: {fileID: 1824635316}
+    - target: {fileID: 11470552, guid: c5056a12ff353414b9fe8becf94a59f2, type: 2}
+      propertyPath: TestBoneMap
+      value: 
+      objectReference: {fileID: 11400000, guid: 2c5aa761898242540a1779dc06834a37,
+        type: 2}
+    - target: {fileID: 11470552, guid: c5056a12ff353414b9fe8becf94a59f2, type: 2}
+      propertyPath: skeletonRoot
+      value: 
+      objectReference: {fileID: 589140060}
+    - target: {fileID: 11470552, guid: c5056a12ff353414b9fe8becf94a59f2, type: 2}
+      propertyPath: rootMotionReferencePoint
+      value: 
+      objectReference: {fileID: 760737445}
+    - target: {fileID: 11470552, guid: c5056a12ff353414b9fe8becf94a59f2, type: 2}
+      propertyPath: avatar
+      value: 
+      objectReference: {fileID: 9000000, guid: 2ab0893f5bba9b243b65e309e78089d0, type: 3}
     m_RemovedComponents: []
   m_ParentPrefab: {fileID: 100100000, guid: c5056a12ff353414b9fe8becf94a59f2, type: 2}
   m_IsPrefabParent: 0
@@ -2552,6 +2573,7 @@ GameObject:
   - component: {fileID: 1824635314}
   - component: {fileID: 1824635313}
   - component: {fileID: 1824635317}
+  - component: {fileID: 1824635318}
   m_Layer: 0
   m_Name: Capsule
   m_TagString: Untagged
@@ -2567,7 +2589,7 @@ MeshRenderer:
   m_GameObject: {fileID: 1824635312}
   m_Enabled: 1
   m_CastShadows: 1
-  m_ReceiveShadows: 1
+  m_ReceiveShadows: 0
   m_MotionVectors: 1
   m_LightProbeUsage: 1
   m_ReflectionProbeUsage: 1
@@ -2641,6 +2663,22 @@ MonoBehaviour:
   moveLeft: 97
   movementVelocity: 5.5
   movementAcceleration: 10
+--- !u!114 &1824635318
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 0}
+  m_GameObject: {fileID: 1824635312}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c89a58e80202326408616de657cfd3b4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  testMap: {fileID: 0}
+  assignedMap: {fileID: 11400000, guid: 2c5aa761898242540a1779dc06834a37, type: 2}
+  targetLabelIndex: 0
+  targetLabel:
+    label: test 8
 --- !u!1 &1868263975
 GameObject:
   m_ObjectHideFlags: 0

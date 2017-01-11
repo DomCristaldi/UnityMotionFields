@@ -4,6 +4,8 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 
+using AnimationMotionFields;
+
 #if UNITY_EDITOR
 using UnityEditor;
 using UnityEditorInternal;
@@ -31,10 +33,10 @@ namespace AnimationMotionFields
     {
         //public GameObject marker;
 
-        public Transform skeletonRoot;
-        public Transform rootMotionReferencePoint;
+        //public Transform skeletonRoot;
+        //public Transform rootMotionReferencePoint;
 
-        public Avatar avatar;
+        //public Avatar avatar;
 
         public List<CosmeticSkeletonBone> cosmeticBones;
 
@@ -163,12 +165,14 @@ namespace AnimationMotionFields
             if (_reorderList == null) { _reorderList = GetReorderList(property.FindPropertyRelative("cosmeticBones")); }
 
             float propHeight = 0.0f;
-
+            /*
             propHeight += EditorGUI.GetPropertyHeight(property.FindPropertyRelative("skeletonRoot"))
                         + EditorGUI.GetPropertyHeight(property.FindPropertyRelative("rootMotionReferencePoint"))
                         + EditorGUI.GetPropertyHeight(property.FindPropertyRelative("avatar"))
                         + _reorderList.GetHeight();
                         //+ EditorGUI.GetPropertyHeight(_reorderList.serializedProperty);
+                        */
+            propHeight = _reorderList.GetHeight();
 
             return propHeight;
             /*
@@ -190,9 +194,11 @@ namespace AnimationMotionFields
 
             //SerializedProperty markerProp = property.FindPropertyRelative("marker");
 
+            /*
             SerializedProperty skelRootProp = property.FindPropertyRelative("skeletonRoot");
             SerializedProperty rootMotionRefPointProp = property.FindPropertyRelative("rootMotionReferencePoint");
             SerializedProperty avatarProp = property.FindPropertyRelative("avatar");
+            */
 
             EditorGUI.BeginProperty(position, label, property);
 
@@ -206,7 +212,7 @@ namespace AnimationMotionFields
                                     markerProp);
             yVal += EditorGUI.GetPropertyHeight(markerProp);
             */
-
+            /*
             //DRAW SKELETON ROOT PROPERTY FIELD
             EditorGUI.PropertyField(new Rect(position.x, yVal,
                                              position.width, EditorGUI.GetPropertyHeight(skelRootProp)),
@@ -226,7 +232,7 @@ namespace AnimationMotionFields
                                              position.width, EditorGUI.GetPropertyHeight(avatarProp)),
                                     avatarProp);
             yVal += EditorGUI.GetPropertyHeight(avatarProp);
-
+            */
 
             //_reorderList.DoList(position);
             _reorderList.DoList(new Rect(position.x, yVal,
@@ -245,6 +251,7 @@ namespace AnimationMotionFields
     [RequireComponent(typeof(Animator))]
     public class MotionFieldComponent : MonoBehaviour
     {
+
         private MotionPose newPose;
         private candidatePose[] candidates;
         private AnimClipInfo currentAnimInfo;
@@ -286,13 +293,24 @@ namespace AnimationMotionFields
 
         BlendSwitcherPlayable blendSwitcher;
 
-        public BoneMap AssignedBoneMap;
+        //public int initialPoseClipIndex;
+        //public float initialPoseClipTimestamp;
 
-        public int initialPoseClipIndex;
-        public float initialPoseClipTimestamp;
 
+
+        [Space]
         public CosmeticSkeleton cosmeticSkel;
+
+        public BoneMap TestBoneMap;
+
         public MotionFieldController controller;
+
+        [Space]
+        public Transform skeletonRoot;
+        public Transform rootMotionReferencePoint;
+
+        public Avatar avatar;
+
 
         public Transform targetLocation;
 
@@ -718,7 +736,8 @@ namespace AnimationMotionFields
         {
             Gizmos.color = g_bodyOrientaionVecColor;
 
-            HumanPoseHandler hPoseHandler = new HumanPoseHandler(cosmeticSkel.avatar, cosmeticSkel.skeletonRoot);
+            //HumanPoseHandler hPoseHandler = new HumanPoseHandler(cosmeticSkel.avatar, cosmeticSkel.skeletonRoot);
+            HumanPoseHandler hPoseHandler = new HumanPoseHandler(avatar, skeletonRoot);
             HumanPose hPose = new HumanPose();
             hPoseHandler.GetHumanPose(ref hPose);
 
@@ -730,19 +749,21 @@ namespace AnimationMotionFields
 
             Gizmos.color = g_hipsOrientationVecColor;
 
-            Gizmos.DrawLine(cosmeticSkel.skeletonRoot.position,
-                            cosmeticSkel.skeletonRoot.position + (cosmeticSkel.skeletonRoot.rotation * Vector3.forward * 12.0f));
+            //Gizmos.DrawLine(cosmeticSkel.skeletonRoot.position,
+            //                cosmeticSkel.skeletonRoot.position + (cosmeticSkel.skeletonRoot.rotation * Vector3.forward * 12.0f));
 
+            Gizmos.DrawLine(skeletonRoot.position,
+                            skeletonRoot.position + (skeletonRoot.rotation * Vector3.forward * 12.0f));
 
 
             Gizmos.color = g_flooredBodyPosColor;
             Gizmos.DrawLine(new Vector3(hPose.bodyPosition.x,
-                                        cosmeticSkel.rootMotionReferencePoint.position.y,
+                                        rootMotionReferencePoint.position.y,
                                         hPose.bodyPosition.z),
                             hPose.bodyRotation * Vector3.forward * 12.0f);
 
             Gizmos.DrawLine(new Vector3(hPose.bodyPosition.x,
-                                        cosmeticSkel.rootMotionReferencePoint.position.y,
+                                        rootMotionReferencePoint.position.y,
                                         hPose.bodyPosition.z),
                             hPose.bodyRotation * Vector3.up * 12.0f);
 
@@ -872,7 +893,8 @@ namespace AnimationMotionFields
             Handles.color = Color.cyan;
             Matrix4x4 originalMatrix = Handles.matrix;
 
-            HumanPoseHandler hPoseHandler = new HumanPoseHandler(selfScript.cosmeticSkel.avatar, selfScript.cosmeticSkel.skeletonRoot);
+            //HumanPoseHandler hPoseHandler = new HumanPoseHandler(selfScript.cosmeticSkel.avatar, selfScript.cosmeticSkel.skeletonRoot);
+            HumanPoseHandler hPoseHandler = new HumanPoseHandler(selfScript.avatar, selfScript.skeletonRoot);
             HumanPose hPose = new HumanPose();
             hPoseHandler.GetHumanPose(ref hPose);
 
