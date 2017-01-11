@@ -33,17 +33,20 @@ public enum RootMotionFrameHandling {
 
 
 [System.Serializable]
-public class BoneTransform {
+public class BoneTransform
+{
     public float posX, posY, posZ,
                  rotW, rotX, rotY, rotZ;
 
     //Initialize everyting to default values
-    public BoneTransform() {
+    public BoneTransform()
+    {
         this.posX = this.posY = this.posZ = this.rotX = this.rotY = this.rotZ = 0.0f;
         this.rotW = 1.0f;
     }
 
-    public BoneTransform(Vector3 position, Quaternion rotation) {
+    public BoneTransform(Vector3 position, Quaternion rotation)
+    {
         this.posX = position.x;
         this.posY = position.y;
         this.posZ = position.z;
@@ -55,15 +58,16 @@ public class BoneTransform {
     }
 
     //Initialize everything to the same constant value (useful for setting velocity to 0)
-    public BoneTransform(float constant) {
+    public BoneTransform(float constant)
+    {
         this.posX = this.posY = this.posZ
       = this.rotW = this.rotX = this.rotY = this.rotZ
       = constant;
     }
 
     //Initialize with positional information (WARNING: Lossy Scale must be used for world scale)
-    public BoneTransform(Transform tf, bool isLocal = true) {
-
+    public BoneTransform(Transform tf, bool isLocal = true)
+    {
         if (isLocal) {
             this.posX = tf.localPosition.x;
             this.posY = tf.localPosition.y;
@@ -101,7 +105,8 @@ public class BoneTransform {
     }
 
     //Used for creating a copy
-    public BoneTransform(BoneTransform copy) {
+    public BoneTransform(BoneTransform copy)
+    {
         this.posX = copy.posX;
         this.posY = copy.posY;
         this.posZ = copy.posZ;
@@ -192,7 +197,8 @@ public class BoneTransform {
 }
 
 [System.Serializable]
-public class BonePose {
+public class BonePose
+{
     public string boneLabel;
     public float sqrtBoneLength;
 
@@ -200,7 +206,8 @@ public class BonePose {
     public BoneTransform positionNext;
     public BoneTransform positionNextNext;
 
-    public BonePose(string boneLabel) {
+    public BonePose(string boneLabel)
+    {
         this.boneLabel = boneLabel;
     }
 
@@ -216,8 +223,8 @@ public class BonePose {
 }
 
 [System.Serializable]
-public class MotionPose {
-
+public class MotionPose
+{
     public BonePose[] bonePoses;
 
     public BonePose rootMotionInfo;
@@ -228,14 +235,16 @@ public class MotionPose {
     //public float[] keyframeData;
     //public KeyframeData[] keyframeData;
 
-    public MotionPose(BonePose[] bonePoses, BonePose rootMotionInfo) {
+    public MotionPose(BonePose[] bonePoses, BonePose rootMotionInfo)
+    {
         this.bonePoses = bonePoses;
         this.rootMotionInfo = rootMotionInfo;
     }
 
 
     //NEW
-    public MotionPose(BonePose[] bonePoses, string animName, float timestamp) {
+    public MotionPose(BonePose[] bonePoses, string animName, float timestamp)
+    {
         this.bonePoses = bonePoses;
         this.animName = animName;
         this.timestamp = timestamp;
@@ -285,7 +294,8 @@ public class MotionPose {
         this.rootMotionInfo = newRootMotion;
     }*/
 
-    public float[] flattenedMotionPose {
+    public float[] flattenedMotionPose
+    {
         //the initial 'position' of the rootmotion is not factored in, just the velocity from value(position 1) to positionnext(position 2), which is currently stored as the values for the root in positionnext
         get {
             var retArray = rootMotionInfo.positionNext.positionArray().Concat<float>(rootMotionInfo.flattenedPositionNext());
@@ -300,23 +310,24 @@ public class MotionPose {
     }
 
     //RETRIEVE THE BONE POSE WITH THE SPECIFIED LABEL
-    public BonePose GetBonePose(string label) { //TODO: update to Dictionary lookukp
-        foreach (BonePose pose in bonePoses) {
-            if (pose.boneLabel == label) {
-
+    public BonePose GetBonePose(string label) //TODO: update to Dictionary lookukp
+    { 
+        foreach (BonePose pose in bonePoses) 
+        {
+            if (pose.boneLabel == label) 
+            {
                 return pose;
-
             }
         }
 
         //no bone pose with that label was found, return Null
         return null;
     }
-
 }
 
 [System.Serializable]
-public class AnimClipInfo {
+public class AnimClipInfo
+{
     public bool useClip = true;
     public VelocityCalculationMode velocityCalculationMode;
     public RootMotionCalculationMode rootMotionCalculationMode;
@@ -333,8 +344,10 @@ public class AnimClipInfo {
     /// <summary> Length of time between poses in clip. </summary>
     public float frameStep;
 
-    public void PrintPathTest() {
-        foreach (EditorCurveBinding ecb in AnimationUtility.GetCurveBindings(animClip)) {
+    public void PrintPathTest()
+    {
+        foreach (EditorCurveBinding ecb in AnimationUtility.GetCurveBindings(animClip))
+        {
             Debug.Log("path " + ecb.propertyName);
         }
     }
@@ -342,8 +355,8 @@ public class AnimClipInfo {
 
 
 [CreateAssetMenu]
-public class MotionFieldController : ScriptableObject {
-
+public class MotionFieldController : ScriptableObject
+{
     //public List<string> trackedBones;
     public BoneMap AssignedBoneMap;
 
@@ -357,44 +370,8 @@ public class MotionFieldController : ScriptableObject {
     //DEBUG
     public string currentTaskOutput;
 
-    public candidatePose[] OneTick(MotionPose currentPose, Transform targetLocation)
-    {
-        //Debug.Log("Move One Frame pose before GenCandActions: " + string.Join(" ", currentPose.flattenedMotionPose.Select(d => d.ToString()).ToArray()));
-        candidatePose[] candidateActions = GenerateCandidateActions(currentPose);
-
-        //Debug.Log("Move One Frame pose after GenCandActions: " + string.Join(" ", currentPose.flattenedMotionPose.Select(d => d.ToString()).ToArray()));
-        RankCandidates(currentPose, ref candidateActions, targetLocation);
-
-        return candidateActions;
-    }
-
-    /// <summary> Generate candidate states to move to. </summary>
-    private candidatePose[] GenerateCandidateActions(MotionPose currentPose)
-    {
-        MotionPose[] neighbors = NearestNeighbor(currentPose);
-
-        candidatePose[] candidates = new candidatePose[neighbors.Length];
-        for (int i = 0; i < candidates.Length; ++i)
-        {
-            candidates[i] = new candidatePose(neighbors[i]);
-        }
-
-        return candidates;
-    }
-
-    /// <summary> Sorts the candidateActions by their costs, calculated from TArrayInfo </summary>
-    private void RankCandidates(MotionPose currentPose, ref candidatePose[] candidateActions, Transform targetLocation)
-    {
-
-        for (int i = 0; i < candidateActions.Length; ++i) {
-            TArrayInfo.ComputeCost(currentPose, ref candidateActions[i], targetLocation, animClipInfoList); //sets the cost for that candidate
-        }
-
-        Array.Sort(candidateActions);
-    }
-
     /// <summary> Returns an array of MotionPoses most similar to the given pose. Array is of length numActions </summary>
-    private MotionPose[] NearestNeighbor(MotionPose pose)
+    public MotionPose[] NearestNeighbor(MotionPose pose)
     {
         float[] poseArr = pose.flattenedMotionPose;
 

@@ -3,6 +3,7 @@ using UnityEngine.Experimental.Director;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using System;
 
 using AnimationMotionFields;
 
@@ -486,7 +487,8 @@ namespace AnimationMotionFields
             */
 
             //candidates sorted by cost
-            candidates = controller.OneTick(curMotionPose, targetLocation);
+            candidatePose[] candidates = GenerateCandidateActions(curMotionPose);
+            RankCandidates(curMotionPose, ref candidates);
 
             newPose = candidates[0].pose;
 
@@ -533,6 +535,31 @@ namespace AnimationMotionFields
             {
                 currentBlendInfo.clipIndex = 0;
             }
+        }
+
+        /// <summary> Generate candidate states to move to. </summary>
+        private candidatePose[] GenerateCandidateActions(MotionPose currentPose)
+        {
+            MotionPose[] neighbors = controller.NearestNeighbor(currentPose);
+
+            candidatePose[] candidates = new candidatePose[neighbors.Length];
+            for (int i = 0; i < candidates.Length; ++i) 
+            {
+                candidates[i] = new candidatePose(neighbors[i]);
+            }
+
+            return candidates;
+        }
+
+        /// <summary> Sorts the candidateActions by their costs, calculated from TArrayInfo </summary>
+        private void RankCandidates(MotionPose currentPose, ref candidatePose[] candidateActions)
+        {
+            for (int i = 0; i < candidateActions.Length; ++i)
+            {
+                controller.TArrayInfo.ComputeCost(currentPose, ref candidateActions[i], targetLocation, controller.animClipInfoList); //sets the cost for that candidate
+            }
+
+            Array.Sort(candidateActions);
         }
 
         public IEnumerator RunMixersRoutine(float waitTime)
@@ -585,7 +612,9 @@ namespace AnimationMotionFields
                 Debug.LogFormat("Current Pose Timestamp: {0}", curMotionPose.timestamp);
                 */
 
-                candidates = controller.OneTick(curMotionPose, targetLocation);
+                //candidates sorted by cost
+                candidates = GenerateCandidateActions(curMotionPose);
+                RankCandidates(curMotionPose, ref candidates);
 
                 newPose = candidates[0].pose;
 
