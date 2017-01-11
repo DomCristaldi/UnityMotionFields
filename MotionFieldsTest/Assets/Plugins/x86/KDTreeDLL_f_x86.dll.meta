@@ -1,6 +1,6 @@
 fileFormatVersion: 2
-guid: 973751c5cb6b23d48b915fdaed187d64
-timeCreated: 1469305842
+guid: baa23be74f2cf584387a341f7a2c059e
+timeCreated: 1484106039
 licenseType: Free
 PluginImporter:
   serializedVersion: 1
@@ -9,31 +9,14 @@ PluginImporter:
   isPreloaded: 0
   isOverridable: 0
   platformData:
-    Android:
-      enabled: 1
-      settings:
-        CPU: ARMv7
     Any:
       enabled: 1
-      settings:
-        Exclude Android: 0
-        Exclude Editor: 0
-        Exclude Linux: 0
-        Exclude Linux64: 1
-        Exclude LinuxUniversal: 0
-        Exclude OSXIntel: 0
-        Exclude OSXIntel64: 1
-        Exclude OSXUniversal: 0
-        Exclude WebGL: 0
-        Exclude Win: 0
-        Exclude Win64: 1
-        Exclude iOS: 0
+      settings: {}
     Editor:
-      enabled: 1
+      enabled: 0
       settings:
         CPU: x86
         DefaultValueInitialized: true
-        OS: AnyOS
     Linux:
       enabled: 1
       settings:
@@ -55,12 +38,9 @@ PluginImporter:
       settings:
         CPU: None
     OSXUniversal:
-      enabled: 1
+      enabled: 0
       settings:
         CPU: x86
-    WebGL:
-      enabled: 1
-      settings: {}
     Win:
       enabled: 1
       settings:
@@ -73,11 +53,6 @@ PluginImporter:
       enabled: 0
       settings:
         CPU: AnyCPU
-    iOS:
-      enabled: 1
-      settings:
-        CompileFlags: 
-        FrameworkDependencies: 
   userData: 
   assetBundleName: 
   assetBundleVariant: 
