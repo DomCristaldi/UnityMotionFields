@@ -35,6 +35,72 @@ public class Task_Trajectory : ATask
 
         return 0;
     }
+
+    private List<BoneTransform> GenerateSplinePoints(BoneTransform start, BoneTransform startvel, BoneTransform end, BoneTransform endvel, int numpoints)
+    {
+        //TODO: this is only generating a trajectory of the root motion of the character. to also consider the characters facing direction, we would have to look at skeleton root (i think).
+
+        //startvel and endvel are distance from previous frame to start and previous frame to end, respectively.
+        Vector3 sAnchor = start.position;
+        Vector3 sControl = start.position + startvel.position;
+        Vector3 eAnchor = end.position;
+        Vector3 eControl = end.position + endvel.position;
+
+        List<Vector3> splinePoints = new List<Vector3>(numpoints + 1);
+        List<Vector3> splineSlopes = new List<Vector3>(numpoints + 1);
+        for (int dim = 0; dim < 3; dim++) { //loop through x,y,z dimensions of the position vectors
+            //spline formula from www.moshplant.com/direct-or/bezier/math.html
+            float c = 3.0f * (sControl[dim] - sAnchor[dim]);
+            float b = 3.0f * (eControl[dim] - sControl[dim]) - c;
+            float a = eAnchor[dim] - sAnchor[dim] - c - b;
+            for (int i = 0; i < numpoints + 1; i++) {
+                float t = (float)i / (float)(numpoints);
+
+                Vector3 v = splinePoints[i];
+                v[dim] = (a * Mathf.Pow(t, 3)) + (b * Mathf.Pow(t, 2)) + (c * t) + sAnchor[dim];
+                splinePoints[i] = v;
+
+                Vector3 v2 = splineSlopes[i];
+                v2[dim] = (3 * a * Mathf.Pow(t, 2)) + (2 * b * t) + c; //slope formula is just derivate of position formula
+                splineSlopes[i] = v2;
+            }
+        }
+
+
+        //position in GoalTrajectory is difference between previous and current splinePoints
+        //rotation in GoalTrajectory is difference between previous and current splineSlopes
+        //TODO: position of points will be from rotational orientation of first point, not the previous point.... (have to rotate the vector by some quaternion... diff between starting slope and previous slope?)
+        List<BoneTransform> GoalTrajectory = new List<BoneTransform>(numpoints);
+        for (int i = 0; i < numpoints; i++) {
+            Vector3 positionDiff = splinePoints[i + 1] - splinePoints[i];
+            Quaternion rotationDiff = Quaternion.LookRotation(splineSlopes[i + 1]) * Quaternion.Inverse(Quaternion.LookRotation(splineSlopes[i]));
+            GoalTrajectory[i] = new BoneTransform(splinePoints[i + 1] - splinePoints[i], Quaternion.identity);
+        }
+        return GoalTrajectory;
+    }
+
+    private List<Vector3> GenerateSplinePositions(Vector3 sAnchor, Vector3 sControl, Vector3 eAnchor, Vector3 eControl, int numpoints)
+    {
+        List<Vector3> splinePoints = new List<Vector3>(numpoints + 1);
+        for(int dim = 0; dim < 3; dim++) { //loop through x,y,z dimensions of the position vectors
+            //x0 is sA, x1 is sC x2 is eC, x3 is eA
+            float c = 3.0f * (sControl[dim] - sAnchor[dim]);
+            float b = 3.0f * (eControl[dim] - sControl[dim]) - c;
+            float a = eAnchor[dim] - sAnchor[dim] - c - b;
+            for(int i = 0; i < numpoints+1; i++) {
+                float t = (float)i/(float)(numpoints);
+                Vector3 v = splinePoints[i];
+                v[dim] = a*Mathf.Pow(t, 3) + b*Mathf.Pow(t,2) + c*t + sAnchor[dim];
+                splinePoints[i] = v;
+            }
+        }
+        for(int i = 0; i < numpoints; i++) {
+            Vector3 v = splinePoints[i+1] - splinePoints[i];
+            splinePoints[i] = v;
+        }
+        splinePoints.RemoveAt(numpoints);
+        return splinePoints;
+    }
 }
 
 public class Trajectory
