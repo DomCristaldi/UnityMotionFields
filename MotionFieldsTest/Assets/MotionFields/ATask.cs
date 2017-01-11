@@ -1,5 +1,6 @@
 ﻿using UnityEngine;
 using System.Collections;
+using System.Collections.Generic;
 
 public abstract class ATask : ScriptableObject{
 
@@ -14,8 +15,5 @@ public abstract class ATask : ScriptableObject{
 
 	public int numSamples;
 
-    abstract public float CheckReward(MotionPose oldPose, MotionPose newPose, float taskval);
-
-    abstract public float DetermineTaskValue();
-		
+    abstract public float CheckCost(MotionPose oldPose, MotionPose newPose, Transform targetLocation, List<AnimClipInfo> animClipInfoList);		
 }

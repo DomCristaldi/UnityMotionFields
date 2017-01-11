@@ -1,5 +1,6 @@
 ﻿using UnityEngine;
 using System.Collections;
+using System.Collections.Generic;
 using System.Linq;
 
 [CreateAssetMenu]
@@ -7,7 +8,7 @@ public class Task_PoseSimilarity : ATask
 {
 
 
-    public override float CheckReward(MotionPose oldPose, MotionPose newPose, float taskval)
+    public override float CheckCost(MotionPose oldPose, MotionPose newPose, Transform targetLocation, List<AnimClipInfo> animClipInfoList)
     {
         /*
         float[] poseSimilarityArray = new float[oldPose.bonePoses.Length * 7];//3 position values, 4 rotation values
@@ -40,10 +41,5 @@ public class Task_PoseSimilarity : ATask
         }
 
         return poseSimilarityArray.Average();
-    }
-
-    public override float DetermineTaskValue()
-    {
-        return 1.0f;
     }
 }

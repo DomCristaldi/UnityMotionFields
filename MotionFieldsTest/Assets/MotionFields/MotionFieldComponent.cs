@@ -331,14 +331,17 @@ namespace AnimationMotionFields
 
             //HACK: in release build, it should be impossible to call functions from MotionFieldUtility
             MotionFieldUtility.GenerateKDTree(ref controller.kd, controller.animClipInfoList);
-            controller.DeserializeDict();
 
             //create the custom playalbe for driving the animations
             blendSwitcher = Playable.Create<BlendSwitcherPlayable>();
-            blendSwitcher.InitBlendSwitcher(controller.animClipInfoList[1].animClip,
-                                            0.0f);
-
-            animControl.Play(blendSwitcher);
+            foreach(AnimClipInfo clipInfo in controller.animClipInfoList) {
+                if(clipInfo.useClip == true) {
+                    blendSwitcher.InitBlendSwitcher(clipInfo.animClip, 0.0f);
+                    animControl.Play(blendSwitcher);
+                    break;
+                }
+            }
+            //TODO: if no clip could be chosen to start blendswitcher, throw an error.
         }
 		
         // Use this for initialization
@@ -352,6 +355,7 @@ namespace AnimationMotionFields
                     if(controller.animClipInfoList[i].useClip == true)
                     {
                         curMotionPose = controller.animClipInfoList[i].motionPoses[0];
+                        Debug.Log("initial MotionPose set");
                         break;
                     }
                 }
@@ -481,7 +485,8 @@ namespace AnimationMotionFields
             Debug.LogFormat("Current Pose Timestamp: {0}", curMotionPose.timestamp);
             */
 
-            candidates = controller.OneTick(curMotionPose);
+            //candidates sorted by cost
+            candidates = controller.OneTick(curMotionPose, targetLocation);
 
             newPose = candidates[0].pose;
 
@@ -580,7 +585,7 @@ namespace AnimationMotionFields
                 Debug.LogFormat("Current Pose Timestamp: {0}", curMotionPose.timestamp);
                 */
 
-                candidates = controller.OneTick(curMotionPose);
+                candidates = controller.OneTick(curMotionPose, targetLocation);
 
                 newPose = candidates[0].pose;
 

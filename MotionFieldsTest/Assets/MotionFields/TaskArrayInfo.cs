@@ -28,6 +28,20 @@ public class TaskArrayInfo : ScriptableObject {
 	public List<ATask> TaskArray;
 
     public List<TaskSettings> tasks;
+
+    public void ComputeCost(MotionPose pose, ref candidatePose newPose, Transform targetLocation, List<AnimClipInfo> animClipInfoList)
+    {
+        newPose.cost = 0.0f;
+
+        foreach (ATask task in TaskArray)
+        {
+            float taskCost = task.CheckCost(pose, newPose.pose, targetLocation, animClipInfoList);
+
+            //Debug.LogFormat("Task: {0} - Value: {1}", task.name, taskCost);
+
+            newPose.cost += taskCost;
+        }
+    }
 }
 
 #if UNITY_EDITOR
