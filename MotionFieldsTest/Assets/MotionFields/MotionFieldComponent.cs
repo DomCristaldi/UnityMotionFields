@@ -48,13 +48,8 @@ namespace AnimationMotionFields
             foreach (BonePose poseBone in pose.bonePoses) {
                 foreach (CosmeticSkeletonBone cosBone in cosmeticBones) {
                     if (cosBone.boneLabel == poseBone.boneLabel) {
-                        cosBone.boneTf.localPosition = new Vector3(poseBone.value.posX,
-                                                                   poseBone.value.posY,
-                                                                   poseBone.value.posZ);
-                        cosBone.boneTf.localRotation = new Quaternion(poseBone.value.rotX,
-                                                                      poseBone.value.rotY,
-                                                                      poseBone.value.rotZ,
-                                                                      poseBone.value.rotW);
+                        cosBone.boneTf.localPosition = poseBone.value.position;
+                        cosBone.boneTf.localRotation = poseBone.value.rotation;
                         //cosBone.boneTf.l
 
                         continue;

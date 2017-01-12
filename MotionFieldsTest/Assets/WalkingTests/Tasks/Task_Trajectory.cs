@@ -74,7 +74,7 @@ public class Task_Trajectory : ATask
         for (int i = 0; i < numpoints; i++) {
             Vector3 positionDiff = splinePoints[i + 1] - splinePoints[i];
             Quaternion rotationDiff = Quaternion.LookRotation(splineSlopes[i + 1]) * Quaternion.Inverse(Quaternion.LookRotation(splineSlopes[i]));
-            GoalTrajectory[i] = new BoneTransform(splinePoints[i + 1] - splinePoints[i], Quaternion.identity);
+            GoalTrajectory[i] = new BoneTransform(positionDiff, rotationDiff);
         }
         return GoalTrajectory;
     }
